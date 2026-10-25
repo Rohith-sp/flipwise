@@ -1,0 +1,187 @@
+# Flipwise
+
+**Efficient Re-Evaluation of Pending Workloads in Carbon-Aware Datacentre Scheduling**
+
+An offline research simulator that tests *when* a carbon-aware scheduler should re-plan a job that is still waiting to run.
+
+RV College of Engineering · Experiential Learning, V Semester, AY 2026–27 · UN SDG 9 (Industry, Innovation and Infrastructure)
+
+> Status: **EL Phase 1 (pitch) complete. Now on EL Phase 2 (partial results).** No code exists yet. The spec is [docs/prd.md](docs/prd.md) (v0.3).
+
+---
+
+## 1. Problem and contribution
+
+A scheduler picks a datacentre and start time for each job using carbon-intensity forecasts. Those forecasts are revised every 30 minutes, so a job's placement can stop being the best one before the job starts. If you never re-plan, you miss savings. If you re-plan on a timer or at every update, you spend planner time, and jobs bounce around on forecast noise.
+
+**Decision-flip-triggered re-evaluation** (the proposed policy) works in two stages. On each forecast update:
+
+1. **Stage 1, a cheap screen.** A lower bound on every candidate's score checks whether *any* alternative could beat the current placement by the benefit gate `g_min`. If none could, the job is skipped.
+2. **Stage 2, a full re-score.** The job moves only if the best alternative wins by `g_min + θ · w_ab`, where `w_ab` is the combined width of the forecast, runtime and queue-wait uncertainty intervals.
+
+The key property: **at θ = 0 the policy makes exactly the same decisions as a fixed-savings gate that re-scores every job, but it makes fewer planner calls.** Any difference in emissions therefore comes from θ, and any difference in overhead comes from the screen.
+
+## 2. Scope
+
+- An offline, deterministic, command-line **research simulator**. It is not a production scheduler.
+- Three *virtual* datacentres, each in a GB grid region (default: North Scotland, London, South Wales), with pooled GPU, CPU and memory capacity.
+- It replays one-week slices of the Alibaba PAI GPU trace v2020. Policies see NESO carbon forecasts **as they were published at the time**; an evaluator scores the outcomes against later values that the policies never see.
+- Running jobs are never migrated. Results are **modelled** operational CO2 (IT energy only), not measured reductions.
+- Out of scope: real infrastructure control, a server or web app (the dashboard is a static HTML file), and DRO (extension X1).
+
+## 3. Datasets
+
+Raw and processed data are never committed. Download links and checksums will go in `data/README.md`. The full link list is in [docs/helpfullinks.txt](docs/helpfullinks.txt).
+
+| Dataset | Use | Source | Licence / terms |
+|---|---|---|---|
+| Alibaba Cluster Trace GPU v2020 (`pai_job_table`, `pai_task_table`, `pai_machine_spec`) | Job arrivals, runtimes, resource requests | [alibaba/clusterdata](https://github.com/alibaba/clusterdata/tree/master/cluster-trace-gpu-v2020) · [split-file mirror](https://github.com/qzweng/clusterdata-cluster-trace-gpu-v2020-data) | Research/study use; cite Weng et al., NSDI '22 |
+| NESO carbon-intensity forecast vintages, Mar 2023 – Jan 2024 | Forecasts the scheduler sees; final regional forecast used as "truth" | [nmpowell/carbon-intensity-forecast-tracking](https://github.com/nmpowell/carbon-intensity-forecast-tracking) | MIT (archive); NESO terms still to check (blocker B2) |
+| NESO Carbon Intensity API / Data Portal | Cross-checks | [api.carbonintensity.org.uk](https://api.carbonintensity.org.uk/) · [NESO Data Portal](https://www.neso.energy/data-portal) | Per NESO terms |
+
+```bash
+# Alibaba v2020 (MVP needs only these three archives)
+curl -O https://aliopentrace.oss-cn-beijing.aliyuncs.com/v2020GPUTraces/pai_job_table.tar.gz
+curl -O https://aliopentrace.oss-cn-beijing.aliyuncs.com/v2020GPUTraces/pai_task_table.tar.gz
+curl -O https://aliopentrace.oss-cn-beijing.aliyuncs.com/v2020GPUTraces/pai_machine_spec.tar.gz
+
+# Forecast-vintage archive (pin the commit you use and record it in the manifest)
+git clone https://github.com/nmpowell/carbon-intensity-forecast-tracking
+```
+
+`flipwise ingest` checks the archives' SHA-256 against the upstream README and exits if they don't match.
+
+## 4. Setup
+
+Requires Python 3.12 and [uv](https://docs.astral.sh/uv/).
+
+```bash
+uv sync                                    # create .venv from uv.lock
+uv run ruff check . && uv run ruff format --check .
+uv run pytest -q                           # unit, invariant and toy-scenario tests
+uv run flipwise smoke                       # toy scenario, all policies, < 5 s
+```
+
+Stack: pandas, numpy, PyYAML and matplotlib. Optional: plotly, via `uv sync --extra dashboard`. Dev tools: pytest and ruff. The event engine is a custom `heapq` loop, not SimPy (see PRD §5, D3).
+
+### Planned CLI
+
+| Command | Purpose |
+|---|---|
+| `flipwise ingest alibaba --raw data/raw/v2020 --out data/processed` | Verify checksums, build `jobs_v2020.csv` and a manifest |
+| `flipwise ingest carbon --archive <clone> --start 2023-03-13 --end 2024-01-31 --regions 1,13,7 --out data/processed` | Build forecast, truth and coverage CSVs |
+| `flipwise validate --config configs/base.yaml` | Check config, data, coverage and that calibration/test windows don't overlap |
+| `flipwise run --config configs/base.yaml --policy decision_flip` | One run → `results/<run_id>/` |
+| `flipwise compare` / `sweep` / `report` | All policies on identical inputs; parameter grids; rebuild tables from saved logs |
+| `flipwise dashboard --runs results/compare_<hash>` | Write a static, offline `dashboard.html` from saved CSVs |
+
+## 5. Repository layout
+
+Current:
+
+```text
+flipwise/
+├── README.md
+└── docs/
+    ├── prd.md              # authoritative spec (v0.3)
+    ├── explanation.md      # plain-language explanation (to be updated to match PRD v0.3)
+    └── helpfullinks.txt    # dataset, paper and tool links (to become helpfullinks.md)
+```
+
+Target (PRD §13.1):
+
+```text
+├── pyproject.toml, uv.lock, LICENSE, .gitignore
+├── configs/          base.yaml, energy.yaml, policies.yaml, sweeps/*.yaml
+├── scripts/          download and checksum scripts
+├── src/flipwise/     cli, config, models, ingest, carbon, energy, estimates,
+│                     simulator, planner, policies, metrics, reporting, dashboard
+├── tests/            fixtures/toy/ (6 jobs, 3 DCs, hand-checked expected.yaml) + test_*.py
+├── data/             README.md; raw/ and processed/ are git-ignored; manifests/
+└── results/          git-ignored; run outputs and dashboard.html
+```
+
+## 6. Roadmap
+
+The PRD defines nine build phases (§18). The EL reviews map onto them as follows (§18.1).
+
+| EL phase | Build phases | Status |
+|---|---|---|
+| 1. Pitch | — | ✅ Done |
+| **2. Partial results** | 1–6, plus a minimal part of 7 | ⏳ **Current** |
+| 3. Full results and paper (final) | Rest of 5 and 7, then 8–9 | Not started |
+
+### EL Phase 2: partial results
+
+**Precondition:** the mentor confirms that decision-flip is the core contribution and DRO is an extension (blocker B1).
+
+Work on a small slice: **one validation week** of the Alibaba trace (dev sampling 0.1) with the matching NESO forecast vintages.
+
+| # | Build phase | What gets built | Exit criterion |
+|---|---|---|---|
+| 1 | Setup and audit | Repo, `pyproject.toml`, `uv.lock`, ruff, pytest; download v2020; clone the archive at a fixed commit | Checksums match; a script reproduces the PRD §6.1 audit numbers |
+| 2 | Canonical data | `ingest alibaba`, `ingest carbon`, manifests, `validate` | Processed CSVs plus ingest/coverage reports; B2 answered (archive coverage, NESO terms) |
+| 3 | Deterministic core | `models`, `simulator` (events, dispatch, job states), toy fixture, `fcfs` | Toy FCFS output equals `expected.yaml` |
+| 4 | Energy and place-once | `energy`, `carbon` views, `planner` (candidates, feasibility, scoring), `place_once` | Toy emissions exact; static-factor test passes |
+| 5 | Baselines (partial) | `estimates` (runtime quantiles, wait profiles), `periodic(T)`, `fixed_savings(g)`, rescue, throttling | Baselines run on the toy scenario |
+| 6 | Decision-flip | Lower-bound screen, noise margin, interval fallbacks | Toy flip / no-flip / small-gain cases pass; P1 holds |
+| 7 (min) | Runner | `run`, metrics, `dashboard` only | One table and `dashboard.html` |
+
+Policies in Phase 2: `fcfs`, `place_once`, `periodic(T)`, `fixed_savings(g)`, `decision_flip(g, θ)`.
+
+**Must show at the Phase 2 review:**
+1. A toy scenario whose kgCO2 is checked by hand (R-EN-1, toy `expected.yaml`), showing the simulator is correct.
+2. At θ = 0, decision-flip makes **identical decisions** to fixed-savings with fewer `stage2_calls` (P1, R-TRIG-2). This is the core claim.
+3. One comparison table for the validation week: kgCO2, deadline-miss rate and re-score count per policy.
+4. A `dashboard.html` with the timeline, Pareto and results-table tabs. The θ-sweep tab may show "no data".
+
+kgCO2 stays labelled **relative** until power parameters are cited (blocker B3).
+
+### EL Phase 3: full results and paper (final)
+
+| Build phase | What gets built |
+|---|---|
+| 5 (rest) | `pred_error(ε)`, the error-magnitude trigger and key comparison for the contribution, plus the `pig` perfect-information reference |
+| 7 (rest) | `compare`, `sweep`, `report`, paired bootstrap statistics, full plots and manifests |
+| 8 | Real-trace evaluation: fit residual and runtime quantiles; validation sweeps (`g_rel`, θ, ε, T); freeze thresholds; run the test set **once**; sensitivity sweeps (load, carbon spread, forecast-error and interval scaling, deadline slack, energy multipliers); ablations A0–A6 |
+| 9 | Analysis and packaging: report figures, limitations, a reproducibility README (a clean clone reproduces the summary tables from raw downloads) |
+
+Data split: runtime fit on trace days 0–20 · residual fit on carbon data from 13 Mar – 30 Jun 2023 · validation on trace days 21–41 with Jul–Aug 2023 · test on trace days 42–69 with Sep 2023 – Jan 2024. That gives 12 validation and 16 test replicates per policy.
+
+**Phase 3 deliverables:** final test results with bootstrap intervals, the **worse-regime table** (every setting where a simpler baseline beats decision-flip), the full dashboard including the θ sweep, the reproducibility package, and the paper/report. B3 must be resolved before any absolute kgCO2 is reported.
+
+Optional, only after the main results exist: X1 (Global–Local DRO planner) and X9 (live Streamlit viewer).
+
+### Hypotheses under test
+
+| ID | Hypothesis |
+|---|---|
+| H1 | At θ = 0, decision-flip makes ≥ 50 % fewer full re-scorings than fixed-savings, with identical decisions |
+| H2 | With θ > 0 it moves jobs less often, and emissions stay within the seed-to-seed spread |
+| H3 | The benefit of re-planning over place-once grows with carbon spread across regions and with deadline slack |
+| H4 | Carbon intervals that are too narrow increase churn; intervals that are too wide suppress useful moves |
+
+## 7. Open items
+
+| ID | Item | Needed by |
+|---|---|---|
+| B1 | Mentor confirms decision-flip is the core contribution and DRO is extension X1 | Before Phase 2 work |
+| B2 | Archive coverage per region (Mar 2023 – Jan 2024) and NESO redistribution terms | Build phase 2 |
+| B3 | Cited power values: MISC GPU, CPU per core, utilisation factor `f` | Before absolute kgCO2 (build phase 8) |
+| O1 | Which emissions table the principal meant (DESNZ 2026 is the working candidate) | Report |
+| O7 | Check that the name Flipwise / `flipwise` is free on GitHub and PyPI | Before creating the repo |
+
+## 8. References
+
+- **Docs:** [PRD](docs/prd.md) · [Plain-language explanation](docs/explanation.md) · [Links](docs/helpfullinks.txt)
+
+Key references (full list in PRD §19):
+
+- Weng et al., "MLaaS in the Wild," USENIX NSDI '22. [link](https://www.usenix.org/conference/nsdi22/presentation/weng)
+- Hanafy et al., "CarbonScaler," SIGMETRICS 2024 (source of the `pred_error` baseline).
+- Xu et al., "GREEN," USENIX NSDI 2025 (source of the `periodic` baseline).
+- Li, Liu, Ding, "Uncertainty-Aware Decarbonization for Datacenters," HotCarbon '24 (closest prior work to the θ margin).
+- Pinedo, *Scheduling: Theory, Algorithms, and Systems*, 6th ed., Springer, 2022. [doi](https://doi.org/10.1007/978-3-031-05921-6)
+- NESO Carbon Intensity API. [link](https://api.carbonintensity.org.uk/)
+
+Licence: MIT, if the mentor approves (open).

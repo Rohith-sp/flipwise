@@ -1,0 +1,112 @@
+HELPFUL LINKS - Efficient Re-Evaluation of Pending Workloads in Carbon-Aware Datacentre Scheduling
+Compiled 24 Oct 2026. [checked] = opened or downloaded during the PRD audit. [from report] = carried over from your EL report, not re-checked.
+
+============================================================
+1. WORKLOAD DATA (Alibaba GPU trace v2020, MVP dataset)
+============================================================
+Repository and all trace releases [checked]
+  https://github.com/alibaba/clusterdata
+
+v2020 schema, checksums, download links (read this first) [checked]
+  https://github.com/alibaba/clusterdata/tree/master/cluster-trace-gpu-v2020
+
+Direct downloads (Alibaba OSS) - MVP needs only the first three
+  https://aliopentrace.oss-cn-beijing.aliyuncs.com/v2020GPUTraces/pai_job_table.tar.gz        (60 MB)
+  https://aliopentrace.oss-cn-beijing.aliyuncs.com/v2020GPUTraces/pai_task_table.tar.gz       (34 MB)
+  https://aliopentrace.oss-cn-beijing.aliyuncs.com/v2020GPUTraces/pai_machine_spec.tar.gz     (32 KB)
+  Not needed for MVP:
+  https://aliopentrace.oss-cn-beijing.aliyuncs.com/v2020GPUTraces/pai_instance_table.tar.gz   (663 MB)
+  https://aliopentrace.oss-cn-beijing.aliyuncs.com/v2020GPUTraces/pai_sensor_table.tar.gz     (388 MB)
+  https://aliopentrace.oss-cn-beijing.aliyuncs.com/v2020GPUTraces/pai_group_tag_table.tar.gz  (53 MB)
+  https://aliopentrace.oss-cn-beijing.aliyuncs.com/v2020GPUTraces/pai_machine_metric.tar.gz   (198 MB)
+
+GitHub mirror (split parts; this is what I downloaded, checksums matched) [checked]
+  https://github.com/qzweng/clusterdata-cluster-trace-gpu-v2020-data
+  Merge parts: cat pai_job_table.tar.gz.part* > pai_job_table.tar.gz
+
+Paper the trace authors ask you to cite (NSDI '22) [checked via repo README]
+  https://www.usenix.org/conference/nsdi22/presentation/weng
+  PDF: https://home.cse.ust.hk/~weiwa/papers/weng-nsdi22.pdf
+
+Other releases (extensions only)
+  v2023: https://github.com/alibaba/clusterdata/tree/master/cluster-trace-gpu-v2023
+  v2026: https://github.com/alibaba/clusterdata/tree/master/cluster-trace-gpu-v2026
+
+============================================================
+2. CARBON-INTENSITY DATA (NESO, Great Britain)
+============================================================
+Forecast-vintage archive - forecasts as they were published (MVP scheduler input) [checked]
+  https://github.com/nmpowell/carbon-intensity-forecast-tracking
+  Clone: git clone https://github.com/nmpowell/carbon-intensity-forecast-tracking
+  Data: data/db/2023/*.sqlite (Mar 2023 - Feb 2024), data/db/2026/*.sqlite (Jul - Oct 2026)
+  Blog post explaining it: https://nickmp.com/posts/carbon-intensity-forecast-tracking
+
+Official Carbon Intensity API (docs; national actuals, regional forecasts) [checked]
+  https://api.carbonintensity.org.uk/
+  API definitions: https://carbon-intensity.github.io/api-definitions/
+  Methodology overview: https://carbonintensity.org.uk/
+
+NESO Data Portal datasets [from report]
+  Regional forecast:  https://www.neso.energy/data-portal/regional-carbon-intensity-forecast
+  National forecast:  https://www.neso.energy/data-portal/national-carbon-intensity-forecast
+  Historic generation mix: https://www.neso.energy/data-portal/historic-generation-mix
+  Portal home (check licence/terms here - open blocker B2): https://www.neso.energy/data-portal
+
+============================================================
+3. EMISSIONS REFERENCE (principal's suggestion - candidate, not confirmed)
+============================================================
+UK Government GHG Conversion Factors 2026 (DESNZ) [checked]
+  https://www.gov.uk/government/publications/greenhouse-gas-reporting-conversion-factors-2026
+  Methodology paper (PDF):
+  https://assets.publishing.service.gov.uk/media/6a2940543b15d05a7ce3202e/2026-GHG-conversion-factors-methodology-report.pdf
+  All years collection:
+  https://www.gov.uk/government/collections/government-conversion-factors-for-company-reporting
+
+Accounting-boundary background [from report]
+  GHG Protocol Scope 2 Guidance: https://ghgprotocol.org/scope-2-guidance
+  Electricity Maps methodology:  https://www.electricitymaps.com/data/methodology
+
+============================================================
+4. SCHEDULING THEORY (principal's suggestion)
+============================================================
+Pinedo, Scheduling: Theory, Algorithms, and Systems, 6th ed., Springer, 2022 [checked]
+  https://doi.org/10.1007/978-3-031-05921-6
+  Author's supplementary material (slides, cases): https://wp.nyu.edu/michaelpinedo/books/
+
+============================================================
+5. RELATED PAPERS (literature review)
+============================================================
+[from report unless marked]
+  Radovanovic et al., Carbon-Aware Computing for Datacenters, IEEE TPWRS 2023
+    https://doi.org/10.1109/TPWRS.2022.3173250
+  Hall et al., Carbon-Aware Computing for Data Centers with Probabilistic Performance Guarantees, IEEE TPWRS 2025
+    https://doi.org/10.1109/TPWRS.2025.3630499
+  Li, Liu, Ding, Uncertainty-Aware Decarbonization for Datacenters, HotCarbon '24
+    https://hotcarbon.org/assets/2024/pdf/hotcarbon24-final84.pdf
+  Sukprasert et al., On the Limitations of Carbon-Aware Temporal and Spatial Workload Shifting, EuroSys '24
+    https://doi.org/10.1145/3627703.3650079
+  Hanafy et al., Untangling the Carbon-Cost Tradeoffs and Stampede Effect Challenges, IEEE TC 2026
+    https://doi.org/10.1109/TC.2026.3667610
+  Chen and Zong, CATS: A Carbon-Aware Task Simulator, arXiv 2026 [checked: exists]
+    https://arxiv.org/abs/2609.14775
+  Weng et al., Beware of Fragmentation (GPU scheduling on trace v2023), ATC '23 [checked via repo README]
+    https://www.usenix.org/conference/atc23/presentation/weng
+  DCcluster-Opt benchmark, NeurIPS 2025 Datasets & Benchmarks (possible related work, not reviewed)
+    https://arxiv.org/abs/2511.00117
+
+============================================================
+6. TOOLS (MVP stack docs)
+============================================================
+  uv:          https://docs.astral.sh/uv/
+  pandas:      https://pandas.pydata.org/docs/
+  numpy:       https://numpy.org/doc/stable/
+  heapq:       https://docs.python.org/3.12/library/heapq.html
+  PyYAML:      https://pyyaml.org/wiki/PyYAMLDocumentation
+  matplotlib:  https://matplotlib.org/stable/
+  pytest:      https://docs.pytest.org/
+  ruff:        https://docs.astral.sh/ruff/
+
+============================================================
+7. CONTEXT
+============================================================
+  UN SDG 9: https://sdgs.un.org/goals/goal9
