@@ -6,7 +6,7 @@ An offline research simulator that tests *when* a carbon-aware scheduler should 
 
 RV College of Engineering · Experiential Learning, V Semester, AY 2026–27 · UN SDG 9 (Industry, Innovation and Infrastructure)
 
-> Status: **EL Phase 1 (pitch) complete. Now on EL Phase 2 (partial results).** No code exists yet. The spec is [docs/prd.md](docs/prd.md) (v0.5).
+> Status: **EL Phase 1 (pitch) complete. Now on EL Phase 2 (partial results).** Build phases 1, 3 and 4 are implemented and phase 2 is partly done (Indian truth waits for generation data, blocker B4). The spec is [docs/prd.md](docs/prd.md) (v0.5.1).
 
 ---
 
@@ -87,6 +87,7 @@ Stack: pandas, numpy, PyYAML and matplotlib. Optional: plotly, via `uv sync --ex
 
 | Command | Purpose |
 |---|---|
+| `flipwise smoke` / `flipwise run --scenario tests/fixtures/toy --policy place_once` | Toy check against `expected.yaml` / one run → `results/<scenario>_<policy>/` (implemented) |
 | `flipwise ingest alibaba --raw data/raw/v2020 --out data/processed` | Verify checksums, build `jobs_v2020.csv` and a manifest |
 | `flipwise ingest carbon --archive <clone> --start 2023-03-13 --end 2024-01-31 --regions 1,13,7 --out data/processed` | Build forecast, truth and coverage CSVs |
 | `flipwise validate --config configs/base.yaml` | Check config, data, coverage and that calibration/test windows don't overlap |
@@ -99,17 +100,19 @@ Stack: pandas, numpy, PyYAML and matplotlib. Optional: plotly, via `uv sync --ex
 
 ## 5. Repository layout
 
-Current:
+Current (build phases 1–4):
 
 ```text
 flipwise/
-├── README.md
-├── CLAUDE.md               # instructions for Claude Code
-└── docs/
-    ├── prd.md              # authoritative spec (v0.5)
-    ├── explanation.md      # plain-language explanation (matches PRD v0.5)
-    ├── helpfullinks.md     # dataset, paper and tool links
-    └── helpfullinks.txt    # original plain-text version of the links
+├── pyproject.toml, uv.lock, .python-version, .gitignore, README.md, CLAUDE.md
+├── configs/base.yaml          # data paths, regions, train/validation/test splits
+├── data/README.md, manifests/ # raw/ and processed/ are git-ignored
+├── docs/                      # prd.md, explanation.md, helpfullinks.md
+├── scripts/                   # download_data.sh / .ps1, audit_v2020.py
+├── src/flipwise/              # cli, config, validate, trace, ingest, carbon, energy, estimates,
+│                              # models, datacentre, simulator, planner, policies, scenario,
+│                              # reporting, smoke, errors
+└── tests/                     # fixtures/toy/ (+ expected.yaml) and test_*.py
 ```
 
 Target (PRD §13.1):
@@ -147,10 +150,10 @@ Work on a small slice: **one validation week** of the Alibaba trace (dev samplin
 
 | # | Build phase | What gets built | Exit criterion |
 |---|---|---|---|
-| 1 | Setup and audit | Repo, `pyproject.toml`, `uv.lock`, ruff, pytest; download v2020; clone the archive at a fixed commit | Checksums match; a script reproduces the PRD §6.1 audit numbers |
-| 2 | Canonical data | `ingest alibaba`, `ingest india` (truth), `ingest carbon` (error paths), `build-forecasts`, manifests, `validate` | Processed CSVs plus ingest/coverage reports; B2 and B4 answered |
-| 3 | Deterministic core | `models`, `simulator` (events, job states), `datacentre` (queue, dispatch) behind a `DatacentreClient` interface, toy fixture, `fcfs` | Toy FCFS output equals `expected.yaml` |
-| 4 | Energy and place-once | `energy`, `carbon` views, `planner` (candidates, feasibility, scoring), `place_once` | Toy emissions exact; static-factor test passes |
+| 1 ✅ | Setup and audit | Repo, `pyproject.toml`, `uv.lock`, ruff, pytest; download v2020; clone the archive at a fixed commit | Checksums match; a script reproduces the PRD §6.1 audit numbers |
+| 2 ⏳ | Canonical data | `ingest alibaba`, `ingest india` (truth), `ingest carbon` (error paths), `build-forecasts`, manifests, `validate` | Processed CSVs plus ingest/coverage reports; B2 and B4 answered |
+| 3 ✅ | Deterministic core | `models`, `simulator` (events, job states), `datacentre` (queue, dispatch) behind a `DatacentreClient` interface, toy fixture, `fcfs` | Toy FCFS output equals `expected.yaml` |
+| 4 ✅ | Energy and place-once | `energy`, `carbon` views, `planner` (candidates, feasibility, scoring), `place_once` | Toy emissions exact; static-factor test passes |
 | 5 | Baselines (partial) | `estimates` (runtime quantiles, wait profiles), `periodic(T)`, `fixed_savings(g)`, rescue, throttling | Baselines run on the toy scenario |
 | 6 | Decision-flip | Lower-bound screen, noise margin, interval fallbacks | Toy flip / no-flip / small-gain cases pass; P1 holds |
 | 7 (min) | Runner | `run`, metrics, `dashboard` only | One table and `dashboard.html` |

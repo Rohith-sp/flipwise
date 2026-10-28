@@ -72,4 +72,4 @@ Before finishing any code change: ruff check, ruff format, and the relevant test
 
 ## Current status
 
-EL Phase 1 done; Phase 2 in progress (roadmap phases 1–6 + DT1). No code yet. Open blockers: B1 (mentor confirms scope), B2 (archive coverage, NESO terms), B3 (power values; until resolved, report kgCO2 as relative), B4 (Indian generation-by-fuel data). Update this section when a phase completes.
+EL Phase 1 done; Phase 2 in progress. Build phases 1, 3 and 4 done; phase 2 partly done (`ingest alibaba`, `ingest carbon` → GB error paths, `build-forecasts`, `validate`; `ingest india` waits for B4 data). Toy `smoke` matches `expected.yaml`. Next: phase 5 (`estimates`, real-trace scenario builder, `periodic`, `fixed_savings`, rescue, throttling), then 6 (decision-flip) and DT1. Open blockers: B1 (mentor confirms scope), B2 (NESO redistribution terms; coverage answered), B3 (power values; until resolved, report kgCO2 as relative), B4 (Indian generation-by-fuel data). Update this section when a phase completes.
