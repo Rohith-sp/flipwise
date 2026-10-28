@@ -114,3 +114,56 @@ def test_truth_is_value_at_last_covering_capture():
     assert t.loc[0, "truth_g_per_kwh"] == 120.0 and t.loc[0, "final_lag_s"] == 4 * s
     assert t.loc[s, "truth_g_per_kwh"] == 200.0  # the 9s revision is outside coverage
     assert t.loc[2 * s, "truth_g_per_kwh"] != t.loc[2 * s, "truth_g_per_kwh"]  # NaN: no data
+
+
+def test_india_truth_hand_example_r_ing_5():
+    """R-ING-5: two regions, three fuels, four 15-min blocks → two 30-min slots.
+
+    Region 1, slot 0: coal 100+100, solar 50+150, gas 0+0 MWh → 200·1000 / 400 = 500 g/kWh.
+    Region 1, slot S: coal 300, gas 100, solar 0 (one block each) → (300·1000 + 100·400) / 400
+    = 850. Region 2, slot 0: gas 40+40, solar 120 (first block only) → 80·400 / 200 = 160.
+    """
+    from flipwise.ingest import india_truth
+
+    s, b = 1800, 900
+    gen = pd.DataFrame(
+        [
+            (1, 0, "coal", 100.0), (1, b, "coal", 100.0), (1, 0, "Solar", 50.0),
+            (1, b, "solar", 150.0), (1, 0, "gas", 0.0), (1, b, "gas", 0.0),
+            (1, s, "coal", 300.0), (1, s + b, "gas", 100.0), (1, s, "solar", 0.0),
+            (2, 0, "gas", 40.0), (2, b, "gas", 40.0), (2, 0, "solar", 120.0),
+        ],
+        columns=["region_id", "slot_utc", "fuel", "mwh"],
+    )  # fmt: skip
+    t = india_truth(gen, {"coal": 1000.0, "gas": 400.0}).set_index(["region_id", "slot_utc"])
+    assert t.loc[(1, 0), "truth_g_per_kwh"] == pytest.approx(500.0, abs=1e-9)
+    assert t.loc[(1, s), "truth_g_per_kwh"] == pytest.approx(850.0, abs=1e-9)
+    assert t.loc[(2, 0), "truth_g_per_kwh"] == pytest.approx(160.0, abs=1e-9)
+    with pytest.raises(Exception, match="no emission factor"):
+        india_truth(gen.assign(fuel="peat"), {"coal": 1000.0})
+
+
+def test_india_forecasts_from_error_paths_r_ing_6():
+    """R-ING-6: F = max(0, A + α s_r E); captures (and missing captures) follow the archive.
+
+    GB truth mean over calibration = 100, Indian truth mean = 500 → s_r = 5. With α = 2:
+    slot 0: E = +10 at capture 0, −60 at 2S (S was a missing capture) → F = 600, then
+    max(0, 500 − 600) = 0. Slot S has no Indian truth → dropped and counted.
+    """
+    from flipwise.ingest import build_forecasts, scale_factors
+
+    s = 1800
+    truth = pd.DataFrame({"region_id": [1, 1], "slot_utc": [0, 2 * s],
+                          "truth_g_per_kwh": [500.0, 500.0]})  # fmt: skip
+    gb_truth = pd.DataFrame({"gb_region_id": [13, 13], "slot_utc": [0, 2 * s],
+                             "truth_g_per_kwh": [80.0, 120.0]})  # fmt: skip
+    errors = pd.DataFrame(
+        [(13, 0, 0, 10.0), (13, 0, 2 * s, -60.0), (13, s, 0, 5.0)],
+        columns=["gb_region_id", "slot_utc", "capture_utc", "error_g_per_kwh"],
+    )
+    s_r = scale_factors(truth, gb_truth, {1: 13}, 0, 2 * s)
+    assert s_r == {1: 5.0}
+    fc, counts = build_forecasts(truth, errors, {1: 13}, s_r, alpha=2.0)
+    assert list(fc["capture_utc"]) == [0, 2 * s]
+    assert list(fc["forecast_g_per_kwh"]) == [600.0, 0.0]
+    assert counts == {"error_rows_without_truth": 1}

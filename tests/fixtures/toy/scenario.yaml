@@ -1,14 +1,15 @@
 # Toy scenario (PRD §6.9, §15.3). All times are Unix seconds UTC; T0 = 1688342400
-# (Mon 2023-07-03 00:00). Hand-computed outcomes are in expected.yaml.
+# (Mon 2023-07-03 00:00 UTC; the toy does not need IST alignment). Intensities are hand-set,
+# not real Indian values. Hand-computed outcomes are in expected.yaml.
 name: toy
 start_utc: 1688342400
 end_utc: 1688364000        # T0 + 12 slots
 power: {p_gpu_kw: 1.0, p_cpu_kw: 0.01}   # toy values (PRD §7.2)
 planner: {h_defer_s: 86400}
 datacentres:
-  - {dc_id: 0, region_id: 1,  cap_gpu: 4, cap_cpu: 32, cap_mem_gb: 100}   # North Scotland
-  - {dc_id: 1, region_id: 13, cap_gpu: 4, cap_cpu: 32, cap_mem_gb: 100}   # London
-  - {dc_id: 2, region_id: 7,  cap_gpu: 4, cap_cpu: 32, cap_mem_gb: 100}   # South Wales
+  - {dc_id: 0, region_id: 1, cap_gpu: 4, cap_cpu: 32, cap_mem_gb: 100}   # Delhi NCR (NR)
+  - {dc_id: 1, region_id: 2, cap_gpu: 4, cap_cpu: 32, cap_mem_gb: 100}   # Mumbai (WR)
+  - {dc_id: 2, region_id: 3, cap_gpu: 4, cap_cpu: 32, cap_mem_gb: 100}   # Chennai (SR)
 files:
   jobs: jobs.csv
   forecast: carbon_forecast.csv

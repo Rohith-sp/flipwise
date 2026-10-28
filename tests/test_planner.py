@@ -60,9 +60,9 @@ def test_no_carbon_reason_r_plan_1(toy):
     from flipwise.carbon import ForecastStore
 
     f = pd.read_csv("tests/fixtures/toy/carbon_forecast.csv")
-    f = f[~((f.region_id == 7) & (f.slot_utc >= T0 + 1800))]  # South Wales unknown from slot 1
+    f = f[~((f.region_id == 3) & (f.slot_utc >= T0 + 1800))]  # Chennai unknown from slot 1
     cov = pd.read_csv("tests/fixtures/toy/capture_coverage.csv")
-    toy.forecast = ForecastStore(f, cov, [1, 7, 13])
+    toy.forecast = ForecastStore(f, cov, [1, 2, 3])
     ev = _view_at(toy, "J4", [(2, T0 + 1800), (2, T0 + 4 * 1800)])["evals"]
     # Slots 1..2 back-fill from slot 0 by persistence; slot 3 onward is unknown.
     assert ev[(2, T0 + 1800)].feasible

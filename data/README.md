@@ -15,8 +15,9 @@ powershell -ExecutionPolicy Bypass -File scripts\download_data.ps1   # Windows
 | Path | Content | Committed |
 |---|---|---|
 | `raw/v2020/` | Alibaba GPU trace v2020 archives and extracted CSVs | no |
-| `raw/carbon-intensity-forecast-tracking/` | Clone of the NESO forecast-vintage archive, checked out at the pinned commit | no |
-| `raw/carbon/neso_portal_regional_ci.csv` | NESO Data Portal regional carbon intensity (one value per region per half-hour, 2018-09 to 2026-07). Used only as the regional truth cross-check (PRD §6.2), **not** as the scheduler's forecast | no |
+| `raw/india/` | Indian regional generation by fuel (blocker B4), converted to `region_id,slot_utc,fuel,mwh` with `region_id` 1 NR, 2 WR, 3 SR (4 ER for the variant) | no |
+| `raw/carbon-intensity-forecast-tracking/` | Clone of the NESO forecast-vintage archive at the pinned commit. Source of real forecast-error paths only (PRD v0.5 §6.2.3); the simulated world is Indian | no |
+| `raw/carbon/neso_portal_regional_ci.csv` | NESO Data Portal regional carbon intensity (2018-09 to 2026-07). Cross-check for the GB truth `A_gb` that the error paths are measured against | no |
 | `processed/` | Output of `flipwise ingest` | no |
 | `manifests/` | JSON manifests: sources, checksums, commits, row counts | yes |
 
@@ -35,6 +36,16 @@ Manual download: `https://aliopentrace.oss-cn-beijing.aliyuncs.com/v2020GPUTrace
 ## NESO forecast-vintage archive
 
 Source: <https://github.com/nmpowell/carbon-intensity-forecast-tracking> (MIT). Pinned commit: `5d38b63cc93285b293a60eac750cb7923be75417` (also recorded in `manifests/carbon_archive.json`). The full history is several GB and large clones tend to drop; the download script does a shallow, sparse clone of only `data/db/2023`, `data/db/2024` and `reference.sqlite` (about 540 MB). To reproduce exactly, pass that commit to the download script (`bash scripts/download_data.sh <commit>` or `-ArchiveCommit <commit>`).
+
+## Indian generation by fuel and CEA factors (blocker B4)
+
+Not downloaded yet. Candidate sources are listed in PRD §6.2.2 and `docs/helpfullinks.md` (Grid-India first). Once a series is chosen, convert it to `raw/india/india_generation.csv` (`region_id,slot_utc,fuel,mwh`; 15-minute or hourly blocks are fine), fill the cited CEA factors in `configs/energy.yaml`, then:
+
+```bash
+uv run flipwise ingest india --generation data/raw/india/india_generation.csv
+uv run flipwise build-forecasts
+uv run flipwise validate
+```
 
 ## NESO Data Portal (cross-check only)
 

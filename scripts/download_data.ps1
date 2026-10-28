@@ -24,5 +24,5 @@ Write-Host "archive commit: $(git -C $archive rev-parse HEAD)"
 
 uv run python scripts/audit_v2020.py --raw data/raw/v2020
 uv run flipwise ingest alibaba
-uv run flipwise ingest carbon
+uv run flipwise ingest carbon   # GB error paths (PRD v0.5 §6.2.3)
 uv run flipwise validate

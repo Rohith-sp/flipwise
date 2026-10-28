@@ -182,9 +182,10 @@ __all__ = ["ARCHIVE_SHA256", "build_jobs", "ingest_alibaba", "git_head"]
 
 # ---- NESO forecast-vintage archive (PRD §6.2, §6.7) ----------------------------------------
 
-FORWARD_ENDPOINT = "regional_fw48h"  # forecasts the scheduler sees
-PAST_ENDPOINT = "regional_pt24h"  # later revisions of past slots; feed truth only
-TRUTH_KIND = "regional_final_forecast"
+# The archive is the source of real forecast-error paths only (PRD v0.5, §6.2.3); the simulated
+# world is Indian. Its capture schedule becomes the Indian vintages' schedule.
+FORWARD_ENDPOINT = "regional_fw48h"  # forward forecasts: F_gb(g, k, v)
+PAST_ENDPOINT = "regional_pt24h"  # later revisions of past slots; feed A_gb only
 
 
 def _month_partitions(archive: Path, start: dt.date, end: dt.date) -> list[Path]:
@@ -290,27 +291,26 @@ def ingest_carbon(
     archive: Path,
     start: dt.date,
     end: dt.date,
-    regions: list[int],
+    gb_regions: list[int],
     out_dir: Path,
     manifest_dir: Path,
-    tail_days: int = 9,
 ) -> dict:
-    """Build carbon_forecast.csv, carbon_truth.csv, capture_coverage.csv and a coverage report.
+    """Reconstruct GB vintages and write the error paths E_g(k, v) = F_gb − A_gb (PRD §6.2.3).
 
-    The covered slot range is `[start, end + tail_days)`: the run horizon extends up to 8 days
-    past the last arrival (PRD §8.6), plus one day for the truth lag.
+    Outputs `gb_error_paths.csv` (one row per forecast change), `gb_truth.csv` (A_gb, needed for
+    the scale factor s_r) and `capture_coverage.csv` (forward captures with their windows). Slots
+    cover `[start, end]` inclusive; `end` already includes the 8-day run tail.
     """
     from flipwise.carbon import interpolate_truth
     from flipwise.errors import CarbonDataError
     from flipwise.models import SLOT_S
 
-    lo = int(dt.datetime(start.year, start.month, start.day, tzinfo=dt.UTC).timestamp())
-    hi_day = end + dt.timedelta(days=tail_days)
-    hi = int(dt.datetime(hi_day.year, hi_day.month, hi_day.day, tzinfo=dt.UTC).timestamp()) - SLOT_S
-    parts = _month_partitions(archive, start, hi_day)
+    lo = _utc_midnight(start)
+    hi = _utc_midnight(end + dt.timedelta(days=1)) - SLOT_S
+    parts = _month_partitions(archive, start, end)
     if not parts:
         raise CarbonDataError(f"no regional partitions under {archive}/data/db for {start}..{end}")
-    rows, caps, gaps = zip(*(_read_partition(p, regions, lo - 2 * 86400, hi) for p in parts),
+    rows, caps, gaps = zip(*(_read_partition(p, gb_regions, lo - 2 * 86400, hi) for p in parts),
                            strict=True)  # fmt: skip
     f = pd.concat(rows, ignore_index=True)
     n_null = int(f["forecast"].isna().sum())
@@ -321,6 +321,9 @@ def ingest_carbon(
     c = pd.concat(caps, ignore_index=True).drop_duplicates(["capture_utc", "endpoint"])
     c = c.sort_values(["capture_utc", "endpoint"], kind="stable")
     g = pd.concat(gaps, ignore_index=True).drop_duplicates()
+    found = sorted(int(r) for r in f["region_id"].unique())
+    if found != sorted(gb_regions):
+        raise CarbonDataError(f"GB regions {sorted(gb_regions)} requested, archive has {found}")
 
     fwd = c[
         (c.endpoint == FORWARD_ENDPOINT) & (c.capture_utc >= lo - 86400) & (c.capture_utc <= hi)
@@ -331,37 +334,43 @@ def ingest_carbon(
 
     truth_parts, gap_report = [], {}
     for r, grp in raw_truth.groupby("region_id", sort=True):
-        s = grp.set_index("slot_utc")["truth_g_per_kwh"].dropna()
-        missing = int(grp["truth_g_per_kwh"].isna().sum())
+        s_ = grp.set_index("slot_utc")["truth_g_per_kwh"].dropna()
         try:
-            t = interpolate_truth(s.reindex(slots).dropna())
-            longest = 0
+            t = interpolate_truth(s_)
+            unfillable: str | int = 0
         except CarbonDataError as e:
-            # Keep going so the coverage report lists every problem; `validate` will refuse
-            # any replicate whose horizon touches an unfilled gap (R-ING-4).
-            t = s.reset_index().assign(interpolated=0)
-            longest = str(e)
+            # Keep going so the report lists every gap; error paths simply have no rows there.
+            t = s_.reset_index().assign(interpolated=0)
+            unfillable = str(e)
         t["region_id"] = int(r)
         truth_parts.append(t)
         lag = grp.loc[grp["final_lag_s"] >= 0, "final_lag_s"]
         gap_report[int(r)] = {
             "slots": len(grp),
-            "missing_truth_slots": missing,
-            "unfillable_gap": longest,
+            "missing_truth_slots": int(grp["truth_g_per_kwh"].isna().sum()),
+            "unfillable_gap": unfillable,
             "gap_runs_utc": _gap_runs(grp),
             "final_lag_h_p05_p50": [float(lag.quantile(0.05)) / 3600, float(lag.median()) / 3600],
+            "mean_truth_g_per_kwh": float(s_.mean()),
         }
-    truth = pd.concat(truth_parts, ignore_index=True)
-    truth["truth_kind"] = TRUTH_KIND
-    truth = truth[["region_id", "slot_utc", "truth_g_per_kwh", "truth_kind", "interpolated"]]
+    gb_truth = pd.concat(truth_parts, ignore_index=True).rename(
+        columns={"region_id": "gb_region_id"}
+    )
+    gb_truth = gb_truth[["gb_region_id", "slot_utc", "truth_g_per_kwh", "interpolated"]]
+
+    # E = F_gb − A_gb on every forecast change; slots without A_gb carry no error path.
+    e = f[f.capture_utc <= hi].merge(
+        gb_truth.rename(columns={"gb_region_id": "region_id"}), on=["region_id", "slot_utc"]
+    )
+    e["error_g_per_kwh"] = e["forecast_g_per_kwh"] - e["truth_g_per_kwh"]
+    errors = e.rename(columns={"region_id": "gb_region_id"})[
+        ["gb_region_id", "slot_utc", "capture_utc", "error_g_per_kwh"]
+    ].sort_values(["gb_region_id", "slot_utc", "capture_utc"], kind="stable")
 
     out_dir.mkdir(parents=True, exist_ok=True)
     manifest_dir.mkdir(parents=True, exist_ok=True)
-    f_out = f[(f.capture_utc <= hi)].assign(source="archive")
-    f_out[["region_id", "slot_utc", "capture_utc", "forecast_g_per_kwh", "source"]].astype(
-        {"forecast_g_per_kwh": float}
-    ).to_csv(out_dir / "carbon_forecast.csv", index=False, lineterminator="\n")
-    truth.to_csv(out_dir / "carbon_truth.csv", index=False, lineterminator="\n")
+    errors.to_csv(out_dir / "gb_error_paths.csv", index=False, lineterminator="\n")
+    gb_truth.to_csv(out_dir / "gb_truth.csv", index=False, lineterminator="\n")
     fwd[["capture_utc", "endpoint", "window_first_utc", "window_last_utc", "source"]].to_csv(
         out_dir / "capture_coverage.csv", index=False, lineterminator="\n"
     )
@@ -371,14 +380,16 @@ def ingest_carbon(
     report = {
         **_base_manifest(),
         "source": "https://github.com/nmpowell/carbon-intensity-forecast-tracking",
+        "role": "GB forecast-error paths applied to Indian truth (PRD v0.5 §6.2.3-6.2.4)",
         "archive_commit": git_head(archive),
         "partitions": {p.name: sha256_file(p) for p in parts},
         "window": {"start": str(start), "end": str(end), "slots_lo_utc": lo, "slots_hi_utc": hi},
-        "regions": regions,
-        "truth_rule": "value at the last fw48h/pt24h capture whose window covers the slot",
+        "gb_regions": gb_regions,
+        "gb_truth_rule": "value at the last fw48h/pt24h capture whose window covers the slot",
         "rows": {
-            "forecast": len(f_out),
-            "truth": len(truth),
+            "forecast_changes": int((f.capture_utc <= hi).sum()),
+            "error_paths": len(errors),
+            "gb_truth": len(gb_truth),
             "forward_captures": len(fwd),
             "null_forecasts_dropped": n_null,
             "capture_gaps": len(g),
@@ -388,11 +399,96 @@ def ingest_carbon(
             "median": float(fwd_days.reindex(all_days, fill_value=0).median()),
             "days_without_capture": [str(d) for d in all_days if fwd_days.get(d, 0) == 0],
         },
-        "truth_by_region": gap_report,
+        "gb_truth_by_region": gap_report,
         "outputs_sha256": {
             n: sha256_file(out_dir / n)
-            for n in ("carbon_forecast.csv", "carbon_truth.csv", "capture_coverage.csv")
+            for n in ("gb_error_paths.csv", "gb_truth.csv", "capture_coverage.csv")
         },
     }
     (manifest_dir / "carbon_archive.json").write_text(json.dumps(report, indent=2) + "\n")
     return report
+
+
+def _utc_midnight(d: dt.date) -> int:
+    return int(dt.datetime(d.year, d.month, d.day, tzinfo=dt.UTC).timestamp())
+
+
+# ---- Indian truth (PRD §6.2.2) -------------------------------------------------------------
+
+ZERO_CARBON_FUELS = ("hydro", "nuclear", "solar", "wind")
+
+
+def india_truth(generation: pd.DataFrame, factors_g_per_kwh: dict[str, float]) -> pd.DataFrame:
+    """A(r, k) = Σ_f G(r, f, k) · EF_f / Σ_f G(r, f, k) per region and 30-min slot (R-ING-5).
+
+    `generation`: `region_id, slot_utc, fuel, mwh`, where `slot_utc` may be a 15-minute block
+    start; blocks are summed into their 30-minute slot. Every fuel needs a factor (zero-carbon
+    fuels default to 0), so an unexpected fuel name fails loudly instead of counting as clean.
+    """
+    from flipwise.errors import CarbonDataError
+    from flipwise.models import SLOT_S
+
+    ef = {f: 0.0 for f in ZERO_CARBON_FUELS} | {
+        k.lower(): float(v) for k, v in factors_g_per_kwh.items()
+    }
+    g = generation.assign(fuel=generation["fuel"].str.lower())
+    unknown = sorted(set(g["fuel"]) - set(ef))
+    if unknown:
+        raise CarbonDataError(f"no emission factor for fuels {unknown}")
+    g = g.assign(slot_utc=(g["slot_utc"] // SLOT_S) * SLOT_S)
+    g["g_co2"] = g["mwh"] * g["fuel"].map(ef)  # MWh × g/kWh = kg; only the ratio matters
+    agg = g.groupby(["region_id", "slot_utc"], sort=True).agg(mwh=("mwh", "sum"),
+                                                              g_co2=("g_co2", "sum"))  # fmt: skip
+    if (agg["mwh"] <= 0).any():
+        raise CarbonDataError("slot with zero total generation")
+    out = (agg["g_co2"] / agg["mwh"]).rename("truth_g_per_kwh").reset_index()
+    return out
+
+
+# ---- Indian forecast vintages (PRD §6.2.4) -------------------------------------------------
+
+
+def scale_factors(
+    truth: pd.DataFrame, gb_truth: pd.DataFrame, mapping: dict[int, int], lo: int, hi: int
+) -> dict[int, float]:
+    """s_r = mean A(r, ·) / mean A_gb(g(r), ·) over calibration slots `[lo, hi]`."""
+    from flipwise.errors import CarbonDataError
+
+    out = {}
+    for r, gb in sorted(mapping.items()):
+        a = truth.loc[(truth.region_id == r) & truth.slot_utc.between(lo, hi), "truth_g_per_kwh"]
+        b = gb_truth.loc[(gb_truth.gb_region_id == gb) & gb_truth.slot_utc.between(lo, hi),
+                         "truth_g_per_kwh"]  # fmt: skip
+        if a.empty or b.empty or b.mean() <= 0:
+            raise CarbonDataError(f"cannot compute s_r for region {r} from GB region {gb}")
+        out[r] = float(a.mean() / b.mean())
+    return out
+
+
+def build_forecasts(
+    truth: pd.DataFrame,
+    errors: pd.DataFrame,
+    mapping: dict[int, int],
+    s_r: dict[int, float],
+    alpha: float = 1.0,
+) -> tuple[pd.DataFrame, dict[str, int]]:
+    """F(r, k, v) = max(0, A(r, k) + α · s_r · E_g(r)(k, v)), one row per error change (R-ING-6).
+
+    Rows inherit the archive's capture times, so missing captures stay missing. Error rows whose
+    slot has no Indian truth are dropped and counted.
+    """
+    parts, dropped = [], 0
+    for r, gb in sorted(mapping.items()):
+        e = errors[errors.gb_region_id == gb]
+        a = truth[truth.region_id == r][["slot_utc", "truth_g_per_kwh"]]
+        m = e.merge(a, on="slot_utc", how="left")
+        dropped += int(m["truth_g_per_kwh"].isna().sum())
+        m = m.dropna(subset=["truth_g_per_kwh"])
+        fc = (m["truth_g_per_kwh"] + alpha * s_r[r] * m["error_g_per_kwh"]).clip(lower=0.0)
+        parts.append(pd.DataFrame({"region_id": r, "slot_utc": m["slot_utc"],
+                                   "capture_utc": m["capture_utc"], "forecast_g_per_kwh": fc,
+                                   "source": f"india+gb{gb}"}))  # fmt: skip
+    out = pd.concat(parts, ignore_index=True).sort_values(
+        ["region_id", "slot_utc", "capture_utc"], kind="stable"
+    )
+    return out.reset_index(drop=True), {"error_rows_without_truth": dropped}

@@ -1,9 +1,10 @@
 # Hand-computed outcomes for the toy scenario (PRD §6.9). Times are offsets from T0 (s).
 #
-# Setup: 3 DCs x 4 GPUs. dc0 = region 1 (North Scotland), dc1 = 13 (London), dc2 = 7 (S Wales).
-# Forecast v0 (capture 0):     r1 = 100, r13 = 300, r7 = 200 for all 12 slots.
+# Setup: 3 DCs x 4 GPUs. dc0 = region 1 (Delhi NCR, NR), dc1 = 2 (Mumbai, WR), dc2 = 3 (Chennai,
+# SR). Intensities are hand-set toy values, not Indian data.
+# Forecast v0 (capture 0):     r1 = 100, r2 = 300, r3 = 200 for all 12 slots.
 # Forecast v1 (capture 3600):  r1 rises to 400 from slot 2 (t = 3600) on.
-# Truth:                       r1 = 100,100 then 400; r13 = 300; r7 = 200.
+# Truth:                       r1 = 100,100 then 400; r2 = 300; r3 = 200.
 # Power: 1 kW per GPU, 0.01 kW per core.  P(J3) = 4 + 4*0.01 = 4.04 kW, others = gpu_req kW.
 # Runtimes equal every quantile, so all wait estimates are exact and w_lo = w_mid = w_hi.
 #
@@ -44,7 +45,7 @@
 #   J1 0.2   J2 0.2   J3 4.04*0.5*400 = 0.808   J4 1*0.5*400 = 0.2   J5 0.3
 #   J6 3*0.5*400 = 0.6   total 2.308
 # place_once emits more than fcfs here because the forecast at arrival was wrong about
-# North Scotland: this is the gap that re-planning on forecast updates is meant to close.
+# Delhi NCR: this is the gap that re-planning on forecast updates is meant to close.
 
 policies:
   fcfs:

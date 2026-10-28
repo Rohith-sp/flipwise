@@ -27,7 +27,7 @@ def test_future_captures_and_truth_do_not_leak_r_leak_2(toy, policy):
     tr = pd.read_csv("tests/fixtures/toy/carbon_truth.csv")
     tr["truth_g_per_kwh"] = 1.0
     sc = copy.copy(toy)
-    sc.forecast, sc.truth = ForecastStore(f, cov, [1, 7, 13]), Truth(tr)
+    sc.forecast, sc.truth = ForecastStore(f, cov, [1, 2, 3]), Truth(tr)
     assert _decisions_until(Simulator(sc, make_policy(policy)).run(), t) == _decisions_until(
         base, t
     )

@@ -4,8 +4,8 @@
 
 | Field | Value |
 |---|---|
-| Document status | Implementation-ready draft. Supersedes v0.4 (28 Oct 2026), v0.3 (24 Oct 2026), v0.2 (24 Oct 2026) and v0.1 (23 Oct 2026). Changes are listed in the changelog below. |
-| Version | 0.5 |
+| Document status | Implementation-ready draft. Supersedes v0.5 (29 Oct 2026), v0.4 (28 Oct 2026), v0.3 (24 Oct 2026), v0.2 (24 Oct 2026) and v0.1 (23 Oct 2026). Changes are listed in the changelog below. |
+| Version | 0.5.1 |
 | Revised | 29 October 2026 |
 | Project name | **Flipwise** (Python package and CLI `flipwise`) [Decision]: it re-evaluates decision flips wisely. Renamed from FlipSim on 25 Oct 2026. Availability of the name on GitHub and PyPI is [Open], not yet checked. |
 | Project context | RV College of Engineering, Experiential Learning, V Semester, AY 2026–27; SDG 9 |
@@ -17,6 +17,7 @@
 
 | Version | Date | Changes |
 |---|---|---|
+| 0.5.1 | 29 Oct 2026 | Build phases 1, 3 and 4 implemented; phase 2 partly (Indian truth waits for B4). Findings from the real data: tasks-per-job mean is 1.21 over Terminated jobs (1.19 was over all jobs) (6.1). `A_gb` rule made precise: the value at the last capture whose window covers the slot; `pt24h` windows reach back exactly 24 h, so a literal `capture ≥ k + 24 h` almost never matches, while the measured lag of the last covering capture is p50 24 h, p05 23 h (6.2.3). GB truth matches the NESO Data Portal regional series in 98–99 % of slots (MAE < 0.6 g/kWh). GB source-region means: London 156, South Wales 276, East Midlands 257 g/kWh; IDs 13, 7, 9 confirmed in the archive (O3). Archive coverage reported (B2): no forward captures on 2023-03-20, 2023-03-31 – 04-02, 2023-10-21 and from 2024-02-04, so the run tail to 8 Feb 2024 cannot be met for carbon starts after about 19 Jan 2024. `capture_coverage.csv` keeps `window_first_utc, window_last_utc, source` (forward captures only); `gb_truth.csv` added for `s_r` (6.7). Carbon Mondays fixed in `configs/base.yaml` to avoid the gaps (14.2). Layout gains `errors`, `trace`, `scenario`, `validate`, `smoke` modules and `configs/energy.yaml` holds CEA factors (13.1). Linux supported alongside Windows 11. |
 | 0.5 | 29 Oct 2026 | Made the simulated world India-only (D17–D20): three virtual datacentres in Delhi NCR, Mumbai and Chennai on the Northern, Western and Southern regional grids; Indian truth intensity from regional generation by fuel × CEA emission factors (6.2.2); Indian forecast vintages built from the NESO archive's real error paths, scaled to Indian levels (6.2.4); trace time aligned to IST (6.3). The CEA CO2 Baseline Database replaces DESNZ as the established emissions reference (7.5). Carbon-spread sweep redefined (14.4); new requirements R-ING-5/6; new blocker B4 (Indian generation data); DT3 default region `ap-south-1` (Mumbai). Novelty point (c) narrowed accordingly (19). |
 | 0.4 | 28 Oct 2026 | Added the deployment track (13.5): the three virtual datacentres run as separate services in three stages, DT1 local processes started by a shell script, DT2 Docker Compose, DT3 AWS. The coordinator keeps the simulated clock, so every mode must produce byte-identical `jobs.csv` and `decisions.csv` to the in-process run (R-DEP-1…6). Updated the non-goals (4.3), stack (12.1), layout (13.1), CLI (13.4), risks and open questions (17), roadmap and EL mapping (18). Recorded the GitHub repository. Added `CLAUDE.md` to the initial repository contents. |
 | 0.3 | 24 Oct 2026 | Named the project Flipwise (`flipwise`; renamed from the placeholder `carbonsim` throughout). Added `flipwise dashboard` (static `dashboard.html`, no server), kept separate from `flipwise run` (4.1, 4.3, 12.1, 13.1, 13.4, 16.2). Replaced "no web UI" with "no server or web app in MVP; optional Streamlit viewer is a Phase 3 extension" (X9). Mapped EL Phase 2 and Phase 3 to the roadmap, with `pred_error(ε)` moved to EL Phase 3 (Section 18.1). Added the 24 Oct literature-search findings: CarbonScaler as the published source for `pred_error(ε)`, GREEN for `periodic(T)`, Li et al. as closest to the θ·w_ab margin, and the novelty verdict "candidate contribution" (11, 19). Added cited GPU nameplate powers for B3; CPU and MISC GPU power remain unverified (7.2, 17.3). Added the initial repo contents and README outline, and updated the target layout with `docs/`, `scripts/`, `LICENSE` and `dashboard.py` (13.1). |
@@ -227,7 +228,7 @@ Required coverage: 13 Mar 2023 – 8 Feb 2024 (calibration through test, plus th
 - The `nmpowell/carbon-intensity-forecast-tracking` repository (MIT licence) scrapes the API twice an hour and stores every capture in SQLite. Inspected schema: `regional_intensity(window_utc, region_id, capture_utc, forecast, <fuel mix columns>)`, `national_intensity(window_utc, capture_utc, forecast, actual)`, `captures(capture_utc, endpoint, window_first_utc, window_last_utc, observed_utc, source)`, `capture_gaps(...)`. Regional partitions are change-logs; the `captures` table records coverage so the value at any captured time can be reconstructed.
 - Partitions present on 24 Oct 2026: March 2023 – early February 2024, then July – October 2026. Early 2023 captures have `source = 'summary_csv'`. The README reports about 90 % capture success.
 
-For each GB source region `g`: `F_gb(g, k, v)` is the forecast for slot `k` as of capture `v`; `A_gb(g, k)` is the last captured forecast for `k` with `capture_utc ≥ k + 24 h`. The error path is `E_g(k, v) = F_gb(g, k, v) − A_gb(g, k)`.
+For each GB source region `g`: `F_gb(g, k, v)` is the forecast for slot `k` as of capture `v`; `A_gb(g, k)` is the value in effect at the last capture (`regional_fw48h` or `regional_pt24h`) whose window covers slot `k` [v0.5.1: `pt24h` windows reach back exactly 24 h, so this capture is at about `k + 24 h`; measured p50 24 h, p05 23 h]. The error path is `E_g(k, v) = F_gb(g, k, v) − A_gb(g, k)`.
 
 #### 6.2.4 Indian forecast vintages [Synthetic: real error paths on Indian truth]
 
@@ -302,7 +303,8 @@ Defaults `slack_base_s = 14,400` (4 h), `k_slack = 2.0`. Sweep: `slack_base_s �
 | `data/processed/carbon_truth.csv` | `region_id:int, slot_utc:int, truth_g_per_kwh:float, truth_kind:str, interpolated:0/1` (Indian truth, 6.2.2) |
 | `data/processed/gb_error_paths.csv` | `gb_region_id:int, slot_utc:int, capture_utc:int, error_g_per_kwh:float` (one row per change) |
 | `data/processed/carbon_forecast.csv` | `region_id:int, slot_utc:int, capture_utc:int, forecast_g_per_kwh:float, source:str` (Indian vintages, 6.2.4; one row per change) |
-| `data/processed/capture_coverage.csv` | `capture_utc:int, endpoint:str` (from the archive's `captures`) |
+| `data/processed/gb_truth.csv` | `gb_region_id:int, slot_utc:int, truth_g_per_kwh:float, interpolated:0/1` (`A_gb`, needed for `s_r`; v0.5.1) |
+| `data/processed/capture_coverage.csv` | `capture_utc:int, endpoint:str, window_first_utc:int, window_last_utc:int, source:str` (forward `regional_fw48h` captures; one `CARBON_UPDATE` per row; the window bounds which slots a vintage covers) |
 | `data/manifests/*.json` | source URL, retrieval date, commit hash (archive) or file SHA-256, CEA database version, row counts, filters, exclusion counts, `s_r` values |
 
 ### 6.8 Carbon residual model [Decision]
@@ -733,6 +735,7 @@ Initial repository contents (first commit) [Decision, v0.3]:
 | Path | Content |
 |---|---|
 | `CLAUDE.md` | Instructions for Claude Code: commands, conventions, the rules that must not break (determinism, information boundary), and how to read the large docs cheaply [v0.4] |
+| `src/flipwise/{errors,trace,scenario,validate,smoke}.py` | Added in v0.5.1: error types; raw v2020 readers and checksums; scenario-directory loader; `flipwise validate`; toy check for `flipwise smoke` |
 | `README.md` | Sections: (1) title, one-line summary, RVCE EL V sem, SDG 9; (2) problem and contribution in 3–4 lines; (3) scope: offline research simulator, not a production scheduler; (4) datasets with links, licences and download steps; (5) setup: `uv sync`, then `uv run pytest`; (6) repo layout; (7) roadmap with the current phase marked; (8) team, mentor and references, including the PRD link |
 | `docs/prd.md` | This document |
 | `docs/explanation.md` | Plain-language explanation, updated to match this PRD first |
@@ -1111,7 +1114,7 @@ Blockers (resolve before the stated phase):
 | ID | Question | Needed by | How to resolve |
 |---|---|---|---|
 | B1 | Confirm with mentor that decision-flip is the core contribution and DRO is extension X1 | Phase 1 | Mentor meeting; record in report |
-| B2 | Archive suitability: coverage of the three GB source regions for Mar 2023 – Feb 2024, behaviour of `summary_csv`-sourced early captures, and NESO terms for redistributing derived error paths | Phase 2 | `ingest carbon` coverage report; read NESO API/data-portal terms |
+| B2 | Archive suitability: coverage of the three GB source regions for Mar 2023 – Feb 2024, behaviour of `summary_csv`-sourced early captures, and NESO terms for redistributing derived error paths | Phase 2 | `ingest carbon` coverage report; read NESO API/data-portal terms. **Coverage answered (v0.5.1, archive commit `5d38b63`):** forward captures median 44/day; none on 2023-03-20, 2023-03-31 – 04-02, 2023-10-21 or from 2024-02-04; `A_gb` gaps > 2 slots on 2023-04-01/02, 2023-10-20/22 and 2023-12-31 23:30 – 2024-01-01 00:30, identical in all three source regions (`data/manifests/carbon_archive.json`). **Still open:** NESO terms |
 | B4 | Indian regional generation by fuel at ≤ 1 h resolution for 13 Mar 2023 – 8 Feb 2024 (Northern, Western, Southern; Eastern for the variant), its licence, and the CEA database version for 2023 | Phase 2 (before any real-data run) | Check Grid-India reports first, then third-party series; otherwise use the fallback construction in 6.2.2 |
 | B3 | Power parameters with citations. Partly resolved (v0.3): V100 300 W, P100 250 W, T4 70 W from NVIDIA datasheets. Still open: MISC GPU value, CPU per-core value, default utilisation factor `f` (Section 7.2) | Before any absolute emission figure from the real trace (Phase 8). Until then, label all kgCO2 as relative. | One SPECpower-style CPU reference and one MISC GPU value; record in `energy.yaml` |
 

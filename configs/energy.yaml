@@ -1,0 +1,20 @@
+# Energy and emission parameters (PRD §7.2, §6.2.2). Every value needs a citation before any
+# real-data emission figure is reported (blockers B3, B4). Empty values make the commands that
+# need them fail on purpose.
+
+emission_factors:
+  # Operational CO2 per fuel, gCO2/kWh net generation: generation-weighted average over the
+  # CEA CO2 Baseline Database stations of each fuel. Hydro, nuclear, solar and wind are 0.
+  cea_database_version: null      # e.g. "v20.0 (FY 2023-24)"
+  g_per_kwh:
+    coal: null
+    lignite: null
+    gas: null
+    diesel: null
+    biomass: 0.0                  # [Open] PRD §6.2.2: 0 by default
+    other: 0.0                    # [Open] PRD §6.2.2: 0 by default
+
+power:
+  p_gpu_kw: null                  # B3: TDP_type × f (PRD §7.2)
+  p_cpu_kw: null                  # B3: per core
+  pue: 1.0

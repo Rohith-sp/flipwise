@@ -3,13 +3,20 @@
 
 data:
   jobs: data/processed/jobs_v2020.csv
-  forecast: data/processed/carbon_forecast.csv
-  truth: data/processed/carbon_truth.csv
+  forecast: data/processed/carbon_forecast.csv      # Indian vintages (build-forecasts)
+  truth: data/processed/carbon_truth.csv            # Indian truth (ingest india, blocker B4)
   coverage: data/processed/capture_coverage.csv
+  gb_error_paths: data/processed/gb_error_paths.csv
+  gb_truth: data/processed/gb_truth.csv
   manifests: data/manifests
 
-regions: [1, 13, 7]          # dc0 North Scotland (~35 g/kWh), dc1 London (~158), dc2 South Wales (~278)
+# Indian regional grids (PRD v0.5 §6.2.1): dc0 Delhi NCR (NR), dc1 Mumbai (WR), dc2 Chennai (SR).
+regions: [1, 2, 3]
+# Forecast-error source g(r) (§6.2.4, O3): NR <- London, WR <- South Wales, SR <- East Midlands.
+error_source: {1: 13, 2: 7, 3: 9}
+alpha: 1.0                   # forecast-error scaling (§14.4)
 horizon_days: 15             # 7-day arrival slice + 8 days to finish (PRD §8.6)
+# Carbon Mondays below are Monday 00:00 IST = Sunday 18:30 UTC (§6.3).
 
 splits:
   runtime_fit_trace_days: [0, 21]
@@ -22,9 +29,10 @@ splits:
   test:
     trace_days: [42, 70]
     carbon_period: ["2023-09-01", "2024-01-31"]
-    # Avoid archive gaps (data/manifests/carbon_archive.json): 2023-10-20/22 and
-    # 2023-12-31/2024-01-01 have > 2 consecutive slots without truth. Mondays whose
-    # 15-day horizon overlaps those gaps are excluded; the four below are spread over the period.
+    # Avoid archive gaps (data/manifests/carbon_archive.json): no forward captures on
+    # 2023-10-21, and GB truth (hence error paths) is missing 2023-10-20/22 and around
+    # 2023-12-31/2024-01-01. Mondays whose 15-day horizon overlaps those gaps are excluded;
+    # the four below are spread over the period.
     carbon_mondays: ["2023-09-04", "2023-10-30", "2023-11-27", "2024-01-08"]
 
 dev:

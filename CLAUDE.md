@@ -66,7 +66,7 @@ Before finishing any code change: ruff check, ruff format, and the relevant test
 - Supported on **Linux** (bash) and **Windows 11** (PowerShell or Git Bash). Every documented command must have a form for both; `uv run ...` commands are identical on both.
 - Paths may contain spaces (Linux: `~/Desktop/Carbon aware scheduer/flipwise`, Windows: `C:\5TH SEM EL\flipwise`), so always quote paths. Use `pathlib` in Python, never hard-coded separators.
 - Shell scripts (`*.sh`) target bash (native on Linux, Git Bash on Windows); a PowerShell twin (`*.ps1`) exists where Windows users need one without Git Bash. Prefer `uv run` over activating the venv.
-- Raw data layout: `data/raw/v2020/` (Alibaba archives + extracted CSVs), `data/raw/carbon-intensity-forecast-tracking/` (archive clone), `data/raw/carbon/` (NESO portal cross-check CSV). See `data/README.md`.
+- Raw data layout: `data/raw/v2020/` (Alibaba archives + extracted CSVs), `data/raw/carbon-intensity-forecast-tracking/` (NESO archive clone: GB error paths only), `data/raw/india/` (Indian generation, B4), `data/raw/carbon/` (NESO portal cross-check CSV). See `data/README.md`.
 - Never commit `data/raw/`, `data/processed/`, `results/`, `.venv`, `.env`, `*.pem` or AWS credentials. DT3 scripts read credentials from the AWS CLI profile only. Run `scripts/aws/teardown.sh` after any AWS session.
 - Commit or push only when asked.
 
