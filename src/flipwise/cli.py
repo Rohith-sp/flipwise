@@ -16,6 +16,36 @@ def _cmd_ingest_alibaba(args: argparse.Namespace) -> int:
     return 0
 
 
+def _cmd_ingest_carbon(args: argparse.Namespace) -> int:
+    import datetime as dt
+
+    from flipwise.ingest import ingest_carbon
+
+    regions = [int(r) for r in args.regions.split(",")]
+    rep = ingest_carbon(
+        args.archive,
+        dt.date.fromisoformat(args.start),
+        dt.date.fromisoformat(args.end),
+        regions,
+        args.out,
+        args.manifests,
+    )
+    print(json.dumps({k: rep[k] for k in ("archive_commit", "rows", "forward_captures_per_day",
+                                          "truth_by_region")}, indent=2))  # fmt: skip
+    return 0
+
+
+def _cmd_validate(args: argparse.Namespace) -> int:
+    from flipwise.config import load_config
+    from flipwise.validate import validate
+
+    errs = validate(load_config(args.config))
+    for e in errs:
+        print("FAIL", e)
+    print("validate: OK" if not errs else f"validate: {len(errs)} problems")
+    return 1 if errs else 0
+
+
 def _cmd_smoke(args: argparse.Namespace) -> int:
     from flipwise.smoke import TOY_DIR, smoke
 
@@ -55,6 +85,21 @@ def build_parser() -> argparse.ArgumentParser:
     a.add_argument("--manifests", type=Path, default=Path("data/manifests"))
     a.add_argument("--missing-gpu-policy", choices=["zero", "drop"], default="zero")
     a.set_defaults(func=_cmd_ingest_alibaba)
+
+    c = ing.add_parser("carbon", help="NESO forecast-vintage archive")
+    c.add_argument("--archive", type=Path,
+                   default=Path("data/raw/carbon-intensity-forecast-tracking"))  # fmt: skip
+    c.add_argument("--start", default="2023-03-13")
+    c.add_argument("--end", default="2024-01-31")
+    c.add_argument("--regions", default="1,13,7", help="NESO region ids (1 N Scotland, "
+                   "13 London, 7 S Wales)")  # fmt: skip
+    c.add_argument("--out", type=Path, default=Path("data/processed"))
+    c.add_argument("--manifests", type=Path, default=Path("data/manifests"))
+    c.set_defaults(func=_cmd_ingest_carbon)
+
+    v = sub.add_parser("validate", help="check config, data, coverage and split separation")
+    v.add_argument("--config", type=Path, default=Path("configs/base.yaml"))
+    v.set_defaults(func=_cmd_validate)
 
     sm = sub.add_parser("smoke", help="toy scenario, all policies, compare to expected.yaml")
     sm.add_argument("--scenario", type=Path, default=None)

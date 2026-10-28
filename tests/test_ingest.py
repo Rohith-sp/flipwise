@@ -93,3 +93,24 @@ def test_checksum_mismatch_aborts_r_ing_1(tmp_path):
         (tmp_path / name).write_bytes(b"corrupt")
     with pytest.raises(ChecksumError):
         verify_archives(tmp_path)
+
+
+def test_truth_is_value_at_last_covering_capture():
+    """PRD §6.2 truth: last value in effect at the last capture whose window covers the slot."""
+    from flipwise.ingest import build_truth
+
+    s = 1800
+    f = pd.DataFrame(
+        # slot 0 revised at captures 0 and 3s; slot s revised at 0 and 9s (after coverage ends)
+        [(1, 0, 0, 100.0), (1, 0, 3 * s, 120.0), (1, s, 0, 200.0), (1, s, 9 * s, 999.0)],
+        columns=["region_id", "slot_utc", "capture_utc", "forecast_g_per_kwh"],
+    )
+    caps = pd.DataFrame(
+        # capture 4s covers slots 0..s; capture 9s covers only slots ≥ 5s
+        [(0, 0, 4 * s), (4 * s, 0, s), (9 * s, 5 * s, 9 * s)],
+        columns=["capture_utc", "window_first_utc", "window_last_utc"],
+    )
+    t = build_truth(f, caps, range(0, 3 * s, s)).set_index("slot_utc")
+    assert t.loc[0, "truth_g_per_kwh"] == 120.0 and t.loc[0, "final_lag_s"] == 4 * s
+    assert t.loc[s, "truth_g_per_kwh"] == 200.0  # the 9s revision is outside coverage
+    assert t.loc[2 * s, "truth_g_per_kwh"] != t.loc[2 * s, "truth_g_per_kwh"]  # NaN: no data

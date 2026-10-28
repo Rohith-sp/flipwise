@@ -34,7 +34,7 @@ Manual download: `https://aliopentrace.oss-cn-beijing.aliyuncs.com/v2020GPUTrace
 
 ## NESO forecast-vintage archive
 
-Source: <https://github.com/nmpowell/carbon-intensity-forecast-tracking> (MIT). Pinned commit: recorded in `manifests/carbon_archive.json` by `flipwise ingest carbon`. To reproduce exactly, pass that commit to the download script (`bash scripts/download_data.sh <commit>` or `-ArchiveCommit <commit>`).
+Source: <https://github.com/nmpowell/carbon-intensity-forecast-tracking> (MIT). Pinned commit: `5d38b63cc93285b293a60eac750cb7923be75417` (also recorded in `manifests/carbon_archive.json`). The full history is several GB and large clones tend to drop; the download script does a shallow, sparse clone of only `data/db/2023`, `data/db/2024` and `reference.sqlite` (about 540 MB). To reproduce exactly, pass that commit to the download script (`bash scripts/download_data.sh <commit>` or `-ArchiveCommit <commit>`).
 
 ## NESO Data Portal (cross-check only)
 

@@ -178,3 +178,221 @@ def git_head(repo: Path) -> str:
 
 
 __all__ = ["ARCHIVE_SHA256", "build_jobs", "ingest_alibaba", "git_head"]
+
+
+# ---- NESO forecast-vintage archive (PRD §6.2, §6.7) ----------------------------------------
+
+FORWARD_ENDPOINT = "regional_fw48h"  # forecasts the scheduler sees
+PAST_ENDPOINT = "regional_pt24h"  # later revisions of past slots; feed truth only
+TRUTH_KIND = "regional_final_forecast"
+
+
+def _month_partitions(archive: Path, start: dt.date, end: dt.date) -> list[Path]:
+    """Regional SQLite partitions whose month overlaps `[start, end]`, plus the next month (the
+    run horizon extends past the last arrival, PRD §8.6)."""
+    months = set()
+    d = dt.date(start.year, start.month, 1)
+    last = dt.date(end.year + (end.month == 12), end.month % 12 + 1, 1)
+    while d <= last:
+        months.add(f"{d.year}-{d.month:02d}")
+        d = dt.date(d.year + (d.month == 12), d.month % 12 + 1, 1)
+    files = sorted((archive / "data" / "db").glob("20*/regional_*.sqlite"))
+    return [f for f in files if f.stem.removeprefix("regional_")[:7] in months]
+
+
+def _read_partition(path: Path, regions: list[int], lo: int, hi: int):
+    import sqlite3
+
+    con = sqlite3.connect(f"file:{path.as_posix()}?mode=ro", uri=True)
+    try:
+        q = ",".join("?" * len(regions))
+        rows = pd.read_sql_query(
+            f"SELECT region_id, window_utc AS slot_utc, capture_utc, forecast "
+            f"FROM regional_intensity WHERE region_id IN ({q}) AND window_utc BETWEEN ? AND ?",
+            con,
+            params=[*regions, lo, hi],
+        )
+        caps = pd.read_sql_query(
+            "SELECT capture_utc, endpoint, window_first_utc, window_last_utc, source FROM captures",
+            con,
+        )
+        gaps = pd.read_sql_query(
+            f"SELECT capture_utc, endpoint, window_utc, region_id FROM capture_gaps "
+            f"WHERE region_id IN (0,{q})",
+            con,
+            params=regions,
+        )
+    finally:
+        con.close()
+    return rows, caps, gaps
+
+
+def build_truth(forecast: pd.DataFrame, past_caps: pd.DataFrame, slots: range) -> pd.DataFrame:
+    """Truth A(r, k) = value in effect at the last capture whose window covers slot `k`.
+
+    Returns `region_id, slot_utc, truth_g_per_kwh, final_lag_s` with NaN truth where no capture
+    covered the slot; `final_lag_s` is how long after the slot start that capture was.
+    """
+    import numpy as np
+
+    caps = past_caps.sort_values("capture_utc")
+    cap_t = caps["capture_utc"].to_numpy()
+    first = caps["window_first_utc"].to_numpy()
+    last = caps["window_last_utc"].to_numpy()
+    slot_arr = np.asarray(list(slots), dtype=np.int64)
+    # Last covering capture per slot: windows move forward monotonically, so scan in time order.
+    last_cover = np.full(len(slot_arr), -1, dtype=np.int64)
+    for c, a, b in zip(cap_t, first, last, strict=True):
+        i0, i1 = np.searchsorted(slot_arr, [a, b + 1])
+        last_cover[i0:i1] = c
+    out = []
+    for r, grp in forecast.groupby("region_id", sort=True):
+        g = grp.sort_values(["slot_utc", "capture_utc"])
+        by_slot = {k: (sub["capture_utc"].to_numpy(), sub["forecast_g_per_kwh"].to_numpy())
+                   for k, sub in g.groupby("slot_utc", sort=True)}  # fmt: skip
+        vals = np.full(len(slot_arr), np.nan)
+        for i, k in enumerate(slot_arr):
+            c = last_cover[i]
+            h = by_slot.get(int(k))
+            if c < 0 or h is None:
+                continue
+            j = np.searchsorted(h[0], c, side="right")
+            if j:
+                vals[i] = h[1][j - 1]
+        lag = np.where(last_cover >= 0, last_cover - slot_arr, -1)
+        out.append(pd.DataFrame({"region_id": int(r), "slot_utc": slot_arr,
+                                 "truth_g_per_kwh": vals, "final_lag_s": lag}))  # fmt: skip
+    return pd.concat(out, ignore_index=True)
+
+
+def _gap_runs(grp: pd.DataFrame, min_slots: int = 3) -> list[list[str]]:
+    """`[first, last]` ISO times of every run of ≥ `min_slots` slots with no truth."""
+    miss = grp.sort_values("slot_utc")
+    m = miss["truth_g_per_kwh"].isna().to_numpy()
+    t = miss["slot_utc"].to_numpy()
+    runs, i = [], 0
+    while i < len(m):
+        if m[i]:
+            j = i
+            while j + 1 < len(m) and m[j + 1]:
+                j += 1
+            if j - i + 1 >= min_slots:
+                iso = [dt.datetime.fromtimestamp(int(x), dt.UTC).strftime("%Y-%m-%dT%H:%MZ")
+                       for x in (t[i], t[j])]  # fmt: skip
+                runs.append(iso)
+            i = j + 1
+        else:
+            i += 1
+    return runs
+
+
+def ingest_carbon(
+    archive: Path,
+    start: dt.date,
+    end: dt.date,
+    regions: list[int],
+    out_dir: Path,
+    manifest_dir: Path,
+    tail_days: int = 9,
+) -> dict:
+    """Build carbon_forecast.csv, carbon_truth.csv, capture_coverage.csv and a coverage report.
+
+    The covered slot range is `[start, end + tail_days)`: the run horizon extends up to 8 days
+    past the last arrival (PRD §8.6), plus one day for the truth lag.
+    """
+    from flipwise.carbon import interpolate_truth
+    from flipwise.errors import CarbonDataError
+    from flipwise.models import SLOT_S
+
+    lo = int(dt.datetime(start.year, start.month, start.day, tzinfo=dt.UTC).timestamp())
+    hi_day = end + dt.timedelta(days=tail_days)
+    hi = int(dt.datetime(hi_day.year, hi_day.month, hi_day.day, tzinfo=dt.UTC).timestamp()) - SLOT_S
+    parts = _month_partitions(archive, start, hi_day)
+    if not parts:
+        raise CarbonDataError(f"no regional partitions under {archive}/data/db for {start}..{end}")
+    rows, caps, gaps = zip(*(_read_partition(p, regions, lo - 2 * 86400, hi) for p in parts),
+                           strict=True)  # fmt: skip
+    f = pd.concat(rows, ignore_index=True)
+    n_null = int(f["forecast"].isna().sum())
+    f = f.dropna(subset=["forecast"]).rename(columns={"forecast": "forecast_g_per_kwh"})
+    f = f.drop_duplicates(["region_id", "slot_utc", "capture_utc"]).sort_values(
+        ["region_id", "slot_utc", "capture_utc"], kind="stable"
+    )
+    c = pd.concat(caps, ignore_index=True).drop_duplicates(["capture_utc", "endpoint"])
+    c = c.sort_values(["capture_utc", "endpoint"], kind="stable")
+    g = pd.concat(gaps, ignore_index=True).drop_duplicates()
+
+    fwd = c[
+        (c.endpoint == FORWARD_ENDPOINT) & (c.capture_utc >= lo - 86400) & (c.capture_utc <= hi)
+    ]
+    covering = c[c.endpoint.isin([FORWARD_ENDPOINT, PAST_ENDPOINT])]
+    slots = range(lo, hi + 1, SLOT_S)
+    raw_truth = build_truth(f, covering, slots)
+
+    truth_parts, gap_report = [], {}
+    for r, grp in raw_truth.groupby("region_id", sort=True):
+        s = grp.set_index("slot_utc")["truth_g_per_kwh"].dropna()
+        missing = int(grp["truth_g_per_kwh"].isna().sum())
+        try:
+            t = interpolate_truth(s.reindex(slots).dropna())
+            longest = 0
+        except CarbonDataError as e:
+            # Keep going so the coverage report lists every problem; `validate` will refuse
+            # any replicate whose horizon touches an unfilled gap (R-ING-4).
+            t = s.reset_index().assign(interpolated=0)
+            longest = str(e)
+        t["region_id"] = int(r)
+        truth_parts.append(t)
+        lag = grp.loc[grp["final_lag_s"] >= 0, "final_lag_s"]
+        gap_report[int(r)] = {
+            "slots": len(grp),
+            "missing_truth_slots": missing,
+            "unfillable_gap": longest,
+            "gap_runs_utc": _gap_runs(grp),
+            "final_lag_h_p05_p50": [float(lag.quantile(0.05)) / 3600, float(lag.median()) / 3600],
+        }
+    truth = pd.concat(truth_parts, ignore_index=True)
+    truth["truth_kind"] = TRUTH_KIND
+    truth = truth[["region_id", "slot_utc", "truth_g_per_kwh", "truth_kind", "interpolated"]]
+
+    out_dir.mkdir(parents=True, exist_ok=True)
+    manifest_dir.mkdir(parents=True, exist_ok=True)
+    f_out = f[(f.capture_utc <= hi)].assign(source="archive")
+    f_out[["region_id", "slot_utc", "capture_utc", "forecast_g_per_kwh", "source"]].astype(
+        {"forecast_g_per_kwh": float}
+    ).to_csv(out_dir / "carbon_forecast.csv", index=False, lineterminator="\n")
+    truth.to_csv(out_dir / "carbon_truth.csv", index=False, lineterminator="\n")
+    fwd[["capture_utc", "endpoint", "window_first_utc", "window_last_utc", "source"]].to_csv(
+        out_dir / "capture_coverage.csv", index=False, lineterminator="\n"
+    )
+
+    fwd_days = pd.to_datetime(fwd["capture_utc"], unit="s").dt.date.value_counts()
+    all_days = pd.date_range(start, end).date
+    report = {
+        **_base_manifest(),
+        "source": "https://github.com/nmpowell/carbon-intensity-forecast-tracking",
+        "archive_commit": git_head(archive),
+        "partitions": {p.name: sha256_file(p) for p in parts},
+        "window": {"start": str(start), "end": str(end), "slots_lo_utc": lo, "slots_hi_utc": hi},
+        "regions": regions,
+        "truth_rule": "value at the last fw48h/pt24h capture whose window covers the slot",
+        "rows": {
+            "forecast": len(f_out),
+            "truth": len(truth),
+            "forward_captures": len(fwd),
+            "null_forecasts_dropped": n_null,
+            "capture_gaps": len(g),
+        },  # fmt: skip
+        "forward_captures_per_day": {
+            "min": int(fwd_days.reindex(all_days, fill_value=0).min()),
+            "median": float(fwd_days.reindex(all_days, fill_value=0).median()),
+            "days_without_capture": [str(d) for d in all_days if fwd_days.get(d, 0) == 0],
+        },
+        "truth_by_region": gap_report,
+        "outputs_sha256": {
+            n: sha256_file(out_dir / n)
+            for n in ("carbon_forecast.csv", "carbon_truth.csv", "capture_coverage.csv")
+        },
+    }
+    (manifest_dir / "carbon_archive.json").write_text(json.dumps(report, indent=2) + "\n")
+    return report

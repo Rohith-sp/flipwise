@@ -12,8 +12,18 @@ for f in pai_job_table pai_task_table pai_machine_spec; do
 done
 
 ARCHIVE=data/raw/carbon-intensity-forecast-tracking
-[ -d "$ARCHIVE" ] || git clone https://github.com/nmpowell/carbon-intensity-forecast-tracking "$ARCHIVE"
-if [ -n "${1:-}" ]; then git -C "$ARCHIVE" checkout --quiet "$1"; fi
+COMMIT="${1:-5d38b63cc93285b293a60eac750cb7923be75417}"
+if [ ! -d "$ARCHIVE" ]; then
+  # Shallow + sparse: the full history is several GB and large clones tend to drop.
+  git clone --filter=blob:none --no-checkout --sparse \
+    https://github.com/nmpowell/carbon-intensity-forecast-tracking "$ARCHIVE"
+  git -C "$ARCHIVE" sparse-checkout set --no-cone /data/db/2023/ /data/db/2024/ \
+    /data/db/reference.sqlite /README.md
+fi
+git -C "$ARCHIVE" checkout --quiet "$COMMIT"
 echo "archive commit: $(git -C "$ARCHIVE" rev-parse HEAD)"
 
 uv run python scripts/audit_v2020.py --raw data/raw/v2020
+uv run flipwise ingest alibaba
+uv run flipwise ingest carbon
+uv run flipwise validate

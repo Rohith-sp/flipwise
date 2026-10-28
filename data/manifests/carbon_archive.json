@@ -1,0 +1,151 @@
+{
+  "created_utc": "2026-10-28T19:19:24Z",
+  "python": "3.12.14",
+  "pandas": "3.1.0",
+  "numpy": "2.5.4",
+  "source": "https://github.com/nmpowell/carbon-intensity-forecast-tracking",
+  "archive_commit": "5d38b63cc93285b293a60eac750cb7923be75417",
+  "partitions": {
+    "regional_2023-03a.sqlite": "e2ffccd33b46a787174264d5beee35ceed90925b7fe5406b03bd2396a484ace1",
+    "regional_2023-03b.sqlite": "4dc7cabb85b193f81667718ce1e70381c3bb790d5f6c949afbe3736e3fd01319",
+    "regional_2023-04a.sqlite": "3b847dc24943bdf4f75877351e64ef595cef3c966f2479f57b25f681e32a3133",
+    "regional_2023-04b.sqlite": "66f72c347c359685f834d1815847f1fb11db9f4bcea618be76b4be5c6f1fb360",
+    "regional_2023-05a.sqlite": "79ee65c04786e480116fbd9049308c483b5dbd4dd07e2fee6e6749f19e79be5a",
+    "regional_2023-05b.sqlite": "e3efc402bb980cb66254c30d2b6b0eb088ac481349f936324213599939550b5e",
+    "regional_2023-06a.sqlite": "44e06386369b09b7825f04e150e75f0e3d87e0c90b8dcef1af4d3b1388b6abc8",
+    "regional_2023-06b.sqlite": "c9c2a3757aa6817c1fa1cedbf78b3f8ff99b70e0b52311d30a7863c457877dfe",
+    "regional_2023-07a.sqlite": "3c7d05fc818c2e7202bf0a0971fc9a27d91c7d619b25d6f6dd829f6149e4e4b2",
+    "regional_2023-07b.sqlite": "304b26a1c4a93000f277d11817ef83831661a047fb359e9c9e9d7152245478d7",
+    "regional_2023-08a.sqlite": "ff83bf5090939e2dcbf21da93f748eb8c46dfbee1c36e9ca9e3d561297e08e5d",
+    "regional_2023-08b.sqlite": "dfce33394271ebe29ff0977c76b2f493b9efb42113e1d3d68b749b85a7850d84",
+    "regional_2023-09a.sqlite": "6e6b7f2c154c1c5d76b356f8209aaf5b4382fb889b5762eb804c11ae9b933269",
+    "regional_2023-09b.sqlite": "de6a8606e36cb6a018d3de0f9ccbd4adfc805edda6569e05eaccddf1f0619cf5",
+    "regional_2023-10a.sqlite": "c0a6e313a3a803bc1dcf1762c09f3c197041fcd06008f0cf09da8396a214698a",
+    "regional_2023-10b.sqlite": "c26b4877cf87d371f62eccab40a98336445e6e9c557a30ee384569feaa8401ad",
+    "regional_2023-11a.sqlite": "5aca80554023a683e5e3306c4473b8e8482e7b88d6b36c016c4173480087a6da",
+    "regional_2023-11b.sqlite": "b834828744f50356f6de8050808cc178f42e8f0562b6102977fbe88f08935751",
+    "regional_2023-12a.sqlite": "ca028dc3eb7f6754dffdcece83212377a85f552064b4c11ca911c7a074d77413",
+    "regional_2023-12b.sqlite": "ede9e87aaf68dd147b25912b75d4b21461d774d1911e6741796fead14c0037f5",
+    "regional_2024-01a.sqlite": "5f7ea289bfa866b3af4d5ee11db462c49bb25af6e7a6091855090249f74f81f8",
+    "regional_2024-01b.sqlite": "066ba1f2859c648f764735b3453e965d0d4482cd3b63dbc9985bfc9f84c3017a",
+    "regional_2024-02a.sqlite": "6ab1cb5fea7f2cc95b7f632eb5907b27a68bc8a2c5fce33e288ee0c146064af0"
+  },
+  "window": {
+    "start": "2023-03-13",
+    "end": "2024-01-31",
+    "slots_lo_utc": 1678665600,
+    "slots_hi_utc": 1707435000
+  },
+  "regions": [
+    1,
+    13,
+    7
+  ],
+  "truth_rule": "value at the last fw48h/pt24h capture whose window covers the slot",
+  "rows": {
+    "forecast": 2069116,
+    "truth": 47016,
+    "forward_captures": 13729,
+    "null_forecasts_dropped": 0,
+    "capture_gaps": 0
+  },
+  "forward_captures_per_day": {
+    "min": 0,
+    "median": 44.0,
+    "days_without_capture": [
+      "2023-03-20",
+      "2023-03-31",
+      "2023-04-01",
+      "2023-04-02",
+      "2023-10-21"
+    ]
+  },
+  "truth_by_region": {
+    "1": {
+      "slots": 15984,
+      "missing_truth_slots": 312,
+      "unfillable_gap": "truth gap longer than 2 slots at slot 1680366600",
+      "gap_runs_utc": [
+        [
+          "2023-04-01T16:30Z",
+          "2023-04-02T23:00Z"
+        ],
+        [
+          "2023-10-20T22:00Z",
+          "2023-10-22T14:30Z"
+        ],
+        [
+          "2023-12-31T23:30Z",
+          "2024-01-01T00:30Z"
+        ],
+        [
+          "2024-02-05T13:30Z",
+          "2024-02-08T23:30Z"
+        ]
+      ],
+      "final_lag_h_p05_p50": [
+        23.0,
+        24.0
+      ]
+    },
+    "7": {
+      "slots": 15984,
+      "missing_truth_slots": 312,
+      "unfillable_gap": "truth gap longer than 2 slots at slot 1680366600",
+      "gap_runs_utc": [
+        [
+          "2023-04-01T16:30Z",
+          "2023-04-02T23:00Z"
+        ],
+        [
+          "2023-10-20T22:00Z",
+          "2023-10-22T14:30Z"
+        ],
+        [
+          "2023-12-31T23:30Z",
+          "2024-01-01T00:30Z"
+        ],
+        [
+          "2024-02-05T13:30Z",
+          "2024-02-08T23:30Z"
+        ]
+      ],
+      "final_lag_h_p05_p50": [
+        23.0,
+        24.0
+      ]
+    },
+    "13": {
+      "slots": 15984,
+      "missing_truth_slots": 312,
+      "unfillable_gap": "truth gap longer than 2 slots at slot 1680366600",
+      "gap_runs_utc": [
+        [
+          "2023-04-01T16:30Z",
+          "2023-04-02T23:00Z"
+        ],
+        [
+          "2023-10-20T22:00Z",
+          "2023-10-22T14:30Z"
+        ],
+        [
+          "2023-12-31T23:30Z",
+          "2024-01-01T00:30Z"
+        ],
+        [
+          "2024-02-05T13:30Z",
+          "2024-02-08T23:30Z"
+        ]
+      ],
+      "final_lag_h_p05_p50": [
+        23.0,
+        24.0
+      ]
+    }
+  },
+  "outputs_sha256": {
+    "carbon_forecast.csv": "8af2375b6fced8911e4e1dc93150614d401157da11e462b8ca930c7f16bd60d2",
+    "carbon_truth.csv": "0dc9ed6a5af742685b1bcca8a7625360f10e6be7c51b1d91cb46cd39b59d43cf",
+    "capture_coverage.csv": "0db8e276eee972ed7ea0e86b1cdeb4d6b28dc192f2f8ccf916d2196f9bcf955e"
+  }
+}

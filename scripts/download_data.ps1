@@ -1,6 +1,6 @@
 # Download raw data into data/raw/ (Windows PowerShell 5+ / PowerShell 7).
 # Usage: powershell -ExecutionPolicy Bypass -File scripts\download_data.ps1 [-ArchiveCommit <sha>]
-param([string]$ArchiveCommit = "")
+param([string]$ArchiveCommit = "5d38b63cc93285b293a60eac750cb7923be75417")
 $ErrorActionPreference = "Stop"
 Set-Location (Join-Path $PSScriptRoot "..")
 
@@ -15,9 +15,14 @@ foreach ($f in "pai_job_table", "pai_task_table", "pai_machine_spec") {
 
 $archive = "data\raw\carbon-intensity-forecast-tracking"
 if (-not (Test-Path $archive)) {
-    git clone https://github.com/nmpowell/carbon-intensity-forecast-tracking $archive
+    # Shallow + sparse: the full history is several GB and large clones tend to drop.
+    git clone --filter=blob:none --no-checkout --sparse https://github.com/nmpowell/carbon-intensity-forecast-tracking $archive
+    git -C $archive sparse-checkout set --no-cone /data/db/2023/ /data/db/2024/ /data/db/reference.sqlite /README.md
 }
-if ($ArchiveCommit) { git -C $archive checkout --quiet $ArchiveCommit }
+git -C $archive checkout --quiet $ArchiveCommit
 Write-Host "archive commit: $(git -C $archive rev-parse HEAD)"
 
 uv run python scripts/audit_v2020.py --raw data/raw/v2020
+uv run flipwise ingest alibaba
+uv run flipwise ingest carbon
+uv run flipwise validate
