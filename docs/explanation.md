@@ -5,7 +5,7 @@
 **SDG theme:** SDG 9 — Industry, Innovation and Infrastructure  
 **Document purpose:** Explain the project, its motivation, research direction, data, proposed simulation, evaluation plan, current decisions, and unresolved questions in one place.  
 **Project name:** Flipwise (Python package and CLI `flipwise`): it re-evaluates decision flips wisely  
-**Status:** Working explanation based on the submitted EL report, the team's subsequent discussion, and the implementation PRD (`prd.md`). Updated to match PRD v0.4. Where the two disagree, the PRD is authoritative.  
+**Status:** Working explanation based on the submitted EL report, the team's subsequent discussion, and the implementation PRD (`prd.md`). Updated to match PRD v0.5 (India-only simulated world). Where the two disagree, the PRD is authoritative.  
 **Last updated:** 28 October 2026
 
 ---
@@ -225,7 +225,7 @@ A reproducible research simulator and evaluation pipeline with these major capab
 - Deploying a scheduler into real cloud infrastructure.
 - Controlling actual datacentres or migrating live production jobs.
 - Claiming measured real-world energy or emission reductions.
-- Pretending that Alibaba's workload trace and NESO's electricity regions correspond to real, geographically matched cloud facilities.
+- Pretending that Alibaba's workload trace and the Indian regional grids correspond to real, geographically matched cloud facilities.
 - Assuming that a public workload trace contains exact job-level power consumption, job deadlines, or every requested resource field.
 - Building a complex forecasting model before a clean data pipeline and baseline simulator exist.
 - Implementing the entire original Global–Local DRO architecture before the core trigger can be evaluated.
@@ -248,7 +248,7 @@ The architecture should be modular. It should be possible to replace the planner
 
 ```text
 Workload Trace                 Carbon-Intensity Data
-(Alibaba Cluster Data)         (NESO or clearly labelled alternative)
+(Alibaba Cluster Data)         (Indian grid + NESO error paths)
          |                                  |
          v                                  v
   Workload Adapter                     Carbon Adapter
@@ -364,9 +364,9 @@ The research runs keep everything in one Python process because that is fast and
 |---|---|---|
 | **DT1 Local split** | Three service processes on one laptop (ports 8101–8103), started and stopped by `scripts/local_cluster.sh` | EL Phase 2, in parallel with the research work |
 | **DT2 Docker** | The same four programs in four containers via `docker compose up`, so any machine gets an identical environment | EL Phase 3 |
-| **DT3 AWS** | The Docker image on three small EC2 instances (default London region, `eu-west-2`), with a budget alert and a teardown script | EL Phase 3, after the main results exist |
+| **DT3 AWS** | The Docker image on three small EC2 instances (default Mumbai region, `ap-south-1`), with a budget alert and a teardown script | EL Phase 3, after the main results exist |
 
-AWS regions only host the services; the carbon signal still comes from the NESO data. A datacentre labelled "London" uses London carbon data whether its service runs on a laptop or in Stockholm. The deployment track adds engineering realism and a measured network overhead. It does not change, or produce, research results.
+AWS regions only host the services; the carbon signal still comes from the Indian carbon data. A datacentre labelled "Chennai" uses Southern-grid carbon data whether its service runs on a laptop or in Mumbai. The deployment track adds engineering realism and a measured network overhead. It does not change, or produce, research results.
 
 The simulator must be designed for this from the start: datacentre state and dispatch live in their own module behind a `DatacentreClient` interface, with an in-process and an HTTP implementation.
 
@@ -516,7 +516,7 @@ Separating them makes experiments interpretable. It also allows the same planner
 
 ## 11. Dataset plan
 
-The submitted report names two principal datasets: **Alibaba Cluster Data** for workload characteristics and **NESO regional carbon-intensity information** for electricity carbon signals. The dataset versions, fields, and data joins are not final until the team audits the releases it can actually download and use.
+The submitted report names two principal datasets: **Alibaba Cluster Data** for workload characteristics and **NESO regional carbon-intensity information** for electricity carbon signals. Since PRD v0.5 the simulated world is Indian: carbon truth comes from Indian grid data and CEA factors, and the NESO archive supplies only the shape of real forecast errors (Section 11.2).
 
 ### 11.1 Workload trace: Alibaba Cluster Data
 
@@ -575,43 +575,53 @@ Deadlines, job runtime estimates, power values, region mappings, or resources ma
 4. run sensitivity experiments across reasonable alternatives; and
 5. avoid presenting synthetic fields as measurements from Alibaba.
 
-### 11.2 Carbon-intensity data: NESO
+### 11.2 Carbon-intensity data: Indian grid conditions (PRD v0.5)
 
-Official regional forecast page: <https://www.neso.energy/data-portal/regional-carbon-intensity-forecast>  
-Official national forecast page: <https://www.neso.energy/data-portal/national-carbon-intensity-forecast>
+The simulated world is **India only** (decision D17). The workload data stay as available (the Alibaba trace), but the datacentres, the grid and the clock are Indian:
 
-NESO's regional forecast dataset describes carbon intensity for the Great Britain electricity system. The portal defines carbon intensity as the amount of CO₂ emitted per kilowatt-hour of electricity consumed and states that the regional resource is updated hourly. The national resource is also updated hourly. The data portal provides downloadable CSV resources and methodology documents.
+| Virtual datacentre | Regional grid |
+|---|---|
+| Delhi NCR | Northern (NR) |
+| Mumbai | Western (WR) |
+| Chennai | Southern (SR) |
 
-The core idea is to use **time-varying carbon intensity** as a scheduling input. If a job is flexible about when it starts, the same electricity consumption can produce different modelled emissions depending on the grid carbon intensity during execution. If virtual datacentres are assigned different regional profiles, their emissions can also differ for the same workload and time.
+These are India's main datacentre hubs; the virtual datacentres are not real facilities. Job submission times are aligned to **IST**, so daytime jobs meet the Indian solar midday.
 
-#### Forecast-vintage limitation
+#### Truth: what the Indian grid actually emitted
 
-The decision-flip trigger needs to know what the scheduler could reasonably have known at each simulated decision time. That makes forecast-vintage data important. A forecast-vintage record should identify, directly or indirectly:
+For each region and half-hour, carbon intensity is computed from **generation by fuel** multiplied by **fuel emission factors from the CEA CO2 Baseline Database** (India's official emission-factor source), divided by total generation. Hydro, nuclear, solar and wind count as zero. Power flows between regions are ignored (a production-based figure), which is stated as a limitation. The preferred source of regional generation by fuel is Grid-India; whether it is available at hourly or 15-minute resolution for 2023 is not yet confirmed (blocker B4), and the PRD lists fallbacks.
 
-- **issue time:** when the forecast became available;
-- **target interval:** the future interval being predicted;
-- **forecast value:** the prediction available at issue time;
-- **realised/actual value:** the reference value used to evaluate forecast error.
+#### Forecasts: why and how they are built
 
-The existence of a historical forecast file does not automatically prove that every historical forecast issue-time/target-time pair is preserved. Before calibrating regional residuals, audit the actual downloaded schema and test whether forecast values can be paired with the relevant realised values without future-information leakage.
+The decision-flip trigger needs the forecasts a scheduler would really have seen at each moment, not the final values. Nobody has archived Indian carbon-intensity forecasts. Great Britain is the one place where every half-hourly forecast was saved (the NESO forecast-tracking archive), so the project borrows **the shape of real forecast errors** from there:
 
-If those historical regional forecast vintages are not available in a usable form, the project must use an honest alternative, such as a supported archive/API with matching fields, a clearly labelled national-residual proxy, or a synthetic/residual-resampling model for experiments. Do not claim “regional forecast residuals were calibrated from historical archive” unless the paired data support that statement. A forward data collector could be an additional future step, but it does not magically create historical forecast vintages.
+1. From the archive, compute how wrong each British forecast was at each lead time, and how it was revised capture by capture.
+2. Scale those errors to Indian intensity levels.
+3. Add them to the Indian truth: Indian forecast = Indian truth + scaled real error.
+
+This keeps the behaviour of a real operational forecast: errors that grow with lead time, revisions that drift smoothly, and the same missing captures. Plain random noise would make forecasts jitter every half hour, which would cause extra job moves for every policy and unfairly favour decision-flip's noise margin.
+
+The honest limitation: the errors have the right statistical shape, but they come from British weather, not Indian monsoon or solar variability. Every report must say so, and the forecast-error scaling sweep shows how sensitive results are to it.
+
+#### What to expect from Indian data
+
+India's regions share one synchronous national grid, so the carbon difference *between* Delhi, Mumbai and Chennai may be smaller than between countries, while the difference *across the day* (solar midday) may be large. Spatial shifting may therefore help less than temporal shifting. That is a result to measure (hypothesis H3), not a problem.
 
 ### 11.3 Mapping traces to virtual datacentres
 
-Alibaba traces and NESO regional carbon-intensity series do not automatically describe the same physical facilities or geography. The simulation should therefore define **virtual datacentres**, each with a transparent mapping to a carbon profile and a configured capacity/power model.
+Alibaba traces and Indian regional carbon-intensity series do not automatically describe the same physical facilities or geography. The simulation should therefore define **virtual datacentres**, each with a transparent mapping to a carbon profile and a configured capacity/power model.
 
 A virtual datacentre configuration should specify at least:
 
 - `datacenter_id`;
-- carbon-intensity profile or NESO region identifier;
+- carbon-intensity profile (Indian regional grid);
 - CPU/GPU/memory capacity;
 - hardware/resource-type assumptions;
 - power-model parameters;
 - optional PUE setting and its source/assumption;
 - permitted job types and any transfer/eligibility constraints.
 
-Make the mapping configurable and publish it as part of the experimental configuration. Do not imply that a virtual facility is a real Alibaba facility in a NESO region.
+Make the mapping configurable and publish it as part of the experimental configuration. Do not imply that a virtual facility is a real Alibaba facility or a real datacentre in that Indian hub.
 
 ### 11.4 Data citation and reproducibility
 
@@ -673,19 +683,18 @@ This should only be done when the meaning/source of PUE is documented and is app
 
 ### 12.4 Which carbon factor should be used?
 
-For time-shifting experiments, the primary scheduling signal should be a time- and (where used) region-varying NESO carbon-intensity series. A fixed annual-average factor cannot represent hour-by-hour changes and should not replace the dynamic series in the main experiment.
+For time-shifting experiments, the primary scheduling signal is the time- and region-varying Indian carbon-intensity series of Section 11.2. A fixed annual-average factor cannot represent hour-by-hour changes and does not replace the dynamic series in the main experiment.
 
-The principal also suggested using an established emissions table. The likely options and intended roles are:
+The principal also suggested using an established emissions table. With an Indian simulated world, the working answer is the **CEA CO2 Baseline Database for the Indian Power Sector** (Central Electricity Authority): it supplies the fuel emission factors used to build the Indian series, and its grid-average factor is used in a constant-carbon sanity check. Other possibilities, if the principal meant something else:
 
-- **UK Government Greenhouse Gas Reporting Conversion Factors 2026:** a formal reference for calculating and reporting emissions from activity data, including purchased electricity. It can be reviewed as a standardised benchmark/validation source. Official page: <https://www.gov.uk/government/publications/greenhouse-gas-reporting-conversion-factors-2026>.
-- **Electricity-generation technology/lifecycle factors:** if the principal meant a comparison table for coal, gas, hydro, wind, solar, and other generation sources, the team should use a reputable and clearly scoped source such as IPCC-based lifecycle-factor references, and distinguish lifecycle emissions from operational grid intensity.
-- **Carbon budget or target:** if the principal meant a recommended emissions limit, that should be implemented as a separate target/constraint, not mistaken for an emissions conversion factor.
+- **Electricity-generation technology/lifecycle factors:** if he meant a comparison table for coal, gas, hydro, wind, solar and other sources, use a clearly scoped IPCC-based lifecycle reference and keep lifecycle separate from operational grid intensity.
+- **Carbon budget or target:** if he meant a recommended emissions limit, implement it as a separate constraint, not as a conversion factor.
 
-The exact table the principal intended was not recorded. The correct follow-up is to ask for the table's name, link, or one example row. Until confirmed, treat the UK Government 2026 conversion-factor source as a candidate reference, not as the proven source he meant.
+The exact table the principal intended was not recorded. Confirm with him that the CEA database is what he meant.
 
 ### 12.5 Avoid double-counting and mixed boundaries
 
-Do not multiply NESO's grid carbon-intensity factor by another electricity-generation factor describing the same electricity. That would generally count the electricity emissions twice. State whether each result is `CO2` or `CO2e`, and whether it represents operational/grid-related emissions or lifecycle emissions. Do not mix those definitions without an explicit reason.
+Do not multiply the Indian grid carbon intensity (already built from CEA factors) by another electricity-generation factor describing the same electricity. That would generally count the electricity emissions twice. State whether each result is `CO2` or `CO2e`, and whether it represents operational/grid-related emissions or lifecycle emissions. Do not mix those definitions without an explicit reason.
 
 ### 12.6 What the results may claim
 
@@ -906,7 +915,7 @@ flipwise/
 ├── scripts/         download/checksum scripts, local_cluster.sh (DT1), aws/ (DT3)
 ├── src/flipwise/
 │   ├── cli.py, config.py, models.py
-│   ├── ingest.py          # Alibaba and NESO-archive adapters, manifests
+│   ├── ingest.py          # Alibaba, Indian grid and NESO-archive adapters, manifests
 │   ├── carbon.py          # forecasts by vintage, truth, residual quantiles
 │   ├── energy.py          # power, energy, emissions
 │   ├── estimates.py       # runtime quantiles, queue-wait profiles
@@ -945,7 +954,7 @@ The PRD roadmap (PRD §18) has nine build phases plus a parallel deployment trac
 | Phase | Build | Exit criterion |
 |---|---|---|
 | 1. Setup and audit | Repo, `uv`, ruff, pytest; download the v2020 trace; clone the forecast archive at a fixed commit | Checksums match; audit numbers reproduced by a script |
-| 2. Canonical data | `ingest alibaba`, `ingest carbon`, manifests, `validate` | Clean job and carbon CSVs with coverage reports; archive coverage and NESO terms checked (B2) |
+| 2. Canonical data | `ingest alibaba`, `ingest india`, `ingest carbon`, `build-forecasts`, manifests, `validate` | Clean job, Indian truth and forecast CSVs with coverage reports; Indian data source (B4) and archive coverage (B2) checked |
 | 3. Deterministic core | Job and datacentre models, event loop, queues and dispatch behind `DatacentreClient`, toy scenario, FCFS | Toy FCFS output equals the hand-computed `expected.yaml` |
 | 4. Energy and place-once | Emissions model, carbon views, planner (candidates, feasibility, scores), place-once | Toy emissions exactly right; constant-carbon test passes |
 | 5. Baselines | Runtime and wait estimates, periodic, pred_error, fixed-savings, rescue, throttling | All baselines run on the toy scenario |
@@ -986,9 +995,9 @@ Possibilities include:
 2. **Emission factors by electricity-generation technology**, such as coal, gas, hydro, wind, and solar, potentially including operational versus lifecycle emissions.
 3. **An emissions threshold, benchmark, or carbon budget**, which would be a target rather than a conversion factor.
 
-The UK Government's **2026 Greenhouse Gas Reporting Conversion Factors** are a credible candidate for standardised activity-based reporting: <https://www.gov.uk/government/publications/greenhouse-gas-reporting-conversion-factors-2026>. The official page says these factors support calculation/reporting of greenhouse-gas emissions from activity data such as electricity kWh and are published with a methodology document. However, the principal's wording does not establish that this is the exact table he meant.
+With the Indian setting (PRD v0.5), the **CEA CO2 Baseline Database for the Indian Power Sector** is the natural candidate: India's official source of grid and station emission factors, published with a user guide per version. The UK Government's 2026 conversion factors were the earlier candidate for the GB setting. The principal's wording does not establish which table he meant, so confirm it.
 
-For the project, use NESO's dynamic carbon-intensity data for the main time/location scheduling signal if the selected data are suitable. Use a standard emissions conversion table as a documented reference or validation source when appropriate. Do not substitute a static annual-average factor for the dynamic signal in the main shifting experiment, and do not apply two factors to the same electricity in a way that double-counts emissions.
+For the project, use the dynamic Indian carbon-intensity series (Section 11.2) for the main time/location scheduling signal. Use a standard emissions conversion table as a documented reference or validation source when appropriate. Do not substitute a static annual-average factor for the dynamic signal in the main shifting experiment, and do not apply two factors to the same electricity in a way that double-counts emissions.
 
 **Action:** ask the principal for the table name, URL, paper/book, or a sample row. Record the answer in the data/accounting methodology.
 
@@ -1018,7 +1027,7 @@ The book provides scheduling theory; it is not the source of electricity-emissio
 The methodology/report should eventually state:
 
 - the exact emissions table/reference selected and why it matches the chosen accounting boundary;
-- how it is used alongside NESO's time-varying carbon intensity;
+- how it is used to build the Indian time-varying carbon intensity;
 - the relevant scheduling concepts taken from Pinedo;
 - which modelling choices are literature-grounded and which remain scenario assumptions.
 
@@ -1069,7 +1078,7 @@ This is a proposed gap, not a proven novelty claim. A focused literature review 
 9. National Energy System Operator, “Historic Generation Mix.” <https://www.neso.energy/data-portal/historic-generation-mix>.
 10. United Nations, “Goal 9: Industry, Innovation and Infrastructure.” <https://sdgs.un.org/goals/goal9>.
 11. Michael L. Pinedo, _Scheduling: Theory, Algorithms, and Systems_, 6th ed., Springer, 2022. <https://doi.org/10.1007/978-3-031-05921-6>.
-12. UK Department for Energy Security and Net Zero, “Greenhouse gas reporting: conversion factors 2026.” <https://www.gov.uk/government/publications/greenhouse-gas-reporting-conversion-factors-2026>.
+12. Central Electricity Authority (India), “CO2 Baseline Database for the Indian Power Sector.” <https://cea.nic.in/> (replaces the UK DESNZ 2026 conversion factors cited before PRD v0.5).
 13. Electricity Maps, “Methodology.” <https://www.electricitymaps.com/data/methodology>.
 14. GHG Protocol, _Scope 2 Guidance_. <https://ghgprotocol.org/scope-2-guidance>.
 
@@ -1127,11 +1136,11 @@ The following choices are not fully settled and should be recorded in configurat
 
 Ticked items were decided in the PRD (decision IDs in brackets); unticked items are still open (PRD §17.3).
 
-- [ ] Confirm the exact emissions table intended by the principal (O1; DESNZ 2026 is the working candidate).
+- [ ] Confirm the exact emissions table intended by the principal (O1; the CEA CO2 Baseline Database is the working answer).
 - [ ] Confirm that Pinedo's sixth edition is the book the principal meant (O2).
 - [x] Choose the primary Alibaba trace release: v2020 (D5).
-- [x] Pair historical NESO regional forecast vintages with realised values: the forecast-tracking archive gives vintages, and the final published regional forecast is used as truth (D7). Coverage per region still to be checked (B2).
-- [x] Map virtual datacentres to carbon profiles: North Scotland, London and South Wales by default (region IDs to verify, O3).
+- [x] Simulated world: India only, with Indian truth from generation by fuel × CEA factors and forecasts from real NESO error paths (D17–D20). Indian generation data source still to be confirmed (B4); archive coverage still to be checked (B2).
+- [x] Map virtual datacentres to carbon profiles: Delhi NCR (Northern), Mumbai (Western), Chennai (Southern).
 - [ ] Choose the base power values (B3; partly sourced). PUE is fixed at 1.0, IT energy only.
 - [x] Deadlines: synthetic, derived only from the frozen runtime estimate (D15).
 - [x] Objective, hard constraints, tie-breaking and candidate windows (PRD §9).

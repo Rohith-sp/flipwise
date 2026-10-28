@@ -4,19 +4,20 @@
 
 | Field | Value |
 |---|---|
-| Document status | Implementation-ready draft. Supersedes v0.3 (24 Oct 2026), v0.2 (24 Oct 2026) and v0.1 (23 Oct 2026). Changes are listed in the changelog below. |
-| Version | 0.4 |
-| Revised | 28 October 2026 |
+| Document status | Implementation-ready draft. Supersedes v0.4 (28 Oct 2026), v0.3 (24 Oct 2026), v0.2 (24 Oct 2026) and v0.1 (23 Oct 2026). Changes are listed in the changelog below. |
+| Version | 0.5 |
+| Revised | 29 October 2026 |
 | Project name | **Flipwise** (Python package and CLI `flipwise`) [Decision]: it re-evaluates decision flips wisely. Renamed from FlipSim on 25 Oct 2026. Availability of the name on GitHub and PyPI is [Open], not yet checked. |
 | Project context | RV College of Engineering, Experiential Learning, V Semester, AY 2026–27; SDG 9 |
 | Deliverable | Offline, command-line research simulator and reproducible evaluation pipeline, plus a static, self-contained HTML results dashboard generated from result CSVs. Not a production scheduler. No web app in the MVP. From v0.4, a **deployment track** (Section 13.5) runs the same simulation with each virtual datacentre as a separate service: first as local processes, then in Docker, then on AWS. Research results always come from the in-process mode; the deployment modes must reproduce them exactly. |
-| Companion document | `explanation.md` (plain-language project explanation). Where the two disagree, this PRD is authoritative (see Section 5). `explanation.md` was updated to match v0.4 on 28 Oct 2026. |
+| Companion document | `explanation.md` (plain-language project explanation). Where the two disagree, this PRD is authoritative (see Section 5). `explanation.md` was updated to match v0.5 on 29 Oct 2026. |
 | Repository state at revision | Git repository exists (`https://github.com/Rohith-sp/flipwise`) with `README.md` and `docs/` only. No code yet. Initial layout in Section 13.1. |
 
 ### Changelog
 
 | Version | Date | Changes |
 |---|---|---|
+| 0.5 | 29 Oct 2026 | Made the simulated world India-only (D17–D20): three virtual datacentres in Delhi NCR, Mumbai and Chennai on the Northern, Western and Southern regional grids; Indian truth intensity from regional generation by fuel × CEA emission factors (6.2.2); Indian forecast vintages built from the NESO archive's real error paths, scaled to Indian levels (6.2.4); trace time aligned to IST (6.3). The CEA CO2 Baseline Database replaces DESNZ as the established emissions reference (7.5). Carbon-spread sweep redefined (14.4); new requirements R-ING-5/6; new blocker B4 (Indian generation data); DT3 default region `ap-south-1` (Mumbai). Novelty point (c) narrowed accordingly (19). |
 | 0.4 | 28 Oct 2026 | Added the deployment track (13.5): the three virtual datacentres run as separate services in three stages, DT1 local processes started by a shell script, DT2 Docker Compose, DT3 AWS. The coordinator keeps the simulated clock, so every mode must produce byte-identical `jobs.csv` and `decisions.csv` to the in-process run (R-DEP-1…6). Updated the non-goals (4.3), stack (12.1), layout (13.1), CLI (13.4), risks and open questions (17), roadmap and EL mapping (18). Recorded the GitHub repository. Added `CLAUDE.md` to the initial repository contents. |
 | 0.3 | 24 Oct 2026 | Named the project Flipwise (`flipwise`; renamed from the placeholder `carbonsim` throughout). Added `flipwise dashboard` (static `dashboard.html`, no server), kept separate from `flipwise run` (4.1, 4.3, 12.1, 13.1, 13.4, 16.2). Replaced "no web UI" with "no server or web app in MVP; optional Streamlit viewer is a Phase 3 extension" (X9). Mapped EL Phase 2 and Phase 3 to the roadmap, with `pred_error(ε)` moved to EL Phase 3 (Section 18.1). Added the 24 Oct literature-search findings: CarbonScaler as the published source for `pred_error(ε)`, GREEN for `periodic(T)`, Li et al. as closest to the θ·w_ab margin, and the novelty verdict "candidate contribution" (11, 19). Added cited GPU nameplate powers for B3; CPU and MISC GPU power remain unverified (7.2, 17.3). Added the initial repo contents and README outline, and updated the target layout with `docs/`, `scripts/`, `LICENSE` and `dashboard.py` (13.1). |
 | 0.2 | 24 Oct 2026 | Implementation-ready revision of v0.1 (see Section 5). |
@@ -42,7 +43,7 @@ This PRD tells a developer who has never met the team what to build, how it beha
 
 ### 1.3 Scope in one paragraph
 
-The MVP is a deterministic discrete-event simulator of three virtual datacentres (pooled GPU/CPU/memory capacity, one GB grid region each). It replays one-week slices of the Alibaba PAI GPU trace v2020, feeds the scheduling policy the NESO carbon-intensity forecasts *as they were published* (reconstructed from a public forecast-vintage archive), scores outcomes against later carbon values held only by the evaluator, and compares seven policies under identical inputs. Running jobs are never migrated. DRO is outside the MVP.
+The MVP is a deterministic discrete-event simulator of three virtual datacentres (pooled GPU/CPU/memory capacity) in Indian hubs (Delhi NCR, Mumbai, Chennai), one Indian regional grid each. It replays one-week slices of the Alibaba PAI GPU trace v2020 aligned to Indian Standard Time, feeds the scheduling policy half-hourly carbon-intensity forecasts built from Indian grid data and the real error paths of an archived operational forecast (Section 6.2), scores outcomes against later carbon values held only by the evaluator, and compares seven policies under identical inputs. Running jobs are never migrated. DRO is outside the MVP.
 
 ---
 
@@ -56,7 +57,7 @@ The design has one property worth stating early because it makes the experiment 
 
 ### 2.1 Three-sentence explanation
 
-We simulate several virtual datacentres in different GB grid regions, replay real AI-cluster jobs through them, and let different policies decide where and when each job runs using only the carbon forecasts that were public at that moment. The proposed policy re-plans a waiting job only when an alternative placement could beat the current one by a meaningful, noise-adjusted margin. We measure whether this keeps most of the modelled carbon benefit of frequent re-planning while making far fewer planner calls and placement changes, and we report the conditions where it does worse.
+We simulate three virtual datacentres in Indian hubs on different regional grids, replay real AI-cluster jobs through them, and let different policies decide where and when each job runs using only the carbon forecasts available at that moment. The proposed policy re-plans a waiting job only when an alternative placement could beat the current one by a meaningful, noise-adjusted margin. We measure whether this keeps most of the modelled carbon benefit of frequent re-planning while making far fewer planner calls and placement changes, and we report the conditions where it does worse.
 
 ---
 
@@ -94,7 +95,7 @@ The 50 % figure in H1 is a pre-registered threshold for calling the screen usefu
 
 ### 4.1 MVP (must exist for the main experiment)
 
-1. Ingest adapters: Alibaba PAI v2020 job and task tables to a canonical job CSV; NESO forecast-vintage archive to canonical forecast and truth CSVs.
+1. Ingest adapters: Alibaba PAI v2020 job and task tables to a canonical job CSV; Indian regional generation data and CEA factors to an Indian truth CSV; NESO forecast-vintage archive to error paths; a builder that combines them into Indian forecast vintages (6.2).
 2. A deterministic event engine (`heapq`) with job lifecycle, three virtual datacentres, FIFO first-fit dispatch, and a strict scheduler/evaluator information boundary.
 3. Energy and emissions model with explicit units and configurable power parameters.
 4. Estimators: per-user runtime quantiles (frozen after calibration), lead-time-bucketed carbon residual quantiles, model-based queue-wait intervals.
@@ -124,7 +125,7 @@ The deployment track (DT1 local split, DT2 Docker, DT3 AWS) is not an extension:
 
 Real infrastructure control; live-job migration; claims of measured real-world emission reductions; a web app in the MVP (the static `dashboard.html` is in scope; a live viewer is X9); databases, message queues, GPUs or deep learning; reproducing any production scheduler; treating virtual datacentres as real Alibaba facilities.
 
-The deployment track (13.5) is in scope but is not a production system. Its datacentre services hold simulated queues and never run real jobs; the AWS stage (DT3) hosts those services on cloud machines and does not measure AWS's energy or emissions. Carbon values always come from the NESO data, whichever machine a service runs on. Deployment modes never produce research results of their own: a result counts only if the in-process mode produces the identical output.
+The deployment track (13.5) is in scope but is not a production system. Its datacentre services hold simulated queues and never run real jobs; the AWS stage (DT3) hosts those services on cloud machines and does not measure AWS's energy or emissions. Carbon values always come from the Indian carbon data (6.2), whichever machine a service runs on. Deployment modes never produce research results of their own: a result counts only if the in-process mode produces the identical output.
 
 ---
 
@@ -138,7 +139,7 @@ The deployment track (13.5) is in scope but is not a production system. Its data
 | D4 | pandas *or* Polars; YAML *or* TOML; Parquet *or* CSV. | pandas, YAML (PyYAML), CSV. | Smallest set; job table is ~0.73 M rows after filtering, which CSV handles. |
 | D5 | Trace release undecided (v2020 vs v2026). | v2020 for MVP. | Downloaded and checksum-verified; schema documented; 68.9 days; 6,742 GPUs. v2026 is far larger and its schema was not audited. |
 | D6 | v0.1 §7.7 proposes historical queue-wait intervals. | Queue wait is model-based (Section 9.3). | In the released v2020 data every job's `start_time` equals its earliest task `start_time` (0 of 1,055,501 jobs differ), so historical wait is not derivable. |
-| D7 | NESO forecast-vintage availability unknown. | Use the public `nmpowell/carbon-intensity-forecast-tracking` archive for vintages; regional "truth" is the final published regional forecast. | The official API overwrites old forecasts and publishes `actual` nationally only; the archive records each half-hourly capture. |
+| D7 | NESO forecast-vintage availability unknown. | Use the public `nmpowell/carbon-intensity-forecast-tracking` archive for vintages; regional "truth" is the final published regional forecast. | The official API overwrites old forecasts and publishes `actual` nationally only; the archive records each half-hourly capture. From v0.5 the archive supplies forecast-error paths only (D19). |
 | D8 | "CATS-style savings gate" baseline. | Renamed "fixed-savings gate". No CATS equivalence is claimed. | The CATS paper describes Speed-First, Carbon-First, Spatial Shifting and Temporal Shifting policies; a savings gate was not found in the material checked. |
 | D9 | Robust q90 runtime placement listed as a separate baseline. | q90-runtime deadline feasibility is the shared rule for every policy. Point-estimate feasibility becomes an ablation. | Avoids a baseline that differs from others only in a shared component. |
 | D10 | Oracle called a "lower bound". | "Perfect-information greedy" (PIG) reference; not a bound. | It is greedy in arrival order; better schedules may exist. |
@@ -147,6 +148,10 @@ The deployment track (13.5) is in scope but is not a production system. Its data
 | D13 | Whether optimiser overhead is converted to carbon. | No. Reported as wall-clock and call counts. Optional penalty parameter defaults to 0. | No measured scheduler energy model. |
 | D14 | Two different repository layouts. | One small package (Section 13). | Fewer modules for an MVP. |
 | D15 | Deadlines unspecified. | Synthetic, derived only from the frozen runtime estimate (Section 6.4). | Deriving them from actual runtime would leak the runtime to the scheduler. |
+| D17 | Simulated world was GB (v0.1–v0.4). | India only: three Indian hubs and regional grids (6.2.1). | The team wants Indian conditions; the datasets stay as available. |
+| D18 | No Indian carbon truth. | Production-based regional intensity from generation by fuel × CEA factors (6.2.2). | Uses India's official emission-factor source; flows ignored and stated. |
+| D19 | No archive of Indian carbon forecasts exists. | Indian forecast vintages = Indian truth + scaled real NESO error paths (6.2.4). | Keeps realistic forecast revision behaviour; random noise would bias the comparison towards noise-margin policies. |
+| D20 | Trace clock aligned to UK time. | Aligned to IST (6.3). | Submissions meet the Indian solar day. |
 | D16 | Runtime estimates unspecified. | Per-user empirical quantiles fitted on the first 21 trace days, frozen. | Leak-free and identical across policies (online updates would depend on each policy's completion order). |
 
 ---
@@ -183,37 +188,76 @@ Audit results (Terminated jobs unless stated):
 
 Time semantics [Confirmed from README]: timestamps are seconds minus a secret constant. Interpreted as Unix time in UTC+8 they keep the true time of day and weekday; calendar dates are fake. Consequence: trace time can be aligned to carbon time by weekday and time of day only (Section 6.3).
 
-### 6.2 NESO carbon intensity
+### 6.2 Carbon intensity: Indian grid conditions [Decision, v0.5]
 
-Facts [Confirmed]:
-- The Carbon Intensity API (`api.carbonintensity.org.uk`) publishes half-hourly national and regional forecasts up to 48 h ahead (and longer per carbonintensity.org.uk) in gCO2/kWh. National records include `forecast` and `actual`; regional records have forecasts only.
-- carbonintensity.org.uk states the forecast covers CO2 from electricity generation only.
-- The API keeps no history of past forecast versions.
-- The `nmpowell/carbon-intensity-forecast-tracking` repository (MIT licence) scrapes the API twice an hour and stores every capture in SQLite. Inspected schema: `regional_intensity(window_utc, region_id, capture_utc, forecast, <fuel mix columns>)`, `national_intensity(window_utc, capture_utc, forecast, actual)`, `captures(capture_utc, endpoint, window_first_utc, window_last_utc, observed_utc, source)`, `capture_gaps(...)`. Regional partitions are change-logs: a row is stored only when a value changes, and the `captures` table records coverage so the value at any captured time can be reconstructed.
-- Partitions present on 24 Oct 2026: March 2023 – early February 2024, then July – October 2026. Captures in early 2023 have `source = 'summary_csv'` (migrated legacy data). The README reports about 90 % capture success.
+The simulated world is Indian: three virtual datacentres on three of India's five regional grids, Indian carbon intensity, Indian Standard Time. No public archive of Indian carbon-intensity **forecasts** exists (searched 29 Oct 2026), so the forecasts the scheduler sees are built from Indian truth plus the real forecast-error paths of the NESO (Great Britain) archive. Two datasets feed this section:
 
-**[Decision] MVP carbon period:** 13 March 2023 – 31 January 2024, regional. The 2026 partitions are extension X7.
+| Input | Role | Status |
+|---|---|---|
+| Indian regional generation by fuel (≤ 1 h resolution) and CEA fuel emission factors | Truth `A(r, k)`: what the grid actually emitted | Source to confirm (blocker B4) |
+| NESO forecast-vintage archive (`nmpowell/carbon-intensity-forecast-tracking`) | Error paths `E(k, v)`: how real half-hourly forecasts drift and get revised | Downloaded and inspected [Confirmed] |
 
-**[Decision] Two views of carbon data:**
+#### 6.2.1 Regions and datacentres [Decision]
+
+| `dc_id` | Datacentre hub | Regional grid | `region_id` |
+|---|---|---|---|
+| 0 | Delhi NCR (Noida, Gurugram) | Northern (NR) | 1 |
+| 1 | Mumbai / Navi Mumbai | Western (WR) | 2 |
+| 2 | Chennai | Southern (SR) | 3 |
+
+The hubs are where India's existing datacentre capacity concentrates; the virtual datacentres are not real facilities. Eastern (ER, `region_id` 4) is reserved for the high-spread variant (14.4); North-Eastern is not used. India's regions form one synchronous national grid, so regional carbon differences may be smaller, and time-of-day differences (solar) larger, than in multi-country studies. This is a property to measure (H3), not a defect.
+
+#### 6.2.2 Indian truth `A(r, k)` [Decision; data source Open, B4]
+
+Production-based generation intensity per region and half-hour slot:
+
+`A(r, k) = Σ_f G(r, f, k) × EF_f / Σ_f G(r, f, k)`   (gCO2/kWh)
+
+- `G(r, f, k)`: energy generated in region `r` from fuel `f` during slot `k` (MWh). 15-minute blocks (India's scheduling interval) are summed in pairs into 30-minute slots; hourly data give both half-hours the same value (`truth_kind = hourly_step`).
+- `EF_f`: operational CO2 emission factor of fuel `f` (gCO2/kWh net generation) derived from the CEA CO2 Baseline Database as the generation-weighted average over the database's stations of that fuel (coal, lignite, gas, diesel). Hydro, nuclear, solar and wind are 0. Biomass and "other" are [Open]: 0 by default, configurable. No factor values are hard-coded in this PRD; they live in `configs/energy.yaml` with the CEA version cited.
+- Inter-regional power flows are ignored (production-based, not consumption-based) [Decision]. This is stated as a limitation; a flow-adjusted variant needs inter-regional exchange data at the same resolution.
+
+Candidate sources for `G`, in order of preference (B4 decides): (1) Grid-India (NLDC/RLDC) regional generation by source at 15-minute or hourly resolution; (2) a third-party hourly series such as Energymap's state-level carbon intensity, aggregated to regions, if its licence allows research use; (3) fallback construction [Synthetic]: daily regional fuel mix from Grid-India daily power supply position reports, shaped within the day by hourly solar and wind generation, with thermal as the balancing residual. The ingest report records which source was used.
+
+Required coverage: 13 Mar 2023 – 8 Feb 2024 (calibration through test, plus the 8-day run tail). Truth gaps: linear interpolation across at most 2 slots, otherwise the replicate is invalid and `validate` fails.
+
+#### 6.2.3 Error source: the NESO forecast-vintage archive [Confirmed]
+
+- The NESO Carbon Intensity API publishes half-hourly regional forecasts for Great Britain up to 48 h ahead and keeps no history of past forecast versions.
+- The `nmpowell/carbon-intensity-forecast-tracking` repository (MIT licence) scrapes the API twice an hour and stores every capture in SQLite. Inspected schema: `regional_intensity(window_utc, region_id, capture_utc, forecast, <fuel mix columns>)`, `national_intensity(window_utc, capture_utc, forecast, actual)`, `captures(capture_utc, endpoint, window_first_utc, window_last_utc, observed_utc, source)`, `capture_gaps(...)`. Regional partitions are change-logs; the `captures` table records coverage so the value at any captured time can be reconstructed.
+- Partitions present on 24 Oct 2026: March 2023 – early February 2024, then July – October 2026. Early 2023 captures have `source = 'summary_csv'`. The README reports about 90 % capture success.
+
+For each GB source region `g`: `F_gb(g, k, v)` is the forecast for slot `k` as of capture `v`; `A_gb(g, k)` is the last captured forecast for `k` with `capture_utc ≥ k + 24 h`. The error path is `E_g(k, v) = F_gb(g, k, v) − A_gb(g, k)`.
+
+#### 6.2.4 Indian forecast vintages [Synthetic: real error paths on Indian truth]
+
+`F(r, k, v) = max(0, A(r, k) + α × s_r × E_{g(r)}(k, v))`
+
+- Same UTC slot `k` and capture `v` as the archive, so the Indian forecasts inherit the archive's capture schedule, missing captures, lead-time growth of error, revision timing and correlation across slots and regions.
+- `s_r = mean A(r, ·) / mean A_gb(g(r), ·)` over the calibration window scales GB errors (gCO2/kWh) to the Indian intensity level. Additive scaled errors are used instead of relative errors because relative errors explode where GB intensity is near zero.
+- `α` is the forecast-error scaling of 14.4 (base 1).
+- Source mapping `g(r)` [Decision; IDs verified at ingest, O3]: three different mid-to-high-intensity England/Wales regions, NR ← London, WR ← South Wales, SR ← East Midlands. Scottish regions are excluded because their near-zero intensity makes `s_r` unstable. Sensitivity: a permuted mapping.
+- Why not random noise: independent noise per `(k, v)` would make forecasts jitter between consecutive captures, inflating churn for every re-planning policy and unfairly favouring a noise margin. Real error paths revise smoothly, as operational forecasts do.
+- Limitation, stated in every report: the errors have the statistical structure of a real operational forecast, but their causes are British weather, not Indian monsoon or solar variability.
+
+**Two views of carbon data [Decision]:**
 
 | View | Definition | Who may read it |
 |---|---|---|
-| Forecast `F(r, k, v)` | Forecast for region `r`, half-hour slot `k` (start time), as of capture `v`. Visible at simulated time `t` iff `v ≤ t`; the scheduler sees the latest such `v`. | Scheduler |
-| Truth `A(r, k)` | Regional: the last captured forecast for slot `k` with `capture_utc ≥ k + 24 h` (labelled `regional_final_forecast`). National: `actual`. | Evaluator only |
+| Forecast `F(r, k, v)` | 6.2.4. Visible at simulated time `t` iff `v ≤ t`; the scheduler sees the latest such `v`. | Scheduler |
+| Truth `A(r, k)` | 6.2.2 | Evaluator only |
 
-[Open, non-blocking] Regional truth is NESO's latest estimate, not a metered value. Cross-check: for the national series, compare the final forecast with `actual` and report the gap; for regional series, compare a sample of final forecasts with values downloaded from the NESO data portal regional dataset.
+Timestamp rules: all times stored as integer Unix seconds UTC. Slots are 1,800 s, aligned to `:00` and `:30` UTC, which is also `:30`/`:00` IST. Missing slot handling (identical for every policy): if the latest vintage lacks slot `k`, use the nearest earlier slot from the same vintage if at most 2 slots back (persistence); beyond that, the slot is unknown and any candidate needing it is infeasible. For slots beyond the forecast horizon (needed by long jobs), persistence of the last forecast slot is used and the slot is flagged `extrapolated`; its interval uses the widest lead-time bucket.
 
-Region IDs [Open, verify during ingest against the API's `shortname` field]: the API uses 1–17 for the 14 DNO regions plus England, Scotland and Wales aggregates. MVP default: North Scotland, London and South Wales (low, high and middling intensity respectively, to be confirmed from the data).
+**[Decision] Carbon period:** 13 March 2023 – 31 January 2024 for both the Indian truth and the error paths, so the borrowed errors line up date for date. The 2026 archive partitions are extension X7.
 
-Timestamp rules: all times stored as integer Unix seconds UTC. Slots are 1,800 s, aligned to `:00` and `:30`. Missing slot handling (applied identically for every policy): if the latest vintage lacks slot `k`, use the nearest earlier slot from the same vintage if at most 2 slots back (persistence); beyond that, the slot is unknown and any candidate needing it is infeasible. For slots beyond the forecast horizon (needed by long jobs), persistence of the last forecast slot is used and the slot is flagged `extrapolated`; its interval uses the widest lead-time bucket. Truth gaps: linear interpolation across at most 2 slots, otherwise the replicate is invalid and `validate` fails.
+### 6.3 Mapping trace time to Indian time [Decision, Synthetic]
 
-### 6.3 Mapping trace time to carbon time [Decision, Synthetic]
-
-For a replicate with trace slice starting at trace time `T0` (a Monday 00:00 in trace UTC+8 clock) and carbon start date `C0` (a Monday 00:00 UTC):
+For a replicate with trace slice starting at trace time `T0` (a Monday 00:00 in the trace's UTC+8 clock) and carbon start `C0` (a Monday 00:00 IST, i.e. Sunday 18:30 UTC):
 
 `sim_time = C0 + (trace_time − T0)`
 
-This keeps weekday and clock-hour patterns of submissions aligned with GB clock-hour patterns of grid intensity (off by 0–1 h for BST). Sensitivity: `phase_shift_h ∈ {0, 8}` (8 shifts to true UTC alignment of the trace).
+This aligns the trace's weekday and clock-hour pattern of job submissions with Indian clock hours, so daytime submissions meet the Indian solar midday. Sensitivity: `phase_shift_h ∈ {0, −2.5}` (−2.5 h aligns true instants instead of local clocks, since UTC+8 is 2.5 h ahead of IST).
 
 ### 6.4 Canonical job schema
 
@@ -254,14 +298,16 @@ Defaults `slack_base_s = 14,400` (4 h), `k_slack = 2.0`. Sweep: `slack_base_s �
 
 | File | Columns |
 |---|---|
-| `data/processed/carbon_forecast.csv` | `region_id:int, slot_utc:int, capture_utc:int, forecast_g_per_kwh:float, source:str` (one row per change, as in the archive) |
-| `data/processed/carbon_truth.csv` | `region_id:int, slot_utc:int, truth_g_per_kwh:float, truth_kind:str, interpolated:0/1` |
-| `data/processed/capture_coverage.csv` | `capture_utc:int, endpoint:str` (from `captures`) |
-| `data/manifests/*.json` | source URL, retrieval date, commit hash (archive) or file SHA-256, row counts, filters, exclusion counts |
+| `data/processed/india_generation.csv` | `region_id:int, slot_utc:int, fuel:str, mwh:float, source:str` |
+| `data/processed/carbon_truth.csv` | `region_id:int, slot_utc:int, truth_g_per_kwh:float, truth_kind:str, interpolated:0/1` (Indian truth, 6.2.2) |
+| `data/processed/gb_error_paths.csv` | `gb_region_id:int, slot_utc:int, capture_utc:int, error_g_per_kwh:float` (one row per change) |
+| `data/processed/carbon_forecast.csv` | `region_id:int, slot_utc:int, capture_utc:int, forecast_g_per_kwh:float, source:str` (Indian vintages, 6.2.4; one row per change) |
+| `data/processed/capture_coverage.csv` | `capture_utc:int, endpoint:str` (from the archive's `captures`) |
+| `data/manifests/*.json` | source URL, retrieval date, commit hash (archive) or file SHA-256, CEA database version, row counts, filters, exclusion counts, `s_r` values |
 
 ### 6.8 Carbon residual model [Decision]
 
-For the calibration period (13 Mar – 30 Jun 2023), compute residuals `e = A(r, k) − F(r, k, v)` for every captured `(r, k, v)` with lead `ℓ = k − v` in buckets `[0, 6 h), [6, 12 h), [12, 24 h), [24, 48 h]`. Store the 5th and 95th percentiles `e05(b), e95(b)` per lead bucket, pooled over the three MVP regions (per-region quantiles if each region has ≥ 500 residuals per bucket; report which was used). Interval for a forecast slot: `[max(0, F + e05(b)), F + e95(b)]`. Coverage and width are reported per bucket on validation and test periods.
+For the calibration period (13 Mar – 30 Jun 2023), compute residuals `e = A(r, k) − F(r, k, v)` for every captured `(r, k, v)` with lead `ℓ = k − v` in buckets `[0, 6 h), [6, 12 h), [12, 24 h), [24, 48 h]`. Store the 5th and 95th percentiles `e05(b), e95(b)` per lead bucket, computed on the Indian vintages (6.2.4), pooled over the three regions (per-region quantiles if each region has ≥ 500 residuals per bucket; report which was used). Interval for a forecast slot: `[max(0, F + e05(b)), F + e95(b)]`. Coverage and width are reported per bucket on validation and test periods.
 
 ### 6.9 Development (toy) mode
 
@@ -304,21 +350,21 @@ With homogeneous hardware and equal PUE across datacentres, `P_j` multiplies eve
 
 ### 7.4 Accounting boundary
 
-Results are **modelled operational CO2 from electricity generation, IT energy only**, matching NESO's signal. No lifecycle, embodied, transmission-loss or CO2e factors are added. Applying a second electricity factor on top of NESO intensity would double count and is prohibited.
+Results are **modelled operational CO2 from electricity generation, IT energy only**, matching the production-based Indian intensity of 6.2.2. No lifecycle, embodied, transmission-loss or CO2e factors are added. Applying a second electricity factor on top of that intensity would double count and is prohibited.
 
-### 7.5 Principal's suggestion: established emissions table [Open action item]
+### 7.5 Principal's suggestion: established emissions table [v0.5: CEA is the working answer]
 
-The principal recommended an established table of emission values; the exact table was not recorded. Candidates and roles:
+The principal recommended an established table of emission values; the exact table was not recorded. With an Indian simulated world, the natural reference is India's official one:
 
 | Candidate | Role in this project | Caveat |
 |---|---|---|
-| UK Government GHG Conversion Factors 2026 (DESNZ; published June 2026; UK electricity tab; methodology paper) | Static-factor validation scenario (below) and magnitude cross-check | Annual average; kgCO2e/kWh; separate T&D and WTT factors; different year and boundary from 2023 NESO data. Third-party summaries report a large drop versus 2025 from a methodology change; read the methodology paper before use. |
-| IPCC lifecycle factors by generation technology | Only if the principal meant per-technology factors; would support a discussion of lifecycle vs operational boundary | Not combinable with NESO intensity |
+| **CEA CO2 Baseline Database for the Indian Power Sector** (Central Electricity Authority; station-wise emissions and grid emission factors, with a user guide per version) | Source of the fuel emission factors `EF_f` (6.2.2) and of the grid-average factor for the static-factor scenario (below) | Annual, by financial year; check which version covers 2023 and cite it; station-level data must be aggregated by fuel |
+| IPCC lifecycle factors by generation technology | Only if the principal meant per-technology lifecycle factors; supports a discussion of lifecycle vs operational boundary | Not combinable with the operational intensity of 6.2.2 |
 | A carbon budget or target | Only if he meant a limit; becomes a constraint scenario | A conversion factor is not a target |
 
-Static-factor validation scenario: replace every `F` and `A` by one constant `c`. Every carbon-aware policy then has no carbon reason to defer or relocate, so its emissions per kWh must equal `c` and its placements must equal FCFS's except where tie-breaking differs (test R-EN-4). Using the DESNZ UK electricity generation factor as `c` gives an order-of-magnitude comparison of fleet emissions, reported with the CO2/CO2e and year caveats. No factor values are hard-coded in this PRD.
+Static-factor validation scenario: replace every `F` and `A` by one constant `c`. Every carbon-aware policy then has no carbon reason to defer or relocate, so its emissions per kWh must equal `c` and its placements must equal FCFS's except where tie-breaking differs (test R-EN-4). Using the CEA weighted-average grid emission factor as `c` gives an order-of-magnitude comparison of fleet emissions. No factor values are hard-coded in this PRD.
 
-Action: ask the principal for the table's name, link or a sample row. Record the answer in `configs/energy.yaml` comments and in the report.
+Action: confirm with the principal that the CEA database is what he meant. Record the answer in `configs/energy.yaml` comments and in the report.
 
 ### 7.6 Principal's suggestion: Pinedo [Confirmed match, intent unconfirmed]
 
@@ -386,7 +432,7 @@ Ordering rationale: forecast updates precede decisions at the same instant; comp
 
 ### 8.5 Time resolution [Decision]
 
-Event times are integer seconds (the trace resolution). Candidate release times and carbon accounting use 30-minute slots (NESO settlement periods). Release times are slot starts; actual starts can be any second (queueing).
+Event times are integer seconds (the trace resolution). Candidate release times and carbon accounting use 30-minute slots (the forecast capture cadence; Indian 15-minute blocks are summed in pairs). Release times are slot starts; actual starts can be any second (queueing).
 
 ### 8.6 Run horizon
 
@@ -791,7 +837,9 @@ Truth (`T`) reaches the simulator's evaluator and `pig`'s `OracleView` only.
 | Command | Purpose |
 |---|---|
 | `flipwise ingest alibaba --raw data/raw/v2020 --out data/processed` | Verify checksums, build `jobs_v2020.csv`, write manifest and ingest report |
-| `flipwise ingest carbon --archive <path-to-clone> --start 2023-03-13 --end 2024-01-31 --regions 1,13,7 --out data/processed` | Build forecast, truth and coverage CSVs |
+| `flipwise ingest india --raw data/raw/india --cea data/raw/cea --start 2023-03-13 --end 2024-02-08 --out data/processed` | Build `india_generation.csv` and the Indian truth `carbon_truth.csv` (6.2.2) |
+| `flipwise ingest carbon --archive <path-to-clone> --start 2023-03-13 --end 2024-02-08 --gb-regions 13,7,9 --out data/processed` | Reconstruct GB vintages and write `gb_error_paths.csv` and `capture_coverage.csv` (6.2.3) |
+| `flipwise build-forecasts --out data/processed [--alpha 1]` | Combine truth and error paths into the Indian vintages `carbon_forecast.csv` (6.2.4) |
 | `flipwise validate --config configs/base.yaml` | Config schema, data presence, checksums vs manifests, carbon coverage for the run horizon, region IDs, calibration/test window overlap check |
 | `flipwise smoke` | Toy scenario, all policies, compare to `expected.yaml`; exit non-zero on mismatch |
 | `flipwise run --config configs/base.yaml --policy decision_flip [--seed 0] [--set key=value ...] [--mode inproc\|remote --dc-urls URL1,URL2,URL3]` | One run → `results/<run_id>/`. `--mode inproc` (default) keeps datacentres in the same process; `--mode remote` uses the datacentre services at the given URLs (DT1–DT3), in `dc_id` order |
@@ -818,9 +866,9 @@ flowchart LR
         PO --> SV[SchedulerView]
         EV[evaluator: truth, actual runtimes]
     end
-    Coordinator <-->|JSON over HTTP| S0[dc-serve dc 0<br/>North Scotland]
-    Coordinator <-->|JSON over HTTP| S1[dc-serve dc 1<br/>London]
-    Coordinator <-->|JSON over HTTP| S2[dc-serve dc 2<br/>South Wales]
+    Coordinator <-->|JSON over HTTP| S0[dc-serve dc 0<br/>Delhi NCR]
+    Coordinator <-->|JSON over HTTP| S1[dc-serve dc 1<br/>Mumbai]
+    Coordinator <-->|JSON over HTTP| S2[dc-serve dc 2<br/>Chennai]
 ```
 
 **Service API (protocol version 1).** JSON over HTTP/1.1. Every mutating request carries the simulated time `t` (integer seconds).
@@ -848,10 +896,10 @@ Rules:
 | Stage | What runs where | Built from | Exit criterion |
 |---|---|---|---|
 | **DT1 Local split** | Three `flipwise dc-serve` processes on `127.0.0.1:8101–8103` and the coordinator, all on one laptop. `scripts/local_cluster.sh` starts them, waits up to 20 s for every `/health`, runs `flipwise run --mode remote`, writes each service's log to `results/<run_id>/dc-<id>.log`, and kills the services on exit or Ctrl-C (`trap … EXIT INT TERM`). Runs in Git Bash on Windows. | `datacentre.py`, `dcservice.py`, stdlib only | R-DEP-1 on the toy scenario for every Phase 2 policy; R-DEP-3 (a killed service aborts the run) |
-| **DT2 Docker** | One image (`python:3.12-slim`, `uv sync --frozen --no-dev`, non-root user, entrypoint `flipwise`), tagged with the git commit. `docker-compose.yml` defines `dc-north-scotland`, `dc-london`, `dc-south-wales` and `coordinator` on a private network; the coordinator starts only when all three healthchecks pass. `data/processed` is mounted read-only and `results/` read-write. | DT1 + `Dockerfile`, `docker-compose.yml`, `.dockerignore` | R-DEP-1 on toy and R-DEP-2 on one dev replicate inside Compose; the image builds from a clean clone |
-| **DT3 AWS** | The DT2 image pushed to ECR and run on three small EC2 instances, one per datacentre (default region `eu-west-2`, London); the coordinator runs on a fourth instance or a team laptop. Security groups allow port 8101 only from the coordinator's address. `scripts/aws/` holds `push_image.sh`, `launch.sh` and `teardown.sh`; every resource is tagged `project=flipwise`. Optional variant: the three instances in three AWS regions, to measure real cross-region latency. | DT2 + AWS account (O8) | R-DEP-1 and R-DEP-2 on AWS; RPC latency reported (R-DEP-5); `teardown.sh` leaves no tagged resource running (R-DEP-6) |
+| **DT2 Docker** | One image (`python:3.12-slim`, `uv sync --frozen --no-dev`, non-root user, entrypoint `flipwise`), tagged with the git commit. `docker-compose.yml` defines `dc-delhi`, `dc-mumbai`, `dc-chennai` and `coordinator` on a private network; the coordinator starts only when all three healthchecks pass. `data/processed` is mounted read-only and `results/` read-write. | DT1 + `Dockerfile`, `docker-compose.yml`, `.dockerignore` | R-DEP-1 on toy and R-DEP-2 on one dev replicate inside Compose; the image builds from a clean clone |
+| **DT3 AWS** | The DT2 image pushed to ECR and run on three small EC2 instances, one per datacentre (default region `ap-south-1`, Mumbai); the coordinator runs on a fourth instance or a team laptop. Security groups allow port 8101 only from the coordinator's address. `scripts/aws/` holds `push_image.sh`, `launch.sh` and `teardown.sh`; every resource is tagged `project=flipwise`. Optional variant: spread the instances over AWS's two Indian regions (`ap-south-1` Mumbai, `ap-south-2` Hyderabad) to measure real cross-region latency. | DT2 + AWS account (O8) | R-DEP-1 and R-DEP-2 on AWS; RPC latency reported (R-DEP-5); `teardown.sh` leaves no tagged resource running (R-DEP-6) |
 
-AWS regions host the services; they do not change the carbon signal. A datacentre labelled "London" uses NESO region 13 data whether its service runs on a laptop, in Docker or in `eu-north-1`. Reports must not present DT3 as measuring real cloud emissions.
+AWS regions host the services; they do not change the carbon signal. A datacentre labelled "Chennai" uses Southern-grid carbon data whether its service runs on a laptop, in Docker or in `ap-south-1`. Reports must not present DT3 as measuring real cloud emissions.
 
 ---
 
@@ -893,7 +941,7 @@ Trace slices: trace days `[21, 28), [28, 35), …, [63, 69)` (7 slices; the last
 | Use | Trace days | Carbon period |
 |---|---|---|
 | Fit runtime quantiles | 0–20 | n/a |
-| Fit carbon residual quantiles | n/a | 13 Mar – 30 Jun 2023 |
+| Fit carbon residual quantiles | n/a | 13 Mar – 30 Jun 2023 (Indian vintages, 6.2.4) |
 | Validation (choose thresholds, check calibration) | 21–41 | 1 Jul – 31 Aug 2023 |
 | Test (final results; run once after freezing configs) | 42–69 | 1 Sep 2023 – 31 Jan 2024 |
 
@@ -905,15 +953,15 @@ Validation and test replicates draw carbon starts only from their own periods; `
 |---|---|---|
 | Offered load `ρ` | 0.7 | 0.4, 0.9 |
 | Job sampling fraction | 0.1 (dev), 1.0 (final if runtime allows) | — |
-| Region set (carbon spread) | {North Scotland, London, South Wales} | {London, South England, South East England} (low spread; IDs to verify) |
-| Forecast error scaling `α` (scheduler sees `A + α(F − A)`; residuals refit per `α`) | 1 | 0.5, 2 |
+| Carbon spread across regions | {NR, WR, SR} as built | Spread scaling `σ ∈ {0.5, 2}`: `A'(r, k) = Ā(k) + σ(A(r, k) − Ā(k))` with `Ā` the cross-region mean, forecasts transformed identically; and region set {WR, SR, ER} (coal-heavy Eastern grid, expected high spread; to confirm from data) |
+| Forecast error scaling `α` (6.2.4; residuals refit per `α`) | 1 | 0.5, 2; plus a permuted error-source mapping `g(r)` |
 | Interval scaling (multiply `e05, e95` by `s`) | 1 | 0.5, 2 (miscalibration test, H4) |
 | Deadline slack | 4 h + 2 × q90 | Section 6.6 grid |
 | Re-scoring overhead charge `λ_ovh` | 0 | small positive (sensitivity only) |
 | Switching cost `κ_switch`, `κ_queue` | 0 | Section 10.10 |
 | Energy multipliers | 1.0 | 0.5, 1.5 |
 | `missing_gpu_policy` | zero | drop |
-| `phase_shift_h` | 0 | 8 |
+| `phase_shift_h` | 0 | −2.5 |
 
 Strategy: base case, then one-factor sweeps, then at most one two-factor interaction chosen from the one-factor results (expected: load × carbon spread). No full factorial.
 
@@ -952,7 +1000,9 @@ For each metric and policy pair, report the mean over replicates, the paired dif
 | R-ING-1 | MUST | Ingest verifies upstream SHA-256 of v2020 archives | Corrupt one byte in a copy → `ingest` exits non-zero | — |
 | R-ING-2 | MUST | Canonical jobs follow 6.4 with provenance columns and an ingest report of drops by reason | `test_ingest` on a 50-row fixture with every drop case | R-ING-1 |
 | R-ING-3 | MUST | Carbon vintage reconstruction returns, for capture `v`, the last value with `capture ≤ v` inside recorded coverage | Fixture change-log with gaps; expected values hand-computed | — |
-| R-ING-4 | MUST | Truth built per 6.2; truth gaps > 2 slots fail `validate` | Fixture with 3-slot gap → `CarbonDataError` | R-ING-3 |
+| R-ING-4 | MUST | Truth built per 6.2.2; truth gaps > 2 slots fail `validate` | Fixture with 3-slot gap → `CarbonDataError` | — |
+| R-ING-5 | MUST | Indian truth equals Σ G × EF / Σ G per slot, 15-minute blocks summed in pairs | Hand-computed fixture: two regions, three fuels, four blocks; tolerance 1e-9 | — |
+| R-ING-6 | MUST | Indian vintages follow 6.2.4: `F − A = α s_r E` before clipping, captures and missing captures identical to the archive | Fixture error paths with a gap; hand-computed `F`; `s_r` recorded in the manifest | R-ING-3, R-ING-5 |
 | R-SIM-1 | MUST | Same config + seed → byte-identical `events.log`, `jobs.csv`, `decisions.csv` | Run twice, compare SHA-256 | — |
 | R-SIM-2 | MUST | Same-time events processed in 8.4 priority order | Toy case with arrival, completion and update at one timestamp | R-SIM-1 |
 | R-SIM-3 | MUST | No overbooking: after every event, used ≤ capacity in every dimension at every dc | Assertion in debug mode; property test with 500 random small scenarios | — |
@@ -1033,7 +1083,10 @@ Raw data are not committed. `README.md` gives the download commands for the v202
 | Risk | Effect | Mitigation |
 |---|---|---|
 | Stage-1 bound too loose (pass rate ≈ 1) | No overhead saving; H1 fails | Report honestly; optional tighter bound restricted to each job's own release range and deadline (later work) |
-| Regional truth is a final forecast, not metered | Emissions scores inherit NESO model error | Label results; national cross-check (6.2) |
+| Indian truth is modelled from generation by fuel, not metered intensity, and ignores inter-regional flows | Absolute regional values may be off; regions may look more different than consumers experience | Label results; report the source used; compare annual means with CEA grid factors |
+| No Indian generation data at ≤ 1 h resolution (B4) | Truth must fall back to a constructed profile | Source preference order in 6.2.2; the fallback is labelled [Synthetic] |
+| Borrowed GB error paths do not reflect Indian weather | Forecast-error effects (H2, H4) may differ in reality | α sweep and permuted mapping; stated as a limitation in every report |
+| Small spread between Indian regions | Little room for spatial shifting | Expected and reported (H3); spread-scaling sweep shows the sensitivity |
 | Archive coverage gaps (~10 % captures missing) | Some updates absent | Treat gaps as no update; identical for all policies; report gap counts per replicate |
 | Pooled capacity ignores fragmentation | Optimistic waits | Same for all policies; X2 |
 | Gang model of multi-task jobs | Over-states resource-time | Same for all policies; X3 |
@@ -1049,7 +1102,7 @@ Raw data are not committed. `README.md` gives the download commands for the v202
 
 ### 17.2 Assumptions (all [Synthetic] or [Decision], restated)
 
-Virtual datacentres in GB regions; runtime independent of site; homogeneous hardware; PUE 1.0; trace time mapped by weekday/time-of-day; Terminated jobs only; pooled resources; FIFO first-fit dispatch; synthetic deadlines; frozen runtime estimates.
+Virtual datacentres in Indian hubs on regional grids; production-based Indian truth; forecast errors borrowed from GB; runtime independent of site; homogeneous hardware; PUE 1.0; trace time mapped by weekday/time-of-day; Terminated jobs only; pooled resources; FIFO first-fit dispatch; synthetic deadlines; frozen runtime estimates.
 
 ### 17.3 Open questions
 
@@ -1058,23 +1111,24 @@ Blockers (resolve before the stated phase):
 | ID | Question | Needed by | How to resolve |
 |---|---|---|---|
 | B1 | Confirm with mentor that decision-flip is the core contribution and DRO is extension X1 | Phase 1 | Mentor meeting; record in report |
-| B2 | Archive suitability: coverage per region for Mar 2023 – Jan 2024, behaviour of `summary_csv`-sourced early captures, and NESO API data licence terms for redistribution of derived files | Phase 2 | `ingest carbon` coverage report; read NESO API/data-portal terms |
+| B2 | Archive suitability: coverage of the three GB source regions for Mar 2023 – Feb 2024, behaviour of `summary_csv`-sourced early captures, and NESO terms for redistributing derived error paths | Phase 2 | `ingest carbon` coverage report; read NESO API/data-portal terms |
+| B4 | Indian regional generation by fuel at ≤ 1 h resolution for 13 Mar 2023 – 8 Feb 2024 (Northern, Western, Southern; Eastern for the variant), its licence, and the CEA database version for 2023 | Phase 2 (before any real-data run) | Check Grid-India reports first, then third-party series; otherwise use the fallback construction in 6.2.2 |
 | B3 | Power parameters with citations. Partly resolved (v0.3): V100 300 W, P100 250 W, T4 70 W from NVIDIA datasheets. Still open: MISC GPU value, CPU per-core value, default utilisation factor `f` (Section 7.2) | Before any absolute emission figure from the real trace (Phase 8). Until then, label all kgCO2 as relative. | One SPECpower-style CPU reference and one MISC GPU value; record in `energy.yaml` |
 
 Configurable or non-blocking:
 
 | ID | Question | Default until resolved |
 |---|---|---|
-| O1 | Which emissions table the principal meant | DESNZ 2026 as validation candidate only |
+| O1 | Which emissions table the principal meant | CEA CO2 Baseline Database (7.5) |
 | O2 | Whether Pinedo's 6th edition is the intended book | Assume yes |
-| O3 | Region IDs and choice of the three regions | {1, 13, 7}; verify `shortname` at ingest |
+| O3 | GB source-region IDs for the error paths | London 13, South Wales 7, East Midlands 9; verify `shortname` at ingest |
 | O4 | Meaning of missing `plan_gpu` | `zero` with sensitivity |
 | O5 | Why job `start_time` equals earliest task start (README describes it as submission time) | Treat as arrival; mention in limitations; optionally ask on the clusterdata issue tracker |
 | O6 | Threshold defaults | Section 10.10; chosen on validation |
 | O7 | Whether the names Flipwise / `flipwise` are free on GitHub and PyPI | Use Flipwise; check before creating the repo |
 | O8 | AWS account for DT3: AWS Educate/Academy credits, free tier, or a team member's account; spending limit | Do not start DT3 until decided; budget alert mandatory |
 | O9 | DT3 hosting: plain EC2 with Docker Compose, or ECS | Plain EC2 (reuses DT2 unchanged) |
-| O10 | DT3 layout: one AWS region (default `eu-west-2`) or three regions for real latency | One region; three regions only as a measured variant |
+| O10 | DT3 layout: one AWS region (default `ap-south-1`, Mumbai) or both Indian regions for real latency | One region; `ap-south-1` + `ap-south-2` only as a measured variant |
 
 ---
 
@@ -1083,7 +1137,7 @@ Configurable or non-blocking:
 | Phase | Implement | Tested by | Exit criterion |
 |---|---|---|---|
 | 1. Setup and audit | Repo, `pyproject`, `uv.lock`, ruff, pytest; download v2020 job/task/spec; clone archive at a fixed commit | Checksums match README | `uv run pytest` runs (empty); audit numbers in Section 6.1 reproduced by a script |
-| 2. Canonical data | `ingest alibaba`, `ingest carbon`, manifests, `validate` | R-ING-1…4 | Processed CSVs and ingest/coverage reports exist; B2 answered |
+| 2. Canonical data | `ingest alibaba`, `ingest india`, `ingest carbon`, `build-forecasts`, manifests, `validate` | R-ING-1…6 | Processed CSVs and ingest/coverage reports exist; B2 and B4 answered |
 | 3. Deterministic core | `models`, `simulator` (events, states), `datacentre` (queue, dispatch) behind `DatacentreClient`, toy fixture, `fcfs` | R-SIM-1…5 | Toy FCFS outputs equal `expected.yaml` |
 | 4. Energy and place-once | `energy`, `carbon` views, `planner` (candidates, feasibility, scores), `place_once` | R-EN-1, 2, 4; R-PLAN-1, 2; R-LEAK-2 | Toy emissions exact; static-factor test passes |
 | 5. Baselines | `estimates` (runtime, wait), `periodic`, `pred_error`, `fixed_savings`, rescue, throttling | R-LEAK-1, R-TRIG-7, R-POL-1 (partial) | All baselines run on toy; decision logs readable |
@@ -1112,7 +1166,7 @@ EL Phase 1 (pitch) is complete. Scope must be confirmed with the mentor (B1) bef
 
 | EL phase | Roadmap scope | Must show |
 |---|---|---|
-| **2. Partial results** | Roadmap phases 1–6 on a small slice: one week of the Alibaba trace (one validation slice, dev sampling) and the matching NESO forecast vintages. Policies: `fcfs`, `place_once`, `periodic(T)`, `fixed_savings(g)`, `decision_flip(g, θ)`. `pred_error(ε)` is moved to EL Phase 3. Only the minimum of roadmap phase 7 needed to produce one table and `dashboard.html` (`run`, metrics, `dashboard`). | (1) Toy scenario whose kgCO2 is checked by hand (R-EN-1, toy `expected.yaml`), showing the simulator is correct. (2) At θ = 0, decision-flip makes exactly the same decisions as fixed-savings with fewer `stage2_calls` (P1, R-TRIG-2), the core claim. (3) One comparison table for the validation week: kgCO2, deadline-miss rate and re-score count per policy. (4) `dashboard.html` with the timeline, Pareto and results-table tabs (θ-sweep tab may show "no data"). kgCO2 labelled relative until B3 is resolved. (5) Deployment track **DT1**: the toy scenario run through three local datacentre services, with output hashes equal to the in-process run (R-DEP-1). If DT1 is late, items 1–4 are still presented; DT1 does not hold them back. |
+| **2. Partial results** | Roadmap phases 1–6 on a small slice: one week of the Alibaba trace (one validation slice, dev sampling) and the matching Indian truth and forecast vintages. Policies: `fcfs`, `place_once`, `periodic(T)`, `fixed_savings(g)`, `decision_flip(g, θ)`. `pred_error(ε)` is moved to EL Phase 3. Only the minimum of roadmap phase 7 needed to produce one table and `dashboard.html` (`run`, metrics, `dashboard`). | (1) Toy scenario whose kgCO2 is checked by hand (R-EN-1, toy `expected.yaml`), showing the simulator is correct. (2) At θ = 0, decision-flip makes exactly the same decisions as fixed-savings with fewer `stage2_calls` (P1, R-TRIG-2), the core claim. (3) One comparison table for the validation week: kgCO2, deadline-miss rate and re-score count per policy. (4) `dashboard.html` with the timeline, Pareto and results-table tabs (θ-sweep tab may show "no data"). kgCO2 labelled relative until B3 is resolved. (5) Deployment track **DT1**: the toy scenario run through three local datacentre services, with output hashes equal to the in-process run (R-DEP-1). If DT1 is late, items 1–4 are still presented; DT1 does not hold them back. |
 | **3. Full results and paper** | Remainder of roadmap phase 5 (`pred_error(ε)`, with `pig`), phase 7 (`compare`, `sweep`, `report`), phases 8–9: full validation and test split, threshold freeze, all sweeps and ablations, interval calibration. Deployment track **DT2** (Docker), then **DT3** (AWS) once the main test results exist. Optional extensions X1 (DRO) and X9 (Streamlit viewer) only after the main results exist. | Final test results, worse-regime table, full dashboard including θ sweep, reproducibility package, paper/report. DT2: `docker compose up` reproduces the results. DT3: a live run on AWS matching the in-process output, with its latency and cost reported. |
 
 ---
@@ -1126,7 +1180,9 @@ Datasets and tools (accessed 24 Oct 2026):
 3. NESO, Carbon Intensity API. https://api.carbonintensity.org.uk/ and https://carbonintensity.org.uk/
 4. NESO Data Portal, Regional Carbon Intensity Forecast. https://www.neso.energy/data-portal/regional-carbon-intensity-forecast ; National Carbon Intensity Forecast. https://www.neso.energy/data-portal/national-carbon-intensity-forecast
 5. N. Powell, `carbon-intensity-forecast-tracking` (MIT licence; forecast-vintage archive). https://github.com/nmpowell/carbon-intensity-forecast-tracking
-6. DESNZ, "Greenhouse gas reporting: conversion factors 2026" (full set and methodology paper). https://www.gov.uk/government/publications/greenhouse-gas-reporting-conversion-factors-2026
+6. Central Electricity Authority (India), "CO2 Baseline Database for the Indian Power Sector" and user guide (version to cite per 7.5). https://cea.nic.in/ ; user guide v21.0: https://cea.nic.in/wp-content/uploads/baseline/2025/12/User_Guide_V_21.0.pdf
+6a. Grid-India (formerly POSOCO), National and Regional Load Despatch Centre reports (regional generation by source; candidate source for B4). https://grid-india.in/
+6b. Candidate secondary sources for B4 (licences unchecked): Energymap hourly state-level carbon intensity, https://www.energymap.in/data-shop ; Grid-India hourly demand, solar and wind dataset (Mendeley), https://data.mendeley.com/datasets/y58jknpgs8 ; Ember India electricity data (monthly; for cross-checks only), https://ember-energy.org/data/india-electricity-data/
 7. M. L. Pinedo, *Scheduling: Theory, Algorithms, and Systems*, 6th ed., Springer, 2022. https://doi.org/10.1007/978-3-031-05921-6
 
 Literature cited in the submitted report (metadata as listed there; items 8–12 not re-verified in this revision, item 13 existence checked):
@@ -1152,4 +1208,4 @@ Literature search of 24 Oct 2026 (about 15 sources; full notes in the project's 
 
 Item 10 (Li, Liu, Ding) is the closest prior work to the θ·w_ab margin: it advises shifting only when intervals do not overlap, qualitatively. Present θ·w_ab as formalising that idea for re-evaluation, not as new.
 
-**Novelty verdict [v0.3]: candidate contribution, not established.** Rescheduling triggers (ref 20) and threshold-based carbon re-planning (ref 16) both exist. No reviewed work combines (a) a decision-relevance trigger that re-scores a pending job only when its best placement could change, (b) a lower-bound screen with exact decision equivalence to fixed-savings at θ = 0, and (c) evaluation on real archived forecast vintages. Claim the θ = 0 equivalence property, not the bounding technique. Remaining literature work before the paper: event-triggered model predictive control (not yet reviewed), plus verification of items 8–12. Until then, describe the mechanism as "a decision-relevance trigger with a margin-based screen and noise-adjusted gate for re-planning pending jobs".
+**Novelty verdict [v0.3, point (c) revised v0.5]: candidate contribution, not established.** Rescheduling triggers (ref 20) and threshold-based carbon re-planning (ref 16) both exist. No reviewed work combines (a) a decision-relevance trigger that re-scores a pending job only when its best placement could change, (b) a lower-bound screen with exact decision equivalence to fixed-savings at θ = 0, and (c) evaluation under Indian grid conditions with forecast uncertainty that has the revision dynamics of a real archived operational forecast (6.2.4). Point (c) is weaker than evaluation on real Indian forecast vintages would be, because none exist; say so. Claim the θ = 0 equivalence property, not the bounding technique. Remaining literature work before the paper: event-triggered model predictive control (not yet reviewed), plus verification of items 8–12. Until then, describe the mechanism as "a decision-relevance trigger with a margin-based screen and noise-adjusted gate for re-planning pending jobs".

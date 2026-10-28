@@ -1,10 +1,10 @@
 # CLAUDE.md
 
-Flipwise: an offline, deterministic discrete-event simulator that tests **when** to re-plan pending jobs across three virtual datacentres using archived NESO carbon forecasts and the Alibaba GPU trace v2020. RVCE EL V sem project. Repo: https://github.com/Rohith-sp/flipwise
+Flipwise: an offline, deterministic discrete-event simulator that tests **when** to re-plan pending jobs across three virtual datacentres under **Indian conditions** (Delhi NCR, Mumbai, Chennai on the NR/WR/SR grids, IST), using the Alibaba GPU trace v2020, Indian carbon truth (generation by fuel × CEA factors) and forecasts built from real NESO forecast-error paths (PRD §6.2). RVCE EL V sem project. Repo: https://github.com/Rohith-sp/flipwise
 
 ## Source of truth
 
-- `docs/prd.md` (v0.4) is authoritative: formulas, data rules, requirement IDs (R-*), decisions (D*), open items (B*/O*). If code and PRD disagree, flag it; don't silently pick one.
+- `docs/prd.md` (v0.5) is authoritative: formulas, data rules, requirement IDs (R-*), decisions (D*), open items (B*/O*). If code and PRD disagree, flag it; don't silently pick one.
 - `docs/explanation.md` is the plain-language version. `README.md` is the short overview and roadmap.
 - A design change means editing the PRD (and its changelog) in the same change.
 
@@ -14,7 +14,7 @@ Flipwise: an offline, deterministic discrete-event simulator that tests **when**
 
 | Need | Grep in `docs/prd.md` |
 |---|---|
-| Data schema, carbon views, missing-data rules | `^### 6\.` |
+| Indian carbon truth, synthetic forecasts, data schema | `^#### 6\.2\.` and `^### 6\.` |
 | Emissions equations and units | `^### 7\.1` |
 | Job states, event priorities, information boundary | `^### 8\.` |
 | Candidates, wait estimate, scoring, feasibility | `^### 9\.` |
@@ -69,4 +69,4 @@ Before finishing any code change: ruff check, ruff format, and the relevant test
 
 ## Current status
 
-EL Phase 1 done; Phase 2 in progress (roadmap phases 1–6 + DT1). No code yet. Open blockers: B1 (mentor confirms scope), B2 (archive coverage, NESO terms), B3 (power values; until resolved, report kgCO2 as relative). Update this section when a phase completes.
+EL Phase 1 done; Phase 2 in progress (roadmap phases 1–6 + DT1). No code yet. Open blockers: B1 (mentor confirms scope), B2 (archive coverage, NESO terms), B3 (power values; until resolved, report kgCO2 as relative), B4 (Indian generation-by-fuel data). Update this section when a phase completes.

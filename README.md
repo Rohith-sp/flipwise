@@ -6,7 +6,7 @@ An offline research simulator that tests *when* a carbon-aware scheduler should 
 
 RV College of Engineering · Experiential Learning, V Semester, AY 2026–27 · UN SDG 9 (Industry, Innovation and Infrastructure)
 
-> Status: **EL Phase 1 (pitch) complete. Now on EL Phase 2 (partial results).** No code exists yet. The spec is [docs/prd.md](docs/prd.md) (v0.4).
+> Status: **EL Phase 1 (pitch) complete. Now on EL Phase 2 (partial results).** No code exists yet. The spec is [docs/prd.md](docs/prd.md) (v0.5).
 
 ---
 
@@ -24,8 +24,8 @@ The key property: **at θ = 0 the policy makes exactly the same decisions as a f
 ## 2. Scope
 
 - An offline, deterministic, command-line **research simulator**. It is not a production scheduler.
-- Three *virtual* datacentres, each in a GB grid region (default: North Scotland, London, South Wales), with pooled GPU, CPU and memory capacity.
-- It replays one-week slices of the Alibaba PAI GPU trace v2020. Policies see NESO carbon forecasts **as they were published at the time**; an evaluator scores the outcomes against later values that the policies never see.
+- **Indian conditions.** Three *virtual* datacentres in India's datacentre hubs, each on its own regional grid: **Delhi NCR** (Northern), **Mumbai** (Western), **Chennai** (Southern), with pooled GPU, CPU and memory capacity. Time runs in IST.
+- It replays one-week slices of the Alibaba PAI GPU trace v2020. Carbon "truth" is Indian regional intensity built from generation by fuel × CEA emission factors. No archive of Indian carbon *forecasts* exists, so the forecasts the scheduler sees are Indian truth plus the **real forecast-error paths** of an archived operational forecast (NESO, Great Britain), scaled to Indian levels. Policies only see forecasts available at that moment; an evaluator scores outcomes against the truth they never see.
 - Running jobs are never migrated. Results are **modelled** operational CO2 (IT energy only), not measured reductions.
 - **Deployment track** (PRD §13.5): the same simulation can run with each virtual datacentre as a separate service: **DT1** local processes, then **DT2** Docker, then **DT3** AWS. The coordinator keeps a simulated clock, so every mode must produce byte-identical results to the normal in-process run. Research results always come from the in-process mode.
 - Out of scope: real infrastructure control, a web app (the dashboard is a static HTML file), measuring real cloud emissions, and DRO (extension X1).
@@ -37,8 +37,9 @@ Raw and processed data are never committed. Download links and checksums will go
 | Dataset | Use | Source | Licence / terms |
 |---|---|---|---|
 | Alibaba Cluster Trace GPU v2020 (`pai_job_table`, `pai_task_table`, `pai_machine_spec`) | Job arrivals, runtimes, resource requests | [alibaba/clusterdata](https://github.com/alibaba/clusterdata/tree/master/cluster-trace-gpu-v2020) · [split-file mirror](https://github.com/qzweng/clusterdata-cluster-trace-gpu-v2020-data) | Research/study use; cite Weng et al., NSDI '22 |
-| NESO carbon-intensity forecast vintages, Mar 2023 – Jan 2024 | Forecasts the scheduler sees; final regional forecast used as "truth" | [nmpowell/carbon-intensity-forecast-tracking](https://github.com/nmpowell/carbon-intensity-forecast-tracking) | MIT (archive); NESO terms still to check (blocker B2) |
-| NESO Carbon Intensity API / Data Portal | Cross-checks | [api.carbonintensity.org.uk](https://api.carbonintensity.org.uk/) · [NESO Data Portal](https://www.neso.energy/data-portal) | Per NESO terms |
+| Indian regional generation by fuel, Mar 2023 – Feb 2024 (≤ 1 h) | Indian carbon truth (PRD §6.2.2) | Grid-India reports first; fallbacks in PRD §6.2.2 | **To confirm (blocker B4)** |
+| CEA CO2 Baseline Database | Emission factor per fuel; grid-average factor for the static check | [cea.nic.in](https://cea.nic.in/) | Government of India publication |
+| NESO forecast-vintage archive, Mar 2023 – Feb 2024 | Real forecast-error paths, applied to Indian truth (PRD §6.2.4) | [nmpowell/carbon-intensity-forecast-tracking](https://github.com/nmpowell/carbon-intensity-forecast-tracking) | MIT (archive); NESO terms still to check (blocker B2) |
 
 ```bash
 # Alibaba v2020 (MVP needs only these three archives)
@@ -46,7 +47,7 @@ curl -O https://aliopentrace.oss-cn-beijing.aliyuncs.com/v2020GPUTraces/pai_job_
 curl -O https://aliopentrace.oss-cn-beijing.aliyuncs.com/v2020GPUTraces/pai_task_table.tar.gz
 curl -O https://aliopentrace.oss-cn-beijing.aliyuncs.com/v2020GPUTraces/pai_machine_spec.tar.gz
 
-# Forecast-vintage archive (pin the commit you use and record it in the manifest)
+# Forecast-vintage archive, source of forecast-error paths (pin the commit and record it in the manifest)
 git clone https://github.com/nmpowell/carbon-intensity-forecast-tracking
 ```
 
@@ -88,8 +89,8 @@ flipwise/
 ├── README.md
 ├── CLAUDE.md               # instructions for Claude Code
 └── docs/
-    ├── prd.md              # authoritative spec (v0.4)
-    ├── explanation.md      # plain-language explanation (matches PRD v0.4)
+    ├── prd.md              # authoritative spec (v0.5)
+    ├── explanation.md      # plain-language explanation (matches PRD v0.5)
     ├── helpfullinks.md     # dataset, paper and tool links
     └── helpfullinks.txt    # original plain-text version of the links
 ```
@@ -125,12 +126,12 @@ The deployment track runs in parallel, owned by one team member, and never block
 
 **Precondition:** the mentor confirms that decision-flip is the core contribution and DRO is an extension (blocker B1).
 
-Work on a small slice: **one validation week** of the Alibaba trace (dev sampling 0.1) with the matching NESO forecast vintages.
+Work on a small slice: **one validation week** of the Alibaba trace (dev sampling 0.1) with the matching Indian truth and forecast vintages.
 
 | # | Build phase | What gets built | Exit criterion |
 |---|---|---|---|
 | 1 | Setup and audit | Repo, `pyproject.toml`, `uv.lock`, ruff, pytest; download v2020; clone the archive at a fixed commit | Checksums match; a script reproduces the PRD §6.1 audit numbers |
-| 2 | Canonical data | `ingest alibaba`, `ingest carbon`, manifests, `validate` | Processed CSVs plus ingest/coverage reports; B2 answered (archive coverage, NESO terms) |
+| 2 | Canonical data | `ingest alibaba`, `ingest india` (truth), `ingest carbon` (error paths), `build-forecasts`, manifests, `validate` | Processed CSVs plus ingest/coverage reports; B2 and B4 answered |
 | 3 | Deterministic core | `models`, `simulator` (events, job states), `datacentre` (queue, dispatch) behind a `DatacentreClient` interface, toy fixture, `fcfs` | Toy FCFS output equals `expected.yaml` |
 | 4 | Energy and place-once | `energy`, `carbon` views, `planner` (candidates, feasibility, scoring), `place_once` | Toy emissions exact; static-factor test passes |
 | 5 | Baselines (partial) | `estimates` (runtime quantiles, wait profiles), `periodic(T)`, `fixed_savings(g)`, rescue, throttling | Baselines run on the toy scenario |
@@ -165,7 +166,7 @@ The service skeleton and script can start now against the API in PRD §13.5. The
 | 8 | Real-trace evaluation: fit residual and runtime quantiles; validation sweeps (`g_rel`, θ, ε, T); freeze thresholds; run the test set **once**; sensitivity sweeps (load, carbon spread, forecast-error and interval scaling, deadline slack, energy multipliers); ablations A0–A6 |
 | 9 | Analysis and packaging: report figures, limitations, a reproducibility README (a clean clone reproduces the summary tables from raw downloads) |
 | DT2 Docker | One image, `docker-compose.yml` with three datacentre containers and a coordinator; `docker compose up` from a clean clone reproduces the in-process toy and dev-replicate outputs |
-| DT3 AWS | The DT2 image on three small EC2 instances (default `eu-west-2`); same outputs as in-process; latency and cost reported; budget alert first and `teardown.sh` after every session. Starts only after the main test results exist and the AWS account question (O8) is settled |
+| DT3 AWS | The DT2 image on three small EC2 instances (default `ap-south-1`, Mumbai); same outputs as in-process; latency and cost reported; budget alert first and `teardown.sh` after every session. Starts only after the main test results exist and the AWS account question (O8) is settled |
 
 Data split: runtime fit on trace days 0–20 · residual fit on carbon data from 13 Mar – 30 Jun 2023 · validation on trace days 21–41 with Jul–Aug 2023 · test on trace days 42–69 with Sep 2023 – Jan 2024. That gives 12 validation and 16 test replicates per policy.
 
@@ -187,9 +188,10 @@ Optional, only after the main results exist: X1 (Global–Local DRO planner) and
 | ID | Item | Needed by |
 |---|---|---|
 | B1 | Mentor confirms decision-flip is the core contribution and DRO is extension X1 | Before Phase 2 work |
-| B2 | Archive coverage per region (Mar 2023 – Jan 2024) and NESO redistribution terms | Build phase 2 |
+| B2 | Archive coverage for the three GB error-source regions and NESO redistribution terms | Build phase 2 |
+| B4 | Indian regional generation-by-fuel data at ≤ 1 h resolution for Mar 2023 – Feb 2024, its licence, and the CEA database version | Build phase 2 |
 | B3 | Cited power values: MISC GPU, CPU per core, utilisation factor `f` | Before absolute kgCO2 (build phase 8) |
-| O1 | Which emissions table the principal meant (DESNZ 2026 is the working candidate) | Report |
+| O1 | Confirm the principal meant the CEA CO2 Baseline Database | Report |
 | O7 | Check that the name `flipwise` is free on PyPI | Before publishing the package |
 | O8 | AWS account and spending limit for DT3 (credits, free tier, or a member's account) | Before DT3 |
 
@@ -204,6 +206,7 @@ Key references (full list in PRD §19):
 - Xu et al., "GREEN," USENIX NSDI 2025 (source of the `periodic` baseline).
 - Li, Liu, Ding, "Uncertainty-Aware Decarbonization for Datacenters," HotCarbon '24 (closest prior work to the θ margin).
 - Pinedo, *Scheduling: Theory, Algorithms, and Systems*, 6th ed., Springer, 2022. [doi](https://doi.org/10.1007/978-3-031-05921-6)
-- NESO Carbon Intensity API. [link](https://api.carbonintensity.org.uk/)
+- Central Electricity Authority, CO2 Baseline Database for the Indian Power Sector. [link](https://cea.nic.in/)
+- N. Powell, carbon-intensity-forecast-tracking (NESO forecast archive). [link](https://github.com/nmpowell/carbon-intensity-forecast-tracking)
 
 Licence: MIT, if the mentor approves (open).
