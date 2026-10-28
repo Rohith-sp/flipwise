@@ -4,19 +4,20 @@
 
 | Field | Value |
 |---|---|
-| Document status | Implementation-ready draft. Supersedes v0.2 (24 Oct 2026) and v0.1 (23 Oct 2026). Changes are listed in the changelog below. |
-| Version | 0.3 |
-| Revised | 24 October 2026 |
+| Document status | Implementation-ready draft. Supersedes v0.3 (24 Oct 2026), v0.2 (24 Oct 2026) and v0.1 (23 Oct 2026). Changes are listed in the changelog below. |
+| Version | 0.4 |
+| Revised | 28 October 2026 |
 | Project name | **Flipwise** (Python package and CLI `flipwise`) [Decision]: it re-evaluates decision flips wisely. Renamed from FlipSim on 25 Oct 2026. Availability of the name on GitHub and PyPI is [Open], not yet checked. |
 | Project context | RV College of Engineering, Experiential Learning, V Semester, AY 2026–27; SDG 9 |
-| Deliverable | Offline, command-line research simulator and reproducible evaluation pipeline, plus a static, self-contained HTML results dashboard generated from result CSVs. Not a production scheduler. No server or web app in the MVP. |
-| Companion document | `explanation.md` (plain-language project explanation). Where the two disagree, this PRD is authoritative (see Section 5). `explanation.md` must be updated to match v0.3 before the repo's first commit. |
-| Repository state at revision | No code repository exists yet. Every module below is new. Initial layout in Section 13.1. |
+| Deliverable | Offline, command-line research simulator and reproducible evaluation pipeline, plus a static, self-contained HTML results dashboard generated from result CSVs. Not a production scheduler. No web app in the MVP. From v0.4, a **deployment track** (Section 13.5) runs the same simulation with each virtual datacentre as a separate service: first as local processes, then in Docker, then on AWS. Research results always come from the in-process mode; the deployment modes must reproduce them exactly. |
+| Companion document | `explanation.md` (plain-language project explanation). Where the two disagree, this PRD is authoritative (see Section 5). `explanation.md` was updated to match v0.4 on 28 Oct 2026. |
+| Repository state at revision | Git repository exists (`https://github.com/Rohith-sp/flipwise`) with `README.md` and `docs/` only. No code yet. Initial layout in Section 13.1. |
 
 ### Changelog
 
 | Version | Date | Changes |
 |---|---|---|
+| 0.4 | 28 Oct 2026 | Added the deployment track (13.5): the three virtual datacentres run as separate services in three stages, DT1 local processes started by a shell script, DT2 Docker Compose, DT3 AWS. The coordinator keeps the simulated clock, so every mode must produce byte-identical `jobs.csv` and `decisions.csv` to the in-process run (R-DEP-1…6). Updated the non-goals (4.3), stack (12.1), layout (13.1), CLI (13.4), risks and open questions (17), roadmap and EL mapping (18). Recorded the GitHub repository. Added `CLAUDE.md` to the initial repository contents. |
 | 0.3 | 24 Oct 2026 | Named the project Flipwise (`flipwise`; renamed from the placeholder `carbonsim` throughout). Added `flipwise dashboard` (static `dashboard.html`, no server), kept separate from `flipwise run` (4.1, 4.3, 12.1, 13.1, 13.4, 16.2). Replaced "no web UI" with "no server or web app in MVP; optional Streamlit viewer is a Phase 3 extension" (X9). Mapped EL Phase 2 and Phase 3 to the roadmap, with `pred_error(ε)` moved to EL Phase 3 (Section 18.1). Added the 24 Oct literature-search findings: CarbonScaler as the published source for `pred_error(ε)`, GREEN for `periodic(T)`, Li et al. as closest to the θ·w_ab margin, and the novelty verdict "candidate contribution" (11, 19). Added cited GPU nameplate powers for B3; CPU and MISC GPU power remain unverified (7.2, 17.3). Added the initial repo contents and README outline, and updated the target layout with `docs/`, `scripts/`, `LICENSE` and `dashboard.py` (13.1). |
 | 0.2 | 24 Oct 2026 | Implementation-ready revision of v0.1 (see Section 5). |
 | 0.1 | 23 Oct 2026 | First draft. |
@@ -117,9 +118,13 @@ The 50 % figure in H1 is a pre-registered threshold for calling the screen usefu
 | X8 | Probabilistic flip estimate by Monte Carlo sampling | MVP interval method evaluated first |
 | X9 | Optional live Streamlit viewer over result CSVs (EL Phase 3), separate entry point, never imported by the simulator | Static dashboard (4.1 item 9) exists; evaluators ask for live interaction |
 
+The deployment track (DT1 local split, DT2 Docker, DT3 AWS) is not an extension: it is planned work with its own requirements (13.5, 15.1) and roadmap stages (18). It does not change any research result.
+
 ### 4.3 Non-goals
 
-Real infrastructure control; live-job migration; claims of measured real-world emission reductions; a server or web app in the MVP (the static `dashboard.html` is in scope; a live viewer is X9); databases, queues, GPUs or deep learning; reproducing any production scheduler; treating virtual datacentres as real Alibaba facilities.
+Real infrastructure control; live-job migration; claims of measured real-world emission reductions; a web app in the MVP (the static `dashboard.html` is in scope; a live viewer is X9); databases, message queues, GPUs or deep learning; reproducing any production scheduler; treating virtual datacentres as real Alibaba facilities.
+
+The deployment track (13.5) is in scope but is not a production system. Its datacentre services hold simulated queues and never run real jobs; the AWS stage (DT3) hosts those services on cloud machines and does not measure AWS's energy or emissions. Carbon values always come from the NESO data, whichever machine a service runs on. Deployment modes never produce research results of their own: a result counts only if the in-process mode produces the identical output.
 
 ---
 
@@ -625,8 +630,12 @@ Note on `pig`: its wait profile uses actual runtimes of committed jobs, so its w
 | ruff ≥ 0.17 | Lint and format | One tool for both | MVP (dev) |
 | hypothesis | Property tests for bound and invariants | Only if hand-written randomised tests prove insufficient | Optional |
 | pyarrow | Parquet | Only if CSV I/O becomes a measured bottleneck | Optional |
+| `http.server` (`ThreadingHTTPServer`), `urllib.request` (stdlib) | Datacentre service and coordinator client, JSON over HTTP | DT1–DT3 need a transport; the stdlib adds no dependency and the API is seven endpoints (13.5) | Deployment track |
+| Bash (Git Bash on Windows) | `scripts/local_cluster.sh` starts and stops the three services and the coordinator | DT1; the team already uses Git Bash | Deployment track |
+| Docker Engine / Docker Desktop with Compose v2 | One image, four containers (three datacentres + coordinator) | DT2: identical environment on every machine, and the unit of deployment for DT3 | Deployment track |
+| AWS: ECR, EC2 (or ECS on EC2), AWS CLI v2, AWS Budgets | Host the DT2 containers on cloud machines | DT3 only. ECS/Fargate vs plain EC2 is [Open] (O9); default is plain EC2 with Docker Compose because it reuses DT2 unchanged | Deployment track |
 
-Rejected for the MVP: SimPy (D3), Polars (second dataframe library), SciPy (no required statistical routine beyond numpy quantiles; paired bootstrap can be done in numpy), OR-Tools/CVXPY (no LP/MILP in MVP; needed only for X1), pydantic (validation is a few explicit checks in `config.py`), any web server or frontend framework (the dashboard is a generated static file; Streamlit only as X9), database server or GPU stack.
+Rejected for the MVP: SimPy (D3), Polars (second dataframe library), SciPy (no required statistical routine beyond numpy quantiles; paired bootstrap can be done in numpy), OR-Tools/CVXPY (no LP/MILP in MVP; needed only for X1), pydantic (validation is a few explicit checks in `config.py`), any web framework or frontend framework (the dashboard is a generated static file; Streamlit only as X9; the datacentre services use the stdlib HTTP server), FastAPI/gRPC/message brokers (unneeded for seven synchronous endpoints; revisit only if R-DEP-5 shows HTTP overhead dominates), Kubernetes and Terraform (three containers do not need an orchestrator; DT3 uses scripts), database server or GPU stack.
 
 Version policy: `pyproject.toml` holds lower/upper bounds as above; `uv.lock` pins exact versions and is committed. Versions listed are the latest on PyPI on 24 Oct 2026 (pandas 3.1.0, numpy 2.5.4, matplotlib 3.11.2, PyYAML 6.0.3, pytest 9.1.1, ruff 0.17.2); the lockfile, not this table, is authoritative.
 
@@ -677,12 +686,13 @@ Initial repository contents (first commit) [Decision, v0.3]:
 
 | Path | Content |
 |---|---|
+| `CLAUDE.md` | Instructions for Claude Code: commands, conventions, the rules that must not break (determinism, information boundary), and how to read the large docs cheaply [v0.4] |
 | `README.md` | Sections: (1) title, one-line summary, RVCE EL V sem, SDG 9; (2) problem and contribution in 3–4 lines; (3) scope: offline research simulator, not a production scheduler; (4) datasets with links, licences and download steps; (5) setup: `uv sync`, then `uv run pytest`; (6) repo layout; (7) roadmap with the current phase marked; (8) team, mentor and references, including the PRD link |
 | `docs/prd.md` | This document |
 | `docs/explanation.md` | Plain-language explanation, updated to match this PRD first |
 | `docs/helpfullinks.md` | Converted from `helpfullinks.txt` |
 | `pyproject.toml` | uv, Python 3.12, ruff, pytest (Section 12.2) |
-| `.gitignore` | `data/raw/`, `data/processed/`, `results/`, `.venv` |
+| `.gitignore` | `data/raw/`, `data/processed/`, `results/`, `.venv`, `.env`, `*.pem` |
 | `src/flipwise/__init__.py` | Package stub |
 | `tests/test_smoke.py` | Import test so `uv run pytest` passes on an empty package |
 | `configs/` | Empty at first commit |
@@ -694,9 +704,12 @@ Target layout once the MVP modules exist:
 
 ```text
 flipwise/
-├── pyproject.toml, uv.lock, README.md, LICENSE, .gitignore
+├── pyproject.toml, uv.lock, README.md, CLAUDE.md, LICENSE, .gitignore
+├── Dockerfile, docker-compose.yml, .dockerignore   # DT2
 ├── docs/                  # prd.md, explanation.md, helpfullinks.md
 ├── scripts/               # download and checksum scripts
+│   ├── local_cluster.sh   # DT1: start 3 dc services + coordinator, stop them on exit
+│   └── aws/               # DT3: push image, launch, teardown (no credentials in the repo)
 ├── configs/
 │   ├── base.yaml          # scenario: slice, carbon window, regions, load, deadlines, seeds
 │   ├── energy.yaml        # power parameters with citations
@@ -710,7 +723,9 @@ flipwise/
 │   ├── carbon.py          # ForecastView (by vintage), Truth, residual quantiles
 │   ├── energy.py          # power, energy, emissions
 │   ├── estimates.py       # runtime quantiles, wait profiles
-│   ├── simulator.py       # event loop, dispatch, SchedulerView/OracleView
+│   ├── simulator.py       # event loop, SchedulerView/OracleView; talks to datacentres via DatacentreClient
+│   ├── datacentre.py      # Datacentre state + FIFO first-fit dispatch (InProcDatacentre)
+│   ├── dcservice.py       # DT1–DT3: HTTP service wrapping datacentre.py, and HttpDatacentre client
 │   ├── planner.py         # candidates, feasibility, scoring, best_candidate, lower_bound
 │   ├── policies.py        # the seven policies
 │   ├── metrics.py         # per-run metrics from job and decision logs
@@ -719,7 +734,8 @@ flipwise/
 ├── tests/
 │   ├── fixtures/toy/      # hand-built scenario + expected.yaml
 │   ├── test_energy.py, test_simulator.py, test_planner.py, test_policies.py,
-│   ├── test_leakage.py, test_ingest.py, test_reproducibility.py
+│   ├── test_leakage.py, test_ingest.py, test_reproducibility.py,
+│   ├── test_dcservice.py  # DT1: in-process vs local-split equivalence on the toy scenario
 ├── data/README.md, data/{raw,processed,manifests}/   # raw and processed are git-ignored
 └── results/                           # git-ignored; dashboard.html is written here
 ```
@@ -763,7 +779,9 @@ Truth (`T`) reaches the simulator's evaluator and `pig`'s `OracleView` only.
 | `estimates` | calibration jobs; dc state | runtime quantiles per job; wait profile per `(dc, q)` | 6.5, 9.3; cache + invalidation | Fallback chain (10.7) | numpy |
 | `planner` | job, `SchedulerView` | candidates with scores/intervals/reasons; `best_candidate`; `rescore`; `lower_bound` | 9.2–9.5, 10.4 | Never returns an infeasible candidate as feasible; returns `None` if no alternative | `energy`, `estimates`, `carbon` |
 | `policies` | events via hooks `on_arrival`, `on_carbon_update`, `on_tick` | placement actions | 10, 11 | Rejects actions on running jobs (`MigrationError`) | `planner` |
-| `simulator` | scenario, policy | job log, decision log, event log | 8.x; information boundary; dispatch; invariants checked after every event in debug mode | Invariant violation → `SimulationInvariantError` with event context | all above |
+| `simulator` | scenario, policy, one `DatacentreClient` per datacentre | job log, decision log, event log | 8.x; information boundary; owns the simulated clock and event heap; calls dispatch on touched datacentres; invariants checked after every event in debug mode | Invariant violation → `SimulationInvariantError` with event context | all above |
+| `datacentre` | dc config; enqueue/remove/complete/dispatch calls with simulated time | started jobs with `start_s`, `end_s`; visible state | Capacity accounting, FIFO queue, first-fit dispatch (8.3). Never reads the wall clock | `MigrationError` on removing a running job; `SimulationInvariantError` on overbooking | stdlib |
+| `dcservice` | HTTP JSON requests (13.5) | HTTP JSON responses | Serves one `datacentre` over HTTP (`flipwise dc-serve`); `HttpDatacentre` implements `DatacentreClient` for the coordinator | Any transport error or timeout aborts the run with `DeploymentError`; there are no silent retries | `datacentre`, stdlib `http.server`, `urllib` |
 | `metrics` | logs, truth | `metrics.json` | Section 14.1 definitions | Asserts denominators > 0 or reports `null` | pandas |
 | `reporting` | runs | `summary.csv`, figures | Paired comparisons, plots | Refuses to compare runs whose scenario hashes differ | pandas, matplotlib |
 | `dashboard` | result CSVs (`jobs.csv`, `decisions.csv`, `summary.csv`, sweep outputs) and the forecast CSV | one self-contained `dashboard.html` | Tabs in 4.1 item 9; reads saved files only, never runs a simulation or opens a network connection | Missing input for a tab → that tab shows "no data"; other tabs still render | pandas, matplotlib; plotly if installed |
@@ -776,11 +794,64 @@ Truth (`T`) reaches the simulator's evaluator and `pig`'s `OracleView` only.
 | `flipwise ingest carbon --archive <path-to-clone> --start 2023-03-13 --end 2024-01-31 --regions 1,13,7 --out data/processed` | Build forecast, truth and coverage CSVs |
 | `flipwise validate --config configs/base.yaml` | Config schema, data presence, checksums vs manifests, carbon coverage for the run horizon, region IDs, calibration/test window overlap check |
 | `flipwise smoke` | Toy scenario, all policies, compare to `expected.yaml`; exit non-zero on mismatch |
-| `flipwise run --config configs/base.yaml --policy decision_flip [--seed 0] [--set key=value ...]` | One run → `results/<run_id>/` |
+| `flipwise run --config configs/base.yaml --policy decision_flip [--seed 0] [--set key=value ...] [--mode inproc\|remote --dc-urls URL1,URL2,URL3]` | One run → `results/<run_id>/`. `--mode inproc` (default) keeps datacentres in the same process; `--mode remote` uses the datacentre services at the given URLs (DT1–DT3), in `dc_id` order |
+| `flipwise dc-serve --dc-id 0 --port 8101 [--host 127.0.0.1]` | Run one datacentre service (13.5). Its configuration arrives with the coordinator's `POST /reset` |
+| `bash scripts/local_cluster.sh --config configs/base.yaml --policy decision_flip` | DT1: start three `dc-serve` processes on ports 8101–8103, wait for `/health`, run `flipwise run --mode remote`, stop the services on exit or Ctrl-C |
+| `docker compose up --build --abort-on-container-exit` | DT2: same as DT1 in four containers; results written to the mounted `results/` |
 | `flipwise compare --config configs/base.yaml [--policies all]` | All policies on identical replicates → `results/compare_<hash>/summary.csv` + figures |
 | `flipwise sweep --config configs/base.yaml --sweep configs/sweeps/theta.yaml` | Grid over parameters (each cell is a `compare`) |
 | `flipwise report --runs results/compare_<hash>` | Rebuild tables and figures from saved logs only |
 | `flipwise dashboard --runs results/compare_<hash> [--sweep results/sweep_<hash>] [--out results/dashboard.html]` | Write the static dashboard (4.1 item 9) from saved CSVs only. Separate from `run` by design: long runs never block on a UI, and the demo cannot fail on a server. Demo: `flipwise smoke` then `flipwise dashboard` on the toy results, about 30 s in total. |
+
+### 13.5 Deployment track: datacentres as separate services [Decision, v0.4]
+
+**Goal.** Show that the scheduler works when the three virtual datacentres are separate services that it reaches over a network, as they would be in a real multi-site deployment, without changing a single research result. The track has three stages, each built on the previous one: **DT1** local processes, **DT2** Docker, **DT3** AWS.
+
+**Core rule: one simulation, two transports.** The coordinator (`simulator` + `policies` + `planner`) owns the event heap and the **simulated clock**. Datacentre services only hold state and run dispatch at the simulated time they are given. They never read the wall clock for simulation decisions. The simulator talks to every datacentre through one interface, `DatacentreClient`, with two implementations: `InProcDatacentre` (plain Python objects, the default) and `HttpDatacentre` (calls a service). Because the event order, tie rules and arithmetic are identical, `jobs.csv`, `decisions.csv` and `events.log` from any deployment mode must be byte-identical to the in-process run on the same scenario (R-DEP-1).
+
+Why not let each service run in real time: a one-week slice would take one week; scheduling, network delays and process start-up would change event order, so runs would stop being reproducible (R-SIM-1) and the policy comparison would stop being fair (14.2).
+
+```mermaid
+flowchart LR
+    subgraph Coordinator["Coordinator (flipwise run --mode remote)"]
+        H[event heap + simulated clock] --> PO[policy + planner]
+        PO --> SV[SchedulerView]
+        EV[evaluator: truth, actual runtimes]
+    end
+    Coordinator <-->|JSON over HTTP| S0[dc-serve dc 0<br/>North Scotland]
+    Coordinator <-->|JSON over HTTP| S1[dc-serve dc 1<br/>London]
+    Coordinator <-->|JSON over HTTP| S2[dc-serve dc 2<br/>South Wales]
+```
+
+**Service API (protocol version 1).** JSON over HTTP/1.1. Every mutating request carries the simulated time `t` (integer seconds).
+
+| Method and path | Request body | Response | Errors |
+|---|---|---|---|
+| `GET /health` | — | `{status, dc_id, protocol_version}` | — |
+| `POST /reset` | `{dc_id, region_id, cap_gpu, cap_cpu, cap_mem_gb, pue, scenario_hash}` | `{ok}`; clears all state | 400 on invalid config |
+| `POST /enqueue` | `{t, job_id, gpu_req, cpu_req, mem_req_gb, runtime_actual_s}` | `{queue_len}`; appends to the FIFO queue | 409 `DUPLICATE_JOB`, 409 `TIME_BACKWARDS` |
+| `POST /remove` | `{t, job_id}` | `{ok}`; removes a queued job (re-placement, 10.6) | 409 `MIGRATION` if running, 404 if not queued |
+| `POST /dispatch` | `{t}` | `{started: [{job_id, start_s, end_s}]}` in start order (first-fit, 8.3) | 409 `TIME_BACKWARDS` |
+| `POST /complete` | `{t, job_id}` | `{ok}`; releases resources | 409 if not running or `t ≠ end_s` |
+| `GET /state` | — | `{t, cap, used, queue: [job_id], running: [{job_id, start_s, gpu_req, cpu_req, mem_req_gb}]}` | — |
+
+Rules:
+
+1. **Order.** The coordinator is single-threaded and sends one request at a time, in event order; for each event it calls `/dispatch` on touched datacentres in `dc_id` order (8.3) and pushes a `JOB_COMPLETE` event at each returned `end_s`.
+2. **Information boundary.** `GET /state` returns only fields the scheduler may see (8.7): no `end_s`, no runtimes. In remote mode, `SchedulerView` is built from `/state`, cached per datacentre and invalidated by any mutating call to it, the same rule as wait profiles (9.3). `runtime_actual_s` goes to the service with `/enqueue` because the service plays the machine that runs the job; the policy never sees it.
+3. **Numbers.** Times are integers. Floats are written with Python's `json` (shortest round-trip repr), so values survive the round trip exactly.
+4. **Failures abort.** A timeout (default 30 s), refused connection or non-2xx response raises `DeploymentError` and the run exits non-zero without writing `metrics.json`. There are no retries, because retrying `/enqueue` could apply it twice.
+5. **Manifest.** `manifest.json` records `mode`, the datacentre URLs, `protocol_version`, the image digest (DT2, DT3) and an `overhead` block: wall-clock time, RPC count and RPC seconds per datacentre. `metrics.json` is identical to the in-process run apart from that `overhead` block.
+
+**Stages.**
+
+| Stage | What runs where | Built from | Exit criterion |
+|---|---|---|---|
+| **DT1 Local split** | Three `flipwise dc-serve` processes on `127.0.0.1:8101–8103` and the coordinator, all on one laptop. `scripts/local_cluster.sh` starts them, waits up to 20 s for every `/health`, runs `flipwise run --mode remote`, writes each service's log to `results/<run_id>/dc-<id>.log`, and kills the services on exit or Ctrl-C (`trap … EXIT INT TERM`). Runs in Git Bash on Windows. | `datacentre.py`, `dcservice.py`, stdlib only | R-DEP-1 on the toy scenario for every Phase 2 policy; R-DEP-3 (a killed service aborts the run) |
+| **DT2 Docker** | One image (`python:3.12-slim`, `uv sync --frozen --no-dev`, non-root user, entrypoint `flipwise`), tagged with the git commit. `docker-compose.yml` defines `dc-north-scotland`, `dc-london`, `dc-south-wales` and `coordinator` on a private network; the coordinator starts only when all three healthchecks pass. `data/processed` is mounted read-only and `results/` read-write. | DT1 + `Dockerfile`, `docker-compose.yml`, `.dockerignore` | R-DEP-1 on toy and R-DEP-2 on one dev replicate inside Compose; the image builds from a clean clone |
+| **DT3 AWS** | The DT2 image pushed to ECR and run on three small EC2 instances, one per datacentre (default region `eu-west-2`, London); the coordinator runs on a fourth instance or a team laptop. Security groups allow port 8101 only from the coordinator's address. `scripts/aws/` holds `push_image.sh`, `launch.sh` and `teardown.sh`; every resource is tagged `project=flipwise`. Optional variant: the three instances in three AWS regions, to measure real cross-region latency. | DT2 + AWS account (O8) | R-DEP-1 and R-DEP-2 on AWS; RPC latency reported (R-DEP-5); `teardown.sh` leaves no tagged resource running (R-DEP-6) |
+
+AWS regions host the services; they do not change the carbon signal. A datacentre labelled "London" uses NESO region 13 data whether its service runs on a laptop, in Docker or in `eu-north-1`. Reports must not present DT3 as measuring real cloud emissions.
 
 ---
 
@@ -909,6 +980,12 @@ For each metric and policy pair, report the mean over replicates, the paired dif
 | R-MET-1 | MUST | Metrics follow 14.1 definitions | Toy metrics vs `expected.yaml` | R-EN-1 |
 | R-PERF-1 | SHOULD | Dev mode (one replicate, sampling 0.1) completes all policies on a laptop | Measured and recorded in README; no target fixed in advance | R-POL-1 |
 | R-EXT-1 | COULD | Planner interface accepts an alternative planner (for X1) | Dummy planner passes R-POL-1 | R-PLAN-1 |
+| R-DEP-1 | MUST (DT1, DT2, DT3) | Remote mode reproduces in-process outputs | Toy scenario, every implemented policy: SHA-256 of `jobs.csv`, `decisions.csv`, `events.log` equal across `inproc` and `remote` | R-SIM-1 |
+| R-DEP-2 | MUST (DT2, DT3) | Same as R-DEP-1 on one dev replicate (sampling 0.1) | Hash comparison | R-DEP-1 |
+| R-DEP-3 | MUST (DT1) | Service failure aborts the run cleanly | Kill one `dc-serve` mid-run: coordinator exits non-zero with `DeploymentError`, no `metrics.json` written, `local_cluster.sh` leaves no orphan process | R-DEP-1 |
+| R-DEP-4 | MUST (DT1) | Service enforces simulation rules | Unit tests: `/remove` of a running job → 409 `MIGRATION`; `t` lower than last seen → 409 `TIME_BACKWARDS`; `/state` contains no `end_s` or runtime field | — |
+| R-DEP-5 | SHOULD | Deployment overhead is measured, not assumed | `overhead` block in `manifest.json` for DT1, DT2, DT3 on the same replicate; reported in README | R-DEP-1 |
+| R-DEP-6 | MUST (DT3) | No cloud resources left running | After `teardown.sh`, `aws resourcegroupstaggingapi get-resources --tag-filters Key=project,Values=flipwise` lists no running instance; AWS Budgets alert configured before first launch | — |
 
 ### 15.2 Test layers
 
@@ -966,6 +1043,9 @@ Raw data are not committed. `README.md` gives the download commands for the v202
 | Threshold tuning on test data | Inflated results | 14.3 split; `validate` enforces |
 | Python speed at full sampling | Long sweeps | Dev sampling 0.1; measure (R-PERF-1) before deciding |
 | Scope creep (DRO, live dashboards) | Delays core result | DRO is X1; only the static `dashboard.html` is in scope; a live viewer is X9 (Phase 3, optional) |
+| Deployment track delays the research results | Phase 2 review without its core evidence | DT1–DT3 never block roadmap phases 1–9; the track is owned by one member and starts against the API in 13.5; DT2 and DT3 begin only after DT1 passes R-DEP-1 |
+| Distributed runs drift from in-process runs | Results that cannot be trusted | Simulated clock in the coordinator; R-DEP-1/2 hash checks in CI-style tests; any mismatch is a bug, never "network noise" |
+| AWS cost or leaked credentials | Unexpected bill; compromised account | Budget alert before first launch; `teardown.sh` after every session (R-DEP-6); credentials only in the AWS CLI profile, never in the repo; `.gitignore` covers `.env` and `*.pem` |
 
 ### 17.2 Assumptions (all [Synthetic] or [Decision], restated)
 
@@ -992,6 +1072,9 @@ Configurable or non-blocking:
 | O5 | Why job `start_time` equals earliest task start (README describes it as submission time) | Treat as arrival; mention in limitations; optionally ask on the clusterdata issue tracker |
 | O6 | Threshold defaults | Section 10.10; chosen on validation |
 | O7 | Whether the names Flipwise / `flipwise` are free on GitHub and PyPI | Use Flipwise; check before creating the repo |
+| O8 | AWS account for DT3: AWS Educate/Academy credits, free tier, or a team member's account; spending limit | Do not start DT3 until decided; budget alert mandatory |
+| O9 | DT3 hosting: plain EC2 with Docker Compose, or ECS | Plain EC2 (reuses DT2 unchanged) |
+| O10 | DT3 layout: one AWS region (default `eu-west-2`) or three regions for real latency | One region; three regions only as a measured variant |
 
 ---
 
@@ -1001,7 +1084,7 @@ Configurable or non-blocking:
 |---|---|---|---|
 | 1. Setup and audit | Repo, `pyproject`, `uv.lock`, ruff, pytest; download v2020 job/task/spec; clone archive at a fixed commit | Checksums match README | `uv run pytest` runs (empty); audit numbers in Section 6.1 reproduced by a script |
 | 2. Canonical data | `ingest alibaba`, `ingest carbon`, manifests, `validate` | R-ING-1…4 | Processed CSVs and ingest/coverage reports exist; B2 answered |
-| 3. Deterministic core | `models`, `simulator` (events, dispatch, states), toy fixture, `fcfs` | R-SIM-1…5 | Toy FCFS outputs equal `expected.yaml` |
+| 3. Deterministic core | `models`, `simulator` (events, states), `datacentre` (queue, dispatch) behind `DatacentreClient`, toy fixture, `fcfs` | R-SIM-1…5 | Toy FCFS outputs equal `expected.yaml` |
 | 4. Energy and place-once | `energy`, `carbon` views, `planner` (candidates, feasibility, scores), `place_once` | R-EN-1, 2, 4; R-PLAN-1, 2; R-LEAK-2 | Toy emissions exact; static-factor test passes |
 | 5. Baselines | `estimates` (runtime, wait), `periodic`, `pred_error`, `fixed_savings`, rescue, throttling | R-LEAK-1, R-TRIG-7, R-POL-1 (partial) | All baselines run on toy; decision logs readable |
 | 6. Decision-flip | Lower bound, screen, noise margin, fallbacks | R-TRIG-1…6, P1 | Toy flip/no-flip/small-gain cases pass; P1 holds on toy |
@@ -1011,14 +1094,26 @@ Configurable or non-blocking:
 
 Rule: no phase starts before the previous exit criterion is met, except that Phase 2's carbon work may run in parallel with Phase 3. DRO (X1) is not started before Phase 8 is complete.
 
-### 18.1 Mapping to EL review phases [Decision, v0.3]
+Phase 3 must put datacentre state and dispatch in `datacentre.py` behind the `DatacentreClient` interface (13.5) from the start, even though only `InProcDatacentre` exists then. That one design choice is what lets the deployment track reuse the simulator without rewriting it.
+
+#### Deployment track [Decision, v0.4]
+
+Runs in parallel with the roadmap above, owned by one team member. It never blocks phases 1–9.
+
+| Stage | Implement | Tested by | Starts when | Exit criterion |
+|---|---|---|---|---|
+| DT1. Local split | `dcservice.py` (service + `HttpDatacentre`), `flipwise dc-serve`, `--mode remote`, `scripts/local_cluster.sh` | R-DEP-1 (toy), R-DEP-3, R-DEP-4 | Service skeleton and script may start now against the 13.5 API; the equivalence test needs roadmap phase 3 | Toy run through three local services is byte-identical to in-process for every implemented policy |
+| DT2. Docker | `Dockerfile`, `docker-compose.yml`, `.dockerignore`, healthchecks | R-DEP-1, R-DEP-2 inside Compose | DT1 exit met | `docker compose up` from a clean clone reproduces the in-process toy and dev-replicate outputs |
+| DT3. AWS | `scripts/aws/` (push, launch, teardown), budget alert, security groups | R-DEP-1, R-DEP-2, R-DEP-5, R-DEP-6 | DT2 exit met, O8 decided, and the main test results (roadmap phase 8) exist | Same outputs on AWS; latency report; teardown verified |
+
+### 18.1 Mapping to EL review phases [Decision, v0.3; deployment track added v0.4]
 
 EL Phase 1 (pitch) is complete. Scope must be confirmed with the mentor (B1) before EL Phase 2 work starts.
 
 | EL phase | Roadmap scope | Must show |
 |---|---|---|
-| **2. Partial results** | Roadmap phases 1–6 on a small slice: one week of the Alibaba trace (one validation slice, dev sampling) and the matching NESO forecast vintages. Policies: `fcfs`, `place_once`, `periodic(T)`, `fixed_savings(g)`, `decision_flip(g, θ)`. `pred_error(ε)` is moved to EL Phase 3. Only the minimum of roadmap phase 7 needed to produce one table and `dashboard.html` (`run`, metrics, `dashboard`). | (1) Toy scenario whose kgCO2 is checked by hand (R-EN-1, toy `expected.yaml`), showing the simulator is correct. (2) At θ = 0, decision-flip makes exactly the same decisions as fixed-savings with fewer `stage2_calls` (P1, R-TRIG-2), the core claim. (3) One comparison table for the validation week: kgCO2, deadline-miss rate and re-score count per policy. (4) `dashboard.html` with the timeline, Pareto and results-table tabs (θ-sweep tab may show "no data"). kgCO2 labelled relative until B3 is resolved. |
-| **3. Full results and paper** | Remainder of roadmap phase 5 (`pred_error(ε)`, with `pig`), phase 7 (`compare`, `sweep`, `report`), phases 8–9: full validation and test split, threshold freeze, all sweeps and ablations, interval calibration. Optional extensions X1 (DRO) and X9 (Streamlit viewer) only after the main results exist. | Final test results, worse-regime table, full dashboard including θ sweep, reproducibility package, paper/report. |
+| **2. Partial results** | Roadmap phases 1–6 on a small slice: one week of the Alibaba trace (one validation slice, dev sampling) and the matching NESO forecast vintages. Policies: `fcfs`, `place_once`, `periodic(T)`, `fixed_savings(g)`, `decision_flip(g, θ)`. `pred_error(ε)` is moved to EL Phase 3. Only the minimum of roadmap phase 7 needed to produce one table and `dashboard.html` (`run`, metrics, `dashboard`). | (1) Toy scenario whose kgCO2 is checked by hand (R-EN-1, toy `expected.yaml`), showing the simulator is correct. (2) At θ = 0, decision-flip makes exactly the same decisions as fixed-savings with fewer `stage2_calls` (P1, R-TRIG-2), the core claim. (3) One comparison table for the validation week: kgCO2, deadline-miss rate and re-score count per policy. (4) `dashboard.html` with the timeline, Pareto and results-table tabs (θ-sweep tab may show "no data"). kgCO2 labelled relative until B3 is resolved. (5) Deployment track **DT1**: the toy scenario run through three local datacentre services, with output hashes equal to the in-process run (R-DEP-1). If DT1 is late, items 1–4 are still presented; DT1 does not hold them back. |
+| **3. Full results and paper** | Remainder of roadmap phase 5 (`pred_error(ε)`, with `pig`), phase 7 (`compare`, `sweep`, `report`), phases 8–9: full validation and test split, threshold freeze, all sweeps and ablations, interval calibration. Deployment track **DT2** (Docker), then **DT3** (AWS) once the main test results exist. Optional extensions X1 (DRO) and X9 (Streamlit viewer) only after the main results exist. | Final test results, worse-regime table, full dashboard including θ sweep, reproducibility package, paper/report. DT2: `docker compose up` reproduces the results. DT3: a live run on AWS matching the in-process output, with its latency and cost reported. |
 
 ---
 

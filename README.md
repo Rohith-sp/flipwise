@@ -6,7 +6,7 @@ An offline research simulator that tests *when* a carbon-aware scheduler should 
 
 RV College of Engineering · Experiential Learning, V Semester, AY 2026–27 · UN SDG 9 (Industry, Innovation and Infrastructure)
 
-> Status: **EL Phase 1 (pitch) complete. Now on EL Phase 2 (partial results).** No code exists yet. The spec is [docs/prd.md](docs/prd.md) (v0.3).
+> Status: **EL Phase 1 (pitch) complete. Now on EL Phase 2 (partial results).** No code exists yet. The spec is [docs/prd.md](docs/prd.md) (v0.4).
 
 ---
 
@@ -27,11 +27,12 @@ The key property: **at θ = 0 the policy makes exactly the same decisions as a f
 - Three *virtual* datacentres, each in a GB grid region (default: North Scotland, London, South Wales), with pooled GPU, CPU and memory capacity.
 - It replays one-week slices of the Alibaba PAI GPU trace v2020. Policies see NESO carbon forecasts **as they were published at the time**; an evaluator scores the outcomes against later values that the policies never see.
 - Running jobs are never migrated. Results are **modelled** operational CO2 (IT energy only), not measured reductions.
-- Out of scope: real infrastructure control, a server or web app (the dashboard is a static HTML file), and DRO (extension X1).
+- **Deployment track** (PRD §13.5): the same simulation can run with each virtual datacentre as a separate service: **DT1** local processes, then **DT2** Docker, then **DT3** AWS. The coordinator keeps a simulated clock, so every mode must produce byte-identical results to the normal in-process run. Research results always come from the in-process mode.
+- Out of scope: real infrastructure control, a web app (the dashboard is a static HTML file), measuring real cloud emissions, and DRO (extension X1).
 
 ## 3. Datasets
 
-Raw and processed data are never committed. Download links and checksums will go in `data/README.md`. The full link list is in [docs/helpfullinks.txt](docs/helpfullinks.txt).
+Raw and processed data are never committed. Download links and checksums will go in `data/README.md`. The full link list is in [docs/helpfullinks.md](docs/helpfullinks.md).
 
 | Dataset | Use | Source | Licence / terms |
 |---|---|---|---|
@@ -74,6 +75,9 @@ Stack: pandas, numpy, PyYAML and matplotlib. Optional: plotly, via `uv sync --ex
 | `flipwise run --config configs/base.yaml --policy decision_flip` | One run → `results/<run_id>/` |
 | `flipwise compare` / `sweep` / `report` | All policies on identical inputs; parameter grids; rebuild tables from saved logs |
 | `flipwise dashboard --runs results/compare_<hash>` | Write a static, offline `dashboard.html` from saved CSVs |
+| `flipwise dc-serve --dc-id 0 --port 8101` | Run one datacentre as an HTTP service (deployment track) |
+| `bash scripts/local_cluster.sh --config configs/base.yaml --policy decision_flip` | DT1: start three local datacentre services, run with `--mode remote`, stop them on exit |
+| `docker compose up --build --abort-on-container-exit` | DT2: the same run in four containers |
 
 ## 5. Repository layout
 
@@ -82,20 +86,24 @@ Current:
 ```text
 flipwise/
 ├── README.md
+├── CLAUDE.md               # instructions for Claude Code
 └── docs/
-    ├── prd.md              # authoritative spec (v0.3)
-    ├── explanation.md      # plain-language explanation (to be updated to match PRD v0.3)
-    └── helpfullinks.txt    # dataset, paper and tool links (to become helpfullinks.md)
+    ├── prd.md              # authoritative spec (v0.4)
+    ├── explanation.md      # plain-language explanation (matches PRD v0.4)
+    ├── helpfullinks.md     # dataset, paper and tool links
+    └── helpfullinks.txt    # original plain-text version of the links
 ```
 
 Target (PRD §13.1):
 
 ```text
 ├── pyproject.toml, uv.lock, LICENSE, .gitignore
+├── Dockerfile, docker-compose.yml           # deployment track DT2
 ├── configs/          base.yaml, energy.yaml, policies.yaml, sweeps/*.yaml
-├── scripts/          download and checksum scripts
+├── scripts/          download/checksum scripts, local_cluster.sh (DT1), aws/ (DT3)
 ├── src/flipwise/     cli, config, models, ingest, carbon, energy, estimates,
-│                     simulator, planner, policies, metrics, reporting, dashboard
+│                     simulator, datacentre, dcservice, planner, policies,
+│                     metrics, reporting, dashboard
 ├── tests/            fixtures/toy/ (6 jobs, 3 DCs, hand-checked expected.yaml) + test_*.py
 ├── data/             README.md; raw/ and processed/ are git-ignored; manifests/
 └── results/          git-ignored; run outputs and dashboard.html
@@ -105,11 +113,13 @@ Target (PRD §13.1):
 
 The PRD defines nine build phases (§18). The EL reviews map onto them as follows (§18.1).
 
-| EL phase | Build phases | Status |
-|---|---|---|
-| 1. Pitch | — | ✅ Done |
-| **2. Partial results** | 1–6, plus a minimal part of 7 | ⏳ **Current** |
-| 3. Full results and paper (final) | Rest of 5 and 7, then 8–9 | Not started |
+| EL phase | Build phases | Deployment track | Status |
+|---|---|---|---|
+| 1. Pitch | — | — | ✅ Done |
+| **2. Partial results** | 1–6, plus a minimal part of 7 | DT1 local split | ⏳ **Current** |
+| 3. Full results and paper (final) | Rest of 5 and 7, then 8–9 | DT2 Docker, then DT3 AWS | Not started |
+
+The deployment track runs in parallel, owned by one team member, and never blocks the research phases.
 
 ### EL Phase 2: partial results
 
@@ -121,7 +131,7 @@ Work on a small slice: **one validation week** of the Alibaba trace (dev samplin
 |---|---|---|---|
 | 1 | Setup and audit | Repo, `pyproject.toml`, `uv.lock`, ruff, pytest; download v2020; clone the archive at a fixed commit | Checksums match; a script reproduces the PRD §6.1 audit numbers |
 | 2 | Canonical data | `ingest alibaba`, `ingest carbon`, manifests, `validate` | Processed CSVs plus ingest/coverage reports; B2 answered (archive coverage, NESO terms) |
-| 3 | Deterministic core | `models`, `simulator` (events, dispatch, job states), toy fixture, `fcfs` | Toy FCFS output equals `expected.yaml` |
+| 3 | Deterministic core | `models`, `simulator` (events, job states), `datacentre` (queue, dispatch) behind a `DatacentreClient` interface, toy fixture, `fcfs` | Toy FCFS output equals `expected.yaml` |
 | 4 | Energy and place-once | `energy`, `carbon` views, `planner` (candidates, feasibility, scoring), `place_once` | Toy emissions exact; static-factor test passes |
 | 5 | Baselines (partial) | `estimates` (runtime quantiles, wait profiles), `periodic(T)`, `fixed_savings(g)`, rescue, throttling | Baselines run on the toy scenario |
 | 6 | Decision-flip | Lower-bound screen, noise margin, interval fallbacks | Toy flip / no-flip / small-gain cases pass; P1 holds |
@@ -134,8 +144,17 @@ Policies in Phase 2: `fcfs`, `place_once`, `periodic(T)`, `fixed_savings(g)`, `d
 2. At θ = 0, decision-flip makes **identical decisions** to fixed-savings with fewer `stage2_calls` (P1, R-TRIG-2). This is the core claim.
 3. One comparison table for the validation week: kgCO2, deadline-miss rate and re-score count per policy.
 4. A `dashboard.html` with the timeline, Pareto and results-table tabs. The θ-sweep tab may show "no data".
+5. **DT1 local split:** the toy scenario run through three local datacentre services (`scripts/local_cluster.sh`), with output hashes equal to the in-process run. If DT1 is late, items 1–4 are presented without it.
 
 kgCO2 stays labelled **relative** until power parameters are cited (blocker B3).
+
+#### Deployment track DT1: local split
+
+| What gets built | Exit criterion |
+|---|---|
+| `dcservice.py` (stdlib HTTP service and client), `flipwise dc-serve`, `flipwise run --mode remote`, `scripts/local_cluster.sh` (starts services on ports 8101–8103, waits for `/health`, runs, cleans up on exit or Ctrl-C) | Toy run through three services is byte-identical to in-process for every Phase 2 policy; killing a service aborts the run cleanly |
+
+The service skeleton and script can start now against the API in PRD §13.5. The equivalence test needs build phase 3.
 
 ### EL Phase 3: full results and paper (final)
 
@@ -145,10 +164,12 @@ kgCO2 stays labelled **relative** until power parameters are cited (blocker B3).
 | 7 (rest) | `compare`, `sweep`, `report`, paired bootstrap statistics, full plots and manifests |
 | 8 | Real-trace evaluation: fit residual and runtime quantiles; validation sweeps (`g_rel`, θ, ε, T); freeze thresholds; run the test set **once**; sensitivity sweeps (load, carbon spread, forecast-error and interval scaling, deadline slack, energy multipliers); ablations A0–A6 |
 | 9 | Analysis and packaging: report figures, limitations, a reproducibility README (a clean clone reproduces the summary tables from raw downloads) |
+| DT2 Docker | One image, `docker-compose.yml` with three datacentre containers and a coordinator; `docker compose up` from a clean clone reproduces the in-process toy and dev-replicate outputs |
+| DT3 AWS | The DT2 image on three small EC2 instances (default `eu-west-2`); same outputs as in-process; latency and cost reported; budget alert first and `teardown.sh` after every session. Starts only after the main test results exist and the AWS account question (O8) is settled |
 
 Data split: runtime fit on trace days 0–20 · residual fit on carbon data from 13 Mar – 30 Jun 2023 · validation on trace days 21–41 with Jul–Aug 2023 · test on trace days 42–69 with Sep 2023 – Jan 2024. That gives 12 validation and 16 test replicates per policy.
 
-**Phase 3 deliverables:** final test results with bootstrap intervals, the **worse-regime table** (every setting where a simpler baseline beats decision-flip), the full dashboard including the θ sweep, the reproducibility package, and the paper/report. B3 must be resolved before any absolute kgCO2 is reported.
+**Phase 3 deliverables:** final test results with bootstrap intervals, the **worse-regime table** (every setting where a simpler baseline beats decision-flip), the full dashboard including the θ sweep, the reproducibility package, the Docker setup, an AWS run matching the in-process output, and the paper/report. B3 must be resolved before any absolute kgCO2 is reported.
 
 Optional, only after the main results exist: X1 (Global–Local DRO planner) and X9 (live Streamlit viewer).
 
@@ -169,11 +190,12 @@ Optional, only after the main results exist: X1 (Global–Local DRO planner) and
 | B2 | Archive coverage per region (Mar 2023 – Jan 2024) and NESO redistribution terms | Build phase 2 |
 | B3 | Cited power values: MISC GPU, CPU per core, utilisation factor `f` | Before absolute kgCO2 (build phase 8) |
 | O1 | Which emissions table the principal meant (DESNZ 2026 is the working candidate) | Report |
-| O7 | Check that the name Flipwise / `flipwise` is free on GitHub and PyPI | Before creating the repo |
+| O7 | Check that the name `flipwise` is free on PyPI | Before publishing the package |
+| O8 | AWS account and spending limit for DT3 (credits, free tier, or a member's account) | Before DT3 |
 
 ## 8. References
 
-- **Docs:** [PRD](docs/prd.md) · [Plain-language explanation](docs/explanation.md) · [Links](docs/helpfullinks.txt)
+- **Docs:** [PRD](docs/prd.md) · [Plain-language explanation](docs/explanation.md) · [Links](docs/helpfullinks.md)
 
 Key references (full list in PRD §19):
 

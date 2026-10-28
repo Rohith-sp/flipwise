@@ -4,8 +4,9 @@
 **Programme context:** Experiential Learning, V Semester, Academic Year 2026–27  
 **SDG theme:** SDG 9 — Industry, Innovation and Infrastructure  
 **Document purpose:** Explain the project, its motivation, research direction, data, proposed simulation, evaluation plan, current decisions, and unresolved questions in one place.  
-**Status:** Working explanation based on the submitted EL report, the team's subsequent discussion, and the draft implementation PRD.  
-**Last updated:** 24 October 2026
+**Project name:** Flipwise (Python package and CLI `flipwise`): it re-evaluates decision flips wisely  
+**Status:** Working explanation based on the submitted EL report, the team's subsequent discussion, and the implementation PRD (`prd.md`). Updated to match PRD v0.4. Where the two disagree, the PRD is authoritative.  
+**Last updated:** 28 October 2026
 
 ---
 
@@ -216,6 +217,8 @@ A reproducible research simulator and evaluation pipeline with these major capab
 9. Record the actual/simulated environment separately from the information visible to the scheduling policy.
 10. Compare several policies under common workloads, scenarios, random seeds, and accounting assumptions.
 11. Export run configurations, raw metrics, aggregated tables, figures, and logs so results can be reproduced.
+12. Generate a static, self-contained `dashboard.html` from saved results (no server needed).
+13. Run the same simulation with each virtual datacentre as a separate service, first as local processes, then in Docker, then on AWS, with results identical to the normal run (the **deployment track**, Section 8.3).
 
 ### 7.2 Non-goals for the first working version
 
@@ -226,7 +229,8 @@ A reproducible research simulator and evaluation pipeline with these major capab
 - Assuming that a public workload trace contains exact job-level power consumption, job deadlines, or every requested resource field.
 - Building a complex forecasting model before a clean data pipeline and baseline simulator exist.
 - Implementing the entire original Global–Local DRO architecture before the core trigger can be evaluated.
-- Adding a web dashboard before the simulator, experiments, and data accounting are correct. A dashboard is optional, not a research requirement.
+- Adding a live web dashboard before the simulator, experiments, and data accounting are correct. The static `dashboard.html` is in scope; a live viewer (Streamlit) is optional extension X9.
+- Treating the deployment track as a real cloud scheduler. Its datacentre services hold simulated queues and never run real jobs, and running them on AWS does not measure AWS's energy or emissions.
 
 ### 7.3 MVP versus extensions
 
@@ -342,6 +346,29 @@ Decides whether a pending placement should be re-evaluated. The decision-flip tr
 #### K. Metrics and experiment runner
 
 Collects per-job and per-run measurements, runs the same scenarios across policies, saves seeds/configurations, aggregates results, and creates reproducible tables and figures.
+
+### 8.3 Deployment track: datacentres as separate services
+
+The research runs keep everything in one Python process because that is fast and exactly reproducible. The **deployment track** (PRD §13.5) shows that the same scheduler also works when each virtual datacentre is a separate service reached over a network, as it would be across real sites.
+
+**Who does what.**
+
+- **Coordinator** (`flipwise run --mode remote`): the event loop, the simulated clock, the policy, the planner and the evaluator. It decides everything.
+- **Datacentre service** (`flipwise dc-serve`, one per datacentre): holds that site's capacity, queue and running jobs, and starts queued jobs when there is room. It answers seven small JSON-over-HTTP requests (`/health`, `/reset`, `/enqueue`, `/remove`, `/dispatch`, `/complete`, `/state`).
+
+**The rule that keeps it honest: simulated time, not real time.** The services never look at the wall clock. Every request carries the simulated time, and the coordinator sends requests one at a time in event order. If the services ran in real time, a one-week slice would take a week, and network delays would reorder events so that runs could not be repeated or compared fairly. With a simulated clock, the outputs (`jobs.csv`, `decisions.csv`, `events.log`) must be **byte-identical** to the in-process run. Any difference is a bug.
+
+**Three stages, each built on the previous one.**
+
+| Stage | What it means | When |
+|---|---|---|
+| **DT1 Local split** | Three service processes on one laptop (ports 8101–8103), started and stopped by `scripts/local_cluster.sh` | EL Phase 2, in parallel with the research work |
+| **DT2 Docker** | The same four programs in four containers via `docker compose up`, so any machine gets an identical environment | EL Phase 3 |
+| **DT3 AWS** | The Docker image on three small EC2 instances (default London region, `eu-west-2`), with a budget alert and a teardown script | EL Phase 3, after the main results exist |
+
+AWS regions only host the services; the carbon signal still comes from the NESO data. A datacentre labelled "London" uses London carbon data whether its service runs on a laptop or in Stockholm. The deployment track adds engineering realism and a measured network overhead. It does not change, or produce, research results.
+
+The simulator must be designed for this from the start: datacentre state and dispatch live in their own module behind a `DatacentreClient` interface, with an in-process and an HTTP implementation.
 
 ---
 
@@ -497,7 +524,7 @@ Official repository: <https://github.com/alibaba/clusterdata>
 
 Alibaba publishes multiple production-cluster trace releases. The repository currently lists several GPU trace releases, including v2020, v2023, v2025, and v2026, as well as other cluster and serving traces. The exact release must be chosen after reviewing the schema, licence/access terms, file size, and suitability for the simulation.
 
-The working PRD recommends starting with a manageable, fully understood trace. The v2020 GPU trace is a plausible first candidate because the repository describes it as covering over 6,500 GPUs on around 1,800 machines over roughly two months, for AI/ML workloads. The v2026 GPU release is much larger and is described as a six-month anonymised trace covering up to 155,410 GPUs across 37,707 GPU servers, with tables for workload mix, job/model types, priorities, resource requests and utilisation, inventory/topology, network traffic, and execution-time analysis. It may be useful for larger validation but has additional data-processing cost. **The team has not yet confirmed which release will be the primary dataset.**
+The working PRD recommends starting with a manageable, fully understood trace. The v2020 GPU trace is a plausible first candidate because the repository describes it as covering over 6,500 GPUs on around 1,800 machines over roughly two months, for AI/ML workloads. The v2026 GPU release is much larger and is described as a six-month anonymised trace covering up to 155,410 GPUs across 37,707 GPU servers, with tables for workload mix, job/model types, priorities, resource requests and utilisation, inventory/topology, network traffic, and execution-time analysis. It may be useful for larger validation but has additional data-processing cost. **Decision (PRD v0.2, D5): v2020 is the MVP dataset.** It was downloaded, checksum-verified and audited (PRD §6.1); v2026 is extension X6.
 
 #### Fields to audit
 
@@ -634,7 +661,7 @@ The workload trace may provide resource requests and utilisation without exact j
 - a power curve that depends on utilisation, when the necessary source data or defensible assumptions exist;
 - a simplified constant-average-power-per-resource model for the MVP, followed by low/base/high sensitivity analyses.
 
-The PRD does not yet select the final formula or power coefficients. The team must choose and document them. **Do not invent a “standard” wattage and present it as measured fact.** Each coefficient needs a source or a clearly labelled scenario assumption.
+The PRD fixes the formula (PRD §7.1: allocated power from GPU and CPU requests × actual runtime × truth intensity per half-hour slot). Power coefficients are only partly sourced: NVIDIA datasheet values for V100 (300 W), P100 (250 W) and T4 (70 W) are cited, while older GPUs, CPU per-core power and the utilisation factor remain open (blocker B3). Until B3 is closed, results are reported as relative. **Do not invent a “standard” wattage and present it as measured fact.** Each coefficient needs a source or a clearly labelled scenario assumption.
 
 ### 12.3 Facility power and PUE
 
@@ -726,7 +753,7 @@ Reconsider when a prediction changes or its error exceeds a configured threshold
 
 Reconsider only when the estimated emissions savings of an alternative exceed a fixed threshold or percentage. This tests whether a simple benefit gate can achieve similar performance without examining whether candidate rankings could flip under uncertainty.
 
-A “CATS-style savings-gate baseline” should not be confused with implementing or reproducing the whole CATS simulator. Verify the relevant prior-work policy before describing it as a faithful paper baseline.
+A “CATS-style savings-gate baseline” should not be confused with implementing or reproducing the whole CATS simulator. The PRD therefore names this baseline the **fixed-savings gate** (`fixed_savings(g)`) and claims no CATS equivalence (PRD §5, D8).
 
 ### 14.6 Decision-flip-triggered re-evaluation (proposed policy)
 
@@ -866,154 +893,82 @@ The only intended difference should be the policy/trigger/optimizer being tested
 
 ---
 
-## 17. Recommended implementation structure
+## 17. Implementation structure
 
-The core research logic should live in ordinary source modules, not be scattered across exploratory notebooks.
+The core research logic lives in ordinary source modules, not in exploratory notebooks. The PRD fixes one small package (PRD §13.1, decision D14):
 
 ```text
-project/
-├── README.md
-├── explanation.md
-├── PRD.md
-├── pyproject.toml or requirements.txt
-├── configs/
-│   ├── base.yaml
-│   ├── virtual_datacentres.yaml
-│   ├── energy_model.yaml
-│   ├── uncertainty.yaml
-│   ├── policies.yaml
-│   └── experiments/
-├── data/
-│   ├── raw/                 # often ignored by git; source data downloaded separately
-│   ├── interim/
-│   ├── processed/
-│   └── manifests/
-├── scripts/
-│   ├── download_or_check_data.py
-│   ├── audit_workload_trace.py
-│   ├── audit_carbon_data.py
-│   ├── prepare_workloads.py
-│   └── run_experiments.py
-├── src/
-│   └── carbon_scheduler/
-│       ├── schemas.py        # Job, Datacenter, Placement, Event
-│       ├── data/             # trace and carbon adapters
-│       ├── simulator/        # event queue and system state
-│       ├── energy_model/     # power, energy, and emissions calculations
-│       ├── uncertainty/       # intervals, calibration, residual models
-│       ├── candidate_generation/
-│       ├── feasibility/
-│       ├── objectives/
-│       ├── planners/         # place-once, deterministic, future DRO
-│       ├── triggers/         # periodic, error, savings, decision-flip
-│       ├── policies/
-│       ├── metrics/
-│       ├── experiments/
-│       └── reporting/
-├── tests/
-│   ├── unit/
-│   ├── integration/
-│   └── scenarios/
-├── outputs/
-│   ├── runs/
-│   ├── tables/
-│   ├── figures/
-│   └── reports/
-└── notebooks/                # exploration only; core logic stays in src/
+flipwise/
+├── pyproject.toml, uv.lock, README.md, CLAUDE.md, LICENSE, .gitignore
+├── Dockerfile, docker-compose.yml       # deployment track DT2
+├── docs/            prd.md, explanation.md, helpfullinks.md
+├── configs/         base.yaml, energy.yaml, policies.yaml, sweeps/*.yaml
+├── scripts/         download/checksum scripts, local_cluster.sh (DT1), aws/ (DT3)
+├── src/flipwise/
+│   ├── cli.py, config.py, models.py
+│   ├── ingest.py          # Alibaba and NESO-archive adapters, manifests
+│   ├── carbon.py          # forecasts by vintage, truth, residual quantiles
+│   ├── energy.py          # power, energy, emissions
+│   ├── estimates.py       # runtime quantiles, queue-wait profiles
+│   ├── simulator.py       # event loop, simulated clock, SchedulerView
+│   ├── datacentre.py      # one site's capacity, queue and dispatch
+│   ├── dcservice.py       # the same datacentre as an HTTP service (DT1–DT3)
+│   ├── planner.py         # candidates, feasibility, scoring, lower bound
+│   ├── policies.py        # the seven policies
+│   ├── metrics.py, reporting.py, dashboard.py
+├── tests/           fixtures/toy/ + one test file per module
+├── data/            README.md; raw/ and processed/ are git-ignored
+└── results/         git-ignored run outputs and dashboard.html
 ```
 
-This is a suggested layout, not a mandatory design. The important point is to separate data preparation, simulation mechanics, energy accounting, uncertainty, planning, trigger policy, metrics, and experiment orchestration.
+Data preparation, simulation mechanics, energy accounting, uncertainty, planning, triggers, metrics and experiment orchestration stay in separate modules so each can be tested alone.
 
-### 17.1 Suggested technical stack
+### 17.1 Technical stack (decided in the PRD)
 
-- **Language:** Python.
-- **Data processing:** pandas or Polars, plus NumPy. Choose one primary dataframe library for the main pipeline.
-- **Simulation engine:** SimPy or a small deterministic event-queue implementation. Choose the simpler option that handles event ordering correctly.
-- **Configuration:** YAML or TOML with validation.
-- **Testing:** pytest.
-- **Storage:** Parquet for large processed tables where useful; CSV/JSON for inspectable results and smaller outputs.
-- **Optimisation:** begin with deterministic candidate scoring; introduce an LP/MILP/robust optimisation solver only when the mathematical problem requires it.
-- **Plots and analysis:** Matplotlib and documented analysis scripts.
-- **Reproducibility:** pinned dependencies, configuration files, random seeds, data manifests, and saved per-run outputs.
-
-A dashboard is not required for the MVP.
+- **Language and environment:** Python 3.12, managed with `uv` (lockfile committed).
+- **Data processing:** pandas and NumPy (decision D4; no Polars).
+- **Simulation engine:** a small custom `heapq` event queue (decision D3; SimPy cannot cleanly cancel future events, which re-placement needs).
+- **Configuration:** YAML (PyYAML), validated in `config.py`.
+- **Storage:** CSV for processed data and results; JSON manifests. Parquet only if CSV becomes a measured bottleneck.
+- **Plots:** Matplotlib; Plotly optional for an interactive `dashboard.html`.
+- **Testing and linting:** pytest and ruff.
+- **Optimisation:** deterministic candidate scoring only. LP/MILP/robust solvers are needed only for the DRO extension (X1).
+- **Deployment track:** stdlib `http.server` and `urllib` for the services (no web framework), Bash for the local cluster script, Docker Compose for DT2, and AWS EC2 + ECR for DT3.
+- **Reproducibility:** pinned dependencies, configuration files, seeds, data manifests and saved per-run outputs.
 
 ---
 
-## 18. Suggested implementation phases
+## 18. Implementation phases
 
-### Phase 0 — Freeze the research scope
+The PRD roadmap (PRD §18) has nine build phases plus a parallel deployment track. No phase starts before the previous one's exit criterion is met.
 
-- Agree that the first central contribution is decision-flip-triggered re-evaluation, unless the mentor/principal explicitly requires Global–Local DRO as the main focus.
-- Choose the primary baseline set and define all metrics.
-- Write the candidate score and feasibility rules in plain language before coding.
+| Phase | Build | Exit criterion |
+|---|---|---|
+| 1. Setup and audit | Repo, `uv`, ruff, pytest; download the v2020 trace; clone the forecast archive at a fixed commit | Checksums match; audit numbers reproduced by a script |
+| 2. Canonical data | `ingest alibaba`, `ingest carbon`, manifests, `validate` | Clean job and carbon CSVs with coverage reports; archive coverage and NESO terms checked (B2) |
+| 3. Deterministic core | Job and datacentre models, event loop, queues and dispatch behind `DatacentreClient`, toy scenario, FCFS | Toy FCFS output equals the hand-computed `expected.yaml` |
+| 4. Energy and place-once | Emissions model, carbon views, planner (candidates, feasibility, scores), place-once | Toy emissions exactly right; constant-carbon test passes |
+| 5. Baselines | Runtime and wait estimates, periodic, pred_error, fixed-savings, rescue, throttling | All baselines run on the toy scenario |
+| 6. Decision-flip | Lower-bound screen, noise margin, interval fallbacks | Flip / no-flip / small-gain toy cases pass; θ = 0 decisions equal fixed-savings |
+| 7. Experiment runner | `compare`, `sweep`, `report`, metrics, plots, manifests | A comparison on toy and one dev replicate produces `summary.csv` and figures |
+| 8. Real-trace evaluation | Fit estimators, tune thresholds on validation data, freeze them, run the test set once, sweeps and ablations | Frozen configs committed; test results and worse-regime table produced |
+| 9. Analysis and package | Report figures, limitations, reproducibility README, EL report updated to match what was built | A new machine reproduces the summary tables from raw downloads |
 
-**Exit condition:** the team can explain the algorithm and baseline differences without relying on vague terms like “optimise better.”
+**Deployment track** (Section 8.3), owned by one team member, never blocking the phases above:
 
-### Phase 1 — Audit the data
+| Stage | Build | Exit criterion |
+|---|---|---|
+| DT1. Local split | Datacentre HTTP service, `flipwise dc-serve`, `--mode remote`, `scripts/local_cluster.sh` | Toy run through three local services is byte-identical to the in-process run; killing a service aborts the run cleanly |
+| DT2. Docker | `Dockerfile`, `docker-compose.yml` with three datacentre containers and a coordinator | `docker compose up` from a clean clone reproduces the in-process toy and dev-replicate outputs |
+| DT3. AWS | Image in ECR, three small EC2 instances, budget alert, launch and teardown scripts | Same outputs on AWS; network latency and cost reported; no resources left running |
 
-- Inspect the available Alibaba trace releases and their schemas.
-- Choose one primary trace version.
-- Check whether deadlines, start/end times, runtime, resource requests, and power information exist.
-- Download/inspect NESO carbon data and check how forecasts and actuals are represented.
-- Record file access requirements, units, timestamps, licences, and synthetic-field gaps.
+### 18.1 How the phases map to the EL reviews
 
-**Exit condition:** a data-quality report and a written record of which fields are sourced, derived, and synthetic.
-
-### Phase 2 — Build a tiny reference simulator
-
-- Implement job and datacentre schemas.
-- Implement the event queue, capacity accounting, start/completion handling, and deadline semantics.
-- Add one simple planner and one place-once baseline.
-- Add a fixed small test scenario with a predictable answer.
-
-**Exit condition:** tests demonstrate no capacity overbooking, correct event ordering, no running-job migration, and correct energy calculation on small cases.
-
-### Phase 3 — Add energy/carbon accounting
-
-- Implement an explicit power model.
-- Connect energy intervals with carbon-intensity intervals.
-- Write unit tests for units and conversions.
-- Run low/base/high power sensitivity configurations.
-
-**Exit condition:** every reported emissions number can be traced to energy, carbon intensity, units, and the chosen accounting boundary.
-
-### Phase 4 — Implement baseline policies
-
-- FCFS/simple non-carbon-aware policy;
-- carbon-aware place-once;
-- periodic re-planning;
-- at least one fixed-threshold policy.
-
-**Exit condition:** every baseline obeys the same feasibility rules and emits comparable logs/metrics.
-
-### Phase 5 — Implement the decision-flip trigger
-
-- Add uncertainty intervals or an explicitly synthetic initial uncertainty model.
-- Implement the decision-flip test and net-benefit gate.
-- Log trigger reasons and outcomes.
-- Add edge-case tests: no alternative feasible, tie, small gain, current placement infeasible, and repeated updates.
-
-**Exit condition:** on hand-designed scenarios, the trigger fires only when its documented rule says it should.
-
-### Phase 6 — Integrate real trace replay
-
-- Run a manageable workload sample.
-- Map jobs and resources to virtual datacentres.
-- Use carbon-intensity time series with a documented regional profile mapping.
-- Confirm that the scheduler is not exposed to future actual data.
-
-**Exit condition:** full trace replay works reproducibly and creates per-run metrics.
-
-### Phase 7 — Evaluate, analyse, and revise
-
-- Run the core comparisons.
-- Sweep important parameters and seeds.
-- Run ablations.
-- Inspect failures, anomalous results, and sensitivity to assumptions.
-- Add DRO/robust-planner extensions only if they are justified and feasible.
-
-**Exit condition:** the team can explain both positive and negative results, their limitations, and whether the original hypothesis was supported.
+| EL review | Work | Must show |
+|---|---|---|
+| **Phase 1: pitch** | Done | — |
+| **Phase 2: partial results** | Build phases 1–6 on one validation week (10 % job sample), the minimum of phase 7 (`run`, metrics, dashboard), and DT1. Policies: FCFS, place-once, periodic, fixed-savings, decision-flip | (1) Hand-checked toy emissions. (2) At θ = 0, decision-flip makes identical decisions to fixed-savings with fewer planner calls. (3) One results table for the week. (4) `dashboard.html`. (5) DT1: toy scenario through three local services with identical outputs (presented without it if late). |
+| **Phase 3: full results and paper** | Rest of phases 5 and 7 (pred_error, perfect-information reference, `compare`/`sweep`/`report`), phases 8–9, DT2, then DT3 once the main results exist. DRO (X1) and a live viewer (X9) only after that | Final test results, worse-regime table, full dashboard, reproducibility package, Docker run, AWS run matching the in-process output, paper/report |
 
 ---
 
@@ -1170,19 +1125,23 @@ A result from one trace, one region mapping, one power model, or one seed may no
 
 The following choices are not fully settled and should be recorded in configuration files and team notes before they affect final experiments.
 
-- [ ] Confirm the exact emissions table intended by the principal.
-- [ ] Confirm that Pinedo's sixth edition is the book the principal meant.
-- [ ] Choose the primary Alibaba trace release after schema, size, and access audit.
-- [ ] Verify whether historical NESO regional forecast vintages can be paired with realised values.
-- [ ] Decide how virtual datacentres map to carbon-intensity profiles.
-- [ ] Choose the base power model and whether PUE is included.
-- [ ] Decide whether deadlines are source-derived, synthetic, or mixed.
-- [ ] Define the objective function, hard constraints, tie-breaking, and candidate windows.
-- [ ] Define the decision-flip criterion and whether it uses interval overlap or a probability-of-flip estimate.
-- [ ] Define net-benefit units and whether optimisation energy is modelled or overhead is measured separately.
-- [ ] Fix the baseline policies and specify them precisely.
-- [ ] Define chronological calibration/test splits and random seeds.
-- [ ] Decide whether full Global–Local DRO is a later extension or a core contribution.
+Ticked items were decided in the PRD (decision IDs in brackets); unticked items are still open (PRD §17.3).
+
+- [ ] Confirm the exact emissions table intended by the principal (O1; DESNZ 2026 is the working candidate).
+- [ ] Confirm that Pinedo's sixth edition is the book the principal meant (O2).
+- [x] Choose the primary Alibaba trace release: v2020 (D5).
+- [x] Pair historical NESO regional forecast vintages with realised values: the forecast-tracking archive gives vintages, and the final published regional forecast is used as truth (D7). Coverage per region still to be checked (B2).
+- [x] Map virtual datacentres to carbon profiles: North Scotland, London and South Wales by default (region IDs to verify, O3).
+- [ ] Choose the base power values (B3; partly sourced). PUE is fixed at 1.0, IT energy only.
+- [x] Deadlines: synthetic, derived only from the frozen runtime estimate (D15).
+- [x] Objective, hard constraints, tie-breaking and candidate windows (PRD §9).
+- [x] Decision-flip criterion: lower-bound screen plus a noise-adjusted gate using interval widths (PRD §10). Monte Carlo flip probability is extension X8.
+- [x] Overhead is reported as wall-clock time and call counts, not converted to carbon (D13).
+- [x] Baseline policies fixed (PRD §11).
+- [x] Chronological calibration, validation and test splits (PRD §14.3).
+- [ ] Confirm with the mentor that decision-flip is the core contribution and full Global–Local DRO is extension X1 (B1).
+- [x] Deployment track: local split, then Docker, then AWS, with results identical to the in-process run (PRD v0.4, §13.5).
+- [ ] AWS account and spending limit for the AWS stage (O8).
 - [ ] Update the submitted report's methodology after implementation choices are finalised.
 
 ---
@@ -1204,6 +1163,8 @@ A credible completed project should include:
 11. A limitations section that clearly separates measured trace facts from simulated or synthetic assumptions.
 12. A literature-supported description of the research gap, without overclaiming novelty.
 13. An updated EL report that describes what was actually implemented—not merely what was originally proposed.
+14. A static `dashboard.html` summarising the results.
+15. A deployment demonstration: the same simulation with the datacentres as separate services, locally, in Docker and on AWS, with outputs identical to the in-process run and the network overhead reported.
 
 ---
 
@@ -1220,6 +1181,11 @@ A credible completed project should include:
 - **Placement churn:** repeated changes to pending-job assignments.
 - **Pending workload:** a submitted job that has not yet begun execution and may still be considered for reassignment in this project.
 - **Virtual datacentre:** a configured simulation entity, not a claim that an actual facility exists in the mapped region.
+- **Coordinator:** in the deployment track, the program that runs the event loop, simulated clock, policy and planner, and sends requests to the datacentre services.
+- **Datacentre service:** in the deployment track, one virtual datacentre running as its own process or container, holding its queue and running jobs.
+- **Simulated clock:** the simulation's own notion of time, advanced event by event. It is never the computer's wall clock, which is what keeps runs reproducible.
+- **Docker / Docker Compose:** tools that package the program into an identical container image and start several containers together.
+- **AWS (EC2, ECR):** Amazon's cloud. EC2 provides virtual machines; ECR stores container images.
 
 ---
 
