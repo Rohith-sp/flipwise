@@ -1,0 +1,37 @@
+{
+  "created_utc": "2026-10-28T19:03:49Z",
+  "python": "3.12.14",
+  "pandas": "3.1.0",
+  "numpy": "2.5.4",
+  "source": "https://github.com/alibaba/clusterdata/tree/master/cluster-trace-gpu-v2020",
+  "archives_sha256": {
+    "pai_job_table.tar.gz": "5aad7f7caac501136d14ed6a48e40546f825d7b0617a3a4f337e2348fe0a6cb0",
+    "pai_task_table.tar.gz": "cd1d6dc3215d2a8607ccf6b6dd952b5db776df86926c73259fea7c1499ac40e5",
+    "pai_machine_spec.tar.gz": "cc0d38a4045af1b1af8179de8b1b54b1ddd995e6160d6d061a6b1000f1276c2d"
+  },
+  "raw_rows": {
+    "jobs": 1055501,
+    "tasks": 1261050
+  },
+  "filters": {
+    "status": "Terminated",
+    "missing_gpu_policy": "zero"
+  },
+  "dropped_by_reason": {
+    "not_terminated": 323146,
+    "missing_job_id": 0,
+    "missing_arrival": 0,
+    "no_tasks": 0,
+    "invalid_task_times": 0,
+    "nonpositive_runtime": 0,
+    "missing_cpu": 0,
+    "missing_mem": 0,
+    "missing_gpu": 0
+  },
+  "output": {
+    "path": "jobs_v2020.csv",
+    "rows": 732355,
+    "sha256": "61c5d74a7b25ee1429169e707ac925dc195d98ade4ee5af72268dbfee95970ab",
+    "gpu_assumed_zero": 145096
+  }
+}

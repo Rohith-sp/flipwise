@@ -1,0 +1,68 @@
+# Hand-computed outcomes for the toy scenario (PRD §6.9). Times are offsets from T0 (s).
+#
+# Setup: 3 DCs x 4 GPUs. dc0 = region 1 (North Scotland), dc1 = 13 (London), dc2 = 7 (S Wales).
+# Forecast v0 (capture 0):     r1 = 100, r13 = 300, r7 = 200 for all 12 slots.
+# Forecast v1 (capture 3600):  r1 rises to 400 from slot 2 (t = 3600) on.
+# Truth:                       r1 = 100,100 then 400; r13 = 300; r7 = 200.
+# Power: 1 kW per GPU, 0.01 kW per core.  P(J3) = 4 + 4*0.01 = 4.04 kW, others = gpu_req kW.
+# Runtimes equal every quantile, so all wait estimates are exact and w_lo = w_mid = w_hi.
+#
+# Jobs (gpu, runtime, deadline): J1 (2, 3600, 21600), J2 (2, 3600, 21600), J3 (4, 1800, 21600),
+# J4 (1, 1800, 21600) and J5 (1, 3600, 2000) arrive at 900, J6 (3, 1800, 21600) at 1800.
+# Same-time arrivals are ordered by (arrival, deadline, job_id), so J5 arrives before J4.
+#
+# --- fcfs: release at slot0 = ceil_to_slot(t) at the DC with the earliest projected start ---
+# t=0    J1: all DCs start at 0; tie -> dc0.  J2: dc0 still fits (2+2) -> dc0.
+#        J3 needs 4 GPUs: dc0 busy until 3600, dc1 free at 0 -> dc1.  All released and
+#        started at 0.  J1, J2 end 3600; J3 ends 1800.
+# t=900  J5: slot0 = 1800; dc0 full until 3600; dc1 free at 1800 (J3 ends); dc2 at 1800;
+#        tie -> dc1.  J4: dc1 at 1800 (J5 placed there uses 1 GPU) -> dc1.
+# t=1800 J3 completes first (priority 2).  J6 (3 GPUs): dc0 3600; dc1 has J5+J4 = 2 GPUs in
+#        [1800,3600) so 3600; dc2 1800 -> dc2.  Releases: J5, J4 start at 1800 on dc1, J6 at
+#        1800 on dc2.
+# kgCO2 = P * hours * truth / 1000:
+#   J1 2*1*100 = 0.2   J2 0.2   J3 4.04*0.5*300 = 0.606   J4 1*0.5*300 = 0.15
+#   J5 1*1*300 = 0.3 (ends 5400 > deadline 2000: missed)   J6 3*0.5*200 = 0.3   total 1.756
+#
+# --- place_once: best forecast score among feasible candidates (forecast v0 at arrival) ---
+# t=0    J1, J2 -> dc0 (100 g/kWh) release 0.  J3 -> dc0 too: it cannot start before 3600
+#        there, but 4.04*0.5*100 = 0.202 kg beats dc2 (0.404) and dc1 (0.606).  Equal-score
+#        releases 0/1800/3600 all start at 3600; earliest release wins -> 0.  J3 queues behind
+#        J1, J2.
+# t=900  J5: latest_release < slot0 and 1800 + 3600 > 2000 -> every candidate is
+#        DEADLINE_RISK.  Fallback (earliest s + w_hi + r_q90): dc1 and dc2 both finish at
+#        5400; tie -> dc1, deadline_risk = 1.
+#        J4: dc0 start 5400 (J1, J2 to 3600, then J3 to 5400), score 0.05 < dc2 0.1 -> dc0,
+#        release 1800 (equal score, same start, earliest release).
+# t=1800 J6: dc0 profile has J3 [3600,5400) at 4 GPUs and J4 [5400,7200) at 1 GPU, so J6
+#        (3 GPUs) starts at 5400 with score 0.15 < dc2 0.3 -> dc0, release 1800.
+#        Releases: J5 starts at 1800 on dc1; J4 and J6 join the dc0 queue [J3, J4, J6].
+# t=3600 v1 arrives (place_once ignores it).  J1 completes: 2 GPUs free -> first-fit skips
+#        J3 (4) and starts J4 (1).  J2 completes: 3 free -> J3 still blocked, J6 (3) starts.
+# t=5400 J5, J4, J6 complete; J3 finally starts at 5400 and ends at 7200.
+# kgCO2 against truth (dc0 is 400 from t = 3600):
+#   J1 0.2   J2 0.2   J3 4.04*0.5*400 = 0.808   J4 1*0.5*400 = 0.2   J5 0.3
+#   J6 3*0.5*400 = 0.6   total 2.308
+# place_once emits more than fcfs here because the forecast at arrival was wrong about
+# North Scotland: this is the gap that re-planning on forecast updates is meant to close.
+
+policies:
+  fcfs:
+    total_kg_co2: 1.756
+    jobs:
+      J1: {dc_id: 0, release: 0,    start: 0,    end: 3600, kg_co2: 0.2,   deadline_missed: 0}
+      J2: {dc_id: 0, release: 0,    start: 0,    end: 3600, kg_co2: 0.2,   deadline_missed: 0}
+      J3: {dc_id: 1, release: 0,    start: 0,    end: 1800, kg_co2: 0.606, deadline_missed: 0}
+      J4: {dc_id: 1, release: 1800, start: 1800, end: 3600, kg_co2: 0.15,  deadline_missed: 0}
+      J5: {dc_id: 1, release: 1800, start: 1800, end: 5400, kg_co2: 0.3,   deadline_missed: 1}
+      J6: {dc_id: 2, release: 1800, start: 1800, end: 3600, kg_co2: 0.3,   deadline_missed: 0}
+  place_once:
+    total_kg_co2: 2.308
+    jobs:
+      J1: {dc_id: 0, release: 0,    start: 0,    end: 3600, kg_co2: 0.2,   deadline_missed: 0}
+      J2: {dc_id: 0, release: 0,    start: 0,    end: 3600, kg_co2: 0.2,   deadline_missed: 0}
+      J3: {dc_id: 0, release: 0,    start: 5400, end: 7200, kg_co2: 0.808, deadline_missed: 0}
+      J4: {dc_id: 0, release: 1800, start: 3600, end: 5400, kg_co2: 0.2,   deadline_missed: 0}
+      J5: {dc_id: 1, release: 1800, start: 1800, end: 5400, kg_co2: 0.3,   deadline_missed: 1,
+           deadline_risk: 1}
+      J6: {dc_id: 0, release: 1800, start: 3600, end: 5400, kg_co2: 0.6,   deadline_missed: 0}
