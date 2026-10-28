@@ -37,7 +37,7 @@ uv run ruff check . && uv run ruff format --check .
 uv run pytest -q                          # all tests; toy scenario only, no real data needed
 uv run flipwise smoke                     # toy scenario, all policies, compare to expected.yaml
 uv run flipwise run --config configs/base.yaml --policy decision_flip
-bash scripts/local_cluster.sh --config configs/base.yaml --policy fcfs   # DT1, Git Bash
+bash scripts/local_cluster.sh --config configs/base.yaml --policy fcfs   # DT1 (Linux bash / Git Bash)
 docker compose up --build --abort-on-container-exit                      # DT2
 ```
 
@@ -63,7 +63,10 @@ Before finishing any code change: ruff check, ruff format, and the relevant test
 
 ## Environment
 
-- Windows 11; the path contains spaces (`C:\5TH SEM EL\flipwise`), so always quote paths. Shell scripts target Git Bash; prefer `uv run` over activating the venv.
+- Supported on **Linux** (bash) and **Windows 11** (PowerShell or Git Bash). Every documented command must have a form for both; `uv run ...` commands are identical on both.
+- Paths may contain spaces (Linux: `~/Desktop/Carbon aware scheduer/flipwise`, Windows: `C:\5TH SEM EL\flipwise`), so always quote paths. Use `pathlib` in Python, never hard-coded separators.
+- Shell scripts (`*.sh`) target bash (native on Linux, Git Bash on Windows); a PowerShell twin (`*.ps1`) exists where Windows users need one without Git Bash. Prefer `uv run` over activating the venv.
+- Raw data layout: `data/raw/v2020/` (Alibaba archives + extracted CSVs), `data/raw/carbon-intensity-forecast-tracking/` (archive clone), `data/raw/carbon/` (NESO portal cross-check CSV). See `data/README.md`.
 - Never commit `data/raw/`, `data/processed/`, `results/`, `.venv`, `.env`, `*.pem` or AWS credentials. DT3 scripts read credentials from the AWS CLI profile only. Run `scripts/aws/teardown.sh` after any AWS session.
 - Commit or push only when asked.
 

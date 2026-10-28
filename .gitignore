@@ -1,0 +1,21 @@
+# Data and outputs are never committed (CLAUDE.md, PRD §13.1)
+data/raw/
+data/processed/
+results/
+data/*.csv
+data/*.tar.gz
+
+# Python / tooling
+.venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.ruff_cache/
+*.egg-info/
+dist/
+build/
+
+# Secrets
+.env
+*.pem
+.aws/

@@ -41,27 +41,44 @@ Raw and processed data are never committed. Download links and checksums will go
 | CEA CO2 Baseline Database | Emission factor per fuel; grid-average factor for the static check | [cea.nic.in](https://cea.nic.in/) | Government of India publication |
 | NESO forecast-vintage archive, Mar 2023 – Feb 2024 | Real forecast-error paths, applied to Indian truth (PRD §6.2.4) | [nmpowell/carbon-intensity-forecast-tracking](https://github.com/nmpowell/carbon-intensity-forecast-tracking) | MIT (archive); NESO terms still to check (blocker B2) |
 
-```bash
-# Alibaba v2020 (MVP needs only these three archives)
-curl -O https://aliopentrace.oss-cn-beijing.aliyuncs.com/v2020GPUTraces/pai_job_table.tar.gz
-curl -O https://aliopentrace.oss-cn-beijing.aliyuncs.com/v2020GPUTraces/pai_task_table.tar.gz
-curl -O https://aliopentrace.oss-cn-beijing.aliyuncs.com/v2020GPUTraces/pai_machine_spec.tar.gz
+One script downloads and extracts the three Alibaba archives, clones the NESO forecast archive (the source of forecast-error paths) at the pinned commit and runs the audit. Details, checksums and the pinned archive commit are in [data/README.md](data/README.md).
 
-# Forecast-vintage archive, source of forecast-error paths (pin the commit and record it in the manifest)
-git clone https://github.com/nmpowell/carbon-intensity-forecast-tracking
+```bash
+# Linux / macOS / Git Bash
+bash scripts/download_data.sh
+```
+
+```powershell
+# Windows PowerShell
+powershell -ExecutionPolicy Bypass -File scripts\download_data.ps1
 ```
 
 `flipwise ingest` checks the archives' SHA-256 against the upstream README and exits if they don't match.
 
 ## 4. Setup
 
-Requires Python 3.12 and [uv](https://docs.astral.sh/uv/).
+Requires [uv](https://docs.astral.sh/uv/); uv installs Python 3.12 itself (`.python-version`), so the system Python version does not matter. Works on Linux and Windows 11.
+
+Install uv once:
+
+```bash
+# Linux / macOS
+curl -LsSf https://astral.sh/uv/install.sh | sh
+```
+
+```powershell
+# Windows PowerShell
+powershell -ExecutionPolicy ByPass -c "irm https://astral.sh/uv/install.ps1 | iex"
+```
+
+Then, identical on both (quote the path if it contains spaces):
 
 ```bash
 uv sync                                    # create .venv from uv.lock
-uv run ruff check . && uv run ruff format --check .
+uv run ruff check . && uv run ruff format --check .   # PowerShell 5: use ';' instead of '&&'
 uv run pytest -q                           # unit, invariant and toy-scenario tests
-uv run flipwise smoke                       # toy scenario, all policies, < 5 s
+uv run flipwise smoke                      # toy scenario, all policies, < 5 s
+uv run python scripts/audit_v2020.py       # reproduce the PRD §6.1 trace audit
 ```
 
 Stack: pandas, numpy, PyYAML and matplotlib. Optional: plotly, via `uv sync --extra dashboard`. Dev tools: pytest and ruff. The event engine is a custom `heapq` loop, not SimPy (see PRD §5, D3).

@@ -178,7 +178,7 @@ Audit results (Terminated jobs unless stated):
 |---|---|
 | Job status counts (all jobs) | Terminated 732,355; Failed 256,555; Running 62,928; Waiting 3,663 |
 | Span of job `start_time` | 68.9 days |
-| Tasks per job | 1–4 (mean 1.19) |
+| Tasks per job | 1–4 (mean 1.21 over Terminated jobs; 1.19 over all jobs) |
 | Runtime (max task end − min task start), s | p10 43; p50 663; p90 12,848; p99 68,884; max 626,384 |
 | GPU request per job (Σ `inst_num × plan_gpu / 100`) | p50 1.0; p90 5; p99 30; max 400; fractional values occur (e.g. 0.1) |
 | Jobs with missing `plan_gpu` (and `gpu_type`) in some task | 145,096 (19.8 %) |
