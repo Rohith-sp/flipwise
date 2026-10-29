@@ -5,7 +5,7 @@
 **SDG theme:** SDG 9 — Industry, Innovation and Infrastructure  
 **Document purpose:** Explain the project, its motivation, research direction, data, proposed simulation, evaluation plan, current decisions, and unresolved questions in one place.  
 **Project name:** Flipwise (Python package and CLI `flipwise`): it re-evaluates decision flips wisely  
-**Status:** Working explanation based on the submitted EL report, the team's subsequent discussion, and the implementation PRD (`prd.md`). Updated to match PRD v0.5 (India-only simulated world). Where the two disagree, the PRD is authoritative.  
+**Status:** Working explanation based on the submitted EL report, the team's subsequent discussion, and the implementation PRD (`prd.md`). Updated to match PRD v0.6 (India-only simulated world; Docker moved into Phase 2 as a stretch). Where the two disagree, the PRD is authoritative.  
 **Last updated:** 28 October 2026
 
 ---
@@ -363,12 +363,23 @@ The research runs keep everything in one Python process because that is fast and
 | Stage | What it means | When |
 |---|---|---|
 | **DT1 Local split** | Three service processes on one laptop (ports 8101–8103), started and stopped by `scripts/local_cluster.sh` | EL Phase 2, in parallel with the research work |
-| **DT2 Docker** | The same four programs in four containers via `docker compose up`, so any machine gets an identical environment | EL Phase 3 |
+| **DT2 Docker** | The same four programs in four containers via `docker compose up`, so any machine gets an identical environment | EL Phase 2 as a stretch once DT1 works; finished in Phase 3 |
 | **DT3 AWS** | The Docker image on three small EC2 instances (default Mumbai region, `ap-south-1`), with a budget alert and a teardown script | EL Phase 3, after the main results exist |
 
 AWS regions only host the services; the carbon signal still comes from the Indian carbon data. A datacentre labelled "Chennai" uses Southern-grid carbon data whether its service runs on a laptop or in Mumbai. The deployment track adds engineering realism and a measured network overhead. It does not change, or produce, research results.
 
 The simulator must be designed for this from the start: datacentre state and dispatch live in their own module behind a `DatacentreClient` interface, with an in-process and an HTTP implementation.
+
+**Build order for the local split** (PRD §18), chosen so that nothing is throwaway:
+
+1. Repository skeleton.
+2. `datacentre.py` as plain Python (no networking), with tests. The simulator uses the same module.
+3. The `DatacentreClient` interface and its in-process implementation.
+4. The HTTP service and its client, tested to behave identically to the in-process version.
+5. A **scripted driver**: a fixed sequence of toy events run in-process and through three local services. Identical outputs give a working local-split demo before the simulator exists.
+6. `scripts/local_cluster.sh` to start and stop the three services.
+7. The real simulator in remote mode, once it exists.
+8. Docker, as a stretch goal in Phase 2.
 
 ---
 
@@ -976,8 +987,8 @@ The PRD roadmap (PRD §18) has nine build phases plus a parallel deployment trac
 | EL review | Work | Must show |
 |---|---|---|
 | **Phase 1: pitch** | Done | — |
-| **Phase 2: partial results** | Build phases 1–6 on one validation week (10 % job sample), the minimum of phase 7 (`run`, metrics, dashboard), and DT1. Policies: FCFS, place-once, periodic, fixed-savings, decision-flip | (1) Hand-checked toy emissions. (2) At θ = 0, decision-flip makes identical decisions to fixed-savings with fewer planner calls. (3) One results table for the week. (4) `dashboard.html`. (5) DT1: toy scenario through three local services with identical outputs (presented without it if late). |
-| **Phase 3: full results and paper** | Rest of phases 5 and 7 (pred_error, perfect-information reference, `compare`/`sweep`/`report`), phases 8–9, DT2, then DT3 once the main results exist. DRO (X1) and a live viewer (X9) only after that | Final test results, worse-regime table, full dashboard, reproducibility package, Docker run, AWS run matching the in-process output, paper/report |
+| **Phase 2: partial results** | Build phases 1–6 on one validation week (10 % job sample), the minimum of phase 7 (`run`, metrics, dashboard), DT1, and DT2 as a stretch. Policies: FCFS, place-once, periodic, fixed-savings, decision-flip | (1) Hand-checked toy emissions. (2) At θ = 0, decision-flip makes identical decisions to fixed-savings with fewer planner calls. (3) One results table for the week. (4) `dashboard.html`. (5) DT1: three local services with identical outputs, first with the scripted driver, then the toy simulation. (6) Stretch: the same via Docker. Items 5–6 never hold back 1–4. |
+| **Phase 3: full results and paper** | Rest of phases 5 and 7 (pred_error, perfect-information reference, `compare`/`sweep`/`report`), phases 8–9, finishing DT2, then DT3 once the main results exist. DRO (X1) and a live viewer (X9) only after that | Final test results, worse-regime table, full dashboard, reproducibility package, Docker run, AWS run matching the in-process output, paper/report |
 
 ---
 

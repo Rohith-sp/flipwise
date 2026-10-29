@@ -6,7 +6,7 @@ An offline research simulator that tests *when* a carbon-aware scheduler should 
 
 RV College of Engineering · Experiential Learning, V Semester, AY 2026–27 · UN SDG 9 (Industry, Innovation and Infrastructure)
 
-> Status: **EL Phase 1 (pitch) complete. Now on EL Phase 2 (partial results).** Build phases 1, 3 and 4 are implemented and phase 2 is partly done (Indian truth waits for generation data, blocker B4). The spec is [docs/prd.md](docs/prd.md) (v0.5.1).
+> Status: **EL Phase 1 (pitch) complete. Now on EL Phase 2 (partial results).** Build phases 1, 3 and 4 are implemented and phase 2 is partly done (Indian truth waits for generation data, blocker B4). The spec is [docs/prd.md](docs/prd.md) (v0.6).
 
 ---
 
@@ -137,8 +137,8 @@ The PRD defines nine build phases (§18). The EL reviews map onto them as follow
 | EL phase | Build phases | Deployment track | Status |
 |---|---|---|---|
 | 1. Pitch | — | — | ✅ Done |
-| **2. Partial results** | 1–6, plus a minimal part of 7 | DT1 local split | ⏳ **Current** |
-| 3. Full results and paper (final) | Rest of 5 and 7, then 8–9 | DT2 Docker, then DT3 AWS | Not started |
+| **2. Partial results** | 1–6, plus a minimal part of 7 | DT1 local split, then DT2 Docker (stretch) | ⏳ **Current** |
+| 3. Full results and paper (final) | Rest of 5 and 7, then 8–9 | Finish DT2, then DT3 AWS | Not started |
 
 The deployment track runs in parallel, owned by one team member, and never blocks the research phases.
 
@@ -165,17 +165,31 @@ Policies in Phase 2: `fcfs`, `place_once`, `periodic(T)`, `fixed_savings(g)`, `d
 2. At θ = 0, decision-flip makes **identical decisions** to fixed-savings with fewer `stage2_calls` (P1, R-TRIG-2). This is the core claim.
 3. One comparison table for the validation week: kgCO2, deadline-miss rate and re-score count per policy.
 4. A `dashboard.html` with the timeline, Pareto and results-table tabs. The θ-sweep tab may show "no data".
-5. **DT1 local split:** the toy scenario run through three local datacentre services (`scripts/local_cluster.sh`), with output hashes equal to the in-process run. If DT1 is late, items 1–4 are presented without it.
+5. **DT1 local split:** three local datacentre services (`scripts/local_cluster.sh`) giving outputs identical to the in-process run, first with a scripted driver, then with the toy simulation.
+6. **Stretch, DT2 Docker:** the same run via `docker compose up`.
+
+Items 5–6 never hold back items 1–4.
 
 kgCO2 stays labelled **relative** until power parameters are cited (blocker B3).
 
-#### Deployment track DT1: local split
+#### Deployment track in Phase 2: local split, then Docker
 
-| What gets built | Exit criterion |
-|---|---|
-| `dcservice.py` (stdlib HTTP service and client), `flipwise dc-serve`, `flipwise run --mode remote`, `scripts/local_cluster.sh` (starts services on ports 8101–8103, waits for `/health`, runs, cleans up on exit or Ctrl-C) | Toy run through three services is byte-identical to in-process for every Phase 2 policy; killing a service aborts the run cleanly |
+Build order (PRD §18), chosen so nothing is throwaway:
 
-The service skeleton and script can start now against the API in PRD §13.5. The equivalence test needs build phase 3.
+| # | Step | Done when |
+|---|---|---|
+| 1 | Repo skeleton: `pyproject.toml`, uv, ruff, pytest, `src/flipwise/`, CLI stub | `uv run pytest` passes |
+| 2 | `datacentre.py`, plain Python: capacity, FIFO queue, `enqueue/remove/dispatch/complete/state` (also used by the simulator) | Unit tests: no overbooking, `MigrationError`, no backwards time |
+| 3 | `DatacentreClient` interface + `InProcDatacentre` | Simulator code can only reach datacentres through it |
+| 4 | `dcservice.py`: the 7 endpoints of PRD §13.5 on stdlib `http.server`, plus `HttpDatacentre` | Same call sequence gives identical responses through both clients (R-DEP-7) |
+| 5 | Scripted driver: a fixed toy sequence of events run in-process and through 3 local services | Identical outputs: **first local-split demo**, before the simulator exists |
+| 6 | `scripts/local_cluster.sh`: start services on `127.0.0.1:8101–8103`, wait for `/health`, run, clean up (with a `taskkill` fallback on Windows) | Killing a service aborts the run; no orphan processes |
+| 7 | `flipwise run --mode remote` with the real simulator (needs build phase 3) | Toy simulation identical in-process and remote (R-DEP-1) |
+| 8 | **Stretch, DT2:** `Dockerfile` + `docker-compose.yml` (`dc-delhi`, `dc-mumbai`, `dc-chennai`, `coordinator`) | `docker compose up` from a clean clone gives the same outputs |
+
+**Status (29 Oct):** steps 1–3 are done (build phases 1 and 3: `datacentre.py` with `DatacentreClient` and `InProcDatacentre`, and the simulator talks to datacentres only through the interface). **Next: step 4, `dcservice.py`.**
+
+PRD §13.5 is the contract, so steps 4–8 can run in parallel with the simulator work. Steps 2–3 are shared. Docker needs Docker Desktop with WSL2 on every laptop.
 
 ### EL Phase 3: full results and paper (final)
 
@@ -185,7 +199,7 @@ The service skeleton and script can start now against the API in PRD §13.5. The
 | 7 (rest) | `compare`, `sweep`, `report`, paired bootstrap statistics, full plots and manifests |
 | 8 | Real-trace evaluation: fit residual and runtime quantiles; validation sweeps (`g_rel`, θ, ε, T); freeze thresholds; run the test set **once**; sensitivity sweeps (load, carbon spread, forecast-error and interval scaling, deadline slack, energy multipliers); ablations A0–A6 |
 | 9 | Analysis and packaging: report figures, limitations, a reproducibility README (a clean clone reproduces the summary tables from raw downloads) |
-| DT2 Docker | One image, `docker-compose.yml` with three datacentre containers and a coordinator; `docker compose up` from a clean clone reproduces the in-process toy and dev-replicate outputs |
+| DT2 Docker (finish) | If not done in Phase 2: one image, `docker-compose.yml` with three datacentre containers and a coordinator. By Phase 3 it must also reproduce the dev-replicate outputs |
 | DT3 AWS | The DT2 image on three small EC2 instances (default `ap-south-1`, Mumbai); same outputs as in-process; latency and cost reported; budget alert first and `teardown.sh` after every session. Starts only after the main test results exist and the AWS account question (O8) is settled |
 
 Data split: runtime fit on trace days 0–20 · residual fit on carbon data from 13 Mar – 30 Jun 2023 · validation on trace days 21–41 with Jul–Aug 2023 · test on trace days 42–69 with Sep 2023 – Jan 2024. That gives 12 validation and 16 test replicates per policy.

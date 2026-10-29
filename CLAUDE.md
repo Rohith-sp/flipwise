@@ -4,7 +4,7 @@ Flipwise: an offline, deterministic discrete-event simulator that tests **when**
 
 ## Source of truth
 
-- `docs/prd.md` (v0.5) is authoritative: formulas, data rules, requirement IDs (R-*), decisions (D*), open items (B*/O*). If code and PRD disagree, flag it; don't silently pick one.
+- `docs/prd.md` (v0.6) is authoritative: formulas, data rules, requirement IDs (R-*), decisions (D*), open items (B*/O*). If code and PRD disagree, flag it; don't silently pick one.
 - `docs/explanation.md` is the plain-language version. `README.md` is the short overview and roadmap.
 - A design change means editing the PRD (and its changelog) in the same change.
 
@@ -72,4 +72,4 @@ Before finishing any code change: ruff check, ruff format, and the relevant test
 
 ## Current status
 
-EL Phase 1 done; Phase 2 in progress. Build phases 1, 3 and 4 done; phase 2 partly done (`ingest alibaba`, `ingest carbon` → GB error paths, `build-forecasts`, `validate`; `ingest india` waits for B4 data). Toy `smoke` matches `expected.yaml`. Next: phase 5 (`estimates`, real-trace scenario builder, `periodic`, `fixed_savings`, rescue, throttling), then 6 (decision-flip) and DT1. Open blockers: B1 (mentor confirms scope), B2 (NESO redistribution terms; coverage answered), B3 (power values; until resolved, report kgCO2 as relative), B4 (Indian generation-by-fuel data). Update this section when a phase completes.
+EL Phase 1 done; Phase 2 in progress. Build phases 1, 3 and 4 done; phase 2 partly done (`ingest alibaba`, `ingest carbon` → GB error paths, `build-forecasts`, `validate`; `ingest india` waits for B4 data). Toy `smoke` matches `expected.yaml`. Next: phase 5 (`estimates`, real-trace scenario builder, `periodic`, `fixed_savings`, rescue, throttling), then 6 (decision-flip). In parallel, DT1 local split and DT2 Docker (stretch) in the order of PRD §18 "Deployment track": `DatacentreClient` → `dcservice.py` → scripted driver → `local_cluster.sh` → `--mode remote` → Docker (`datacentre.py` already exists). Open blockers: B1 (mentor confirms scope), B2 (NESO redistribution terms; coverage answered), B3 (power values; until resolved, report kgCO2 as relative), B4 (Indian generation-by-fuel data). Update this section when a phase completes.

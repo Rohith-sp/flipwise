@@ -4,8 +4,8 @@
 
 | Field | Value |
 |---|---|
-| Document status | Implementation-ready draft. Supersedes v0.5 (29 Oct 2026), v0.4 (28 Oct 2026), v0.3 (24 Oct 2026), v0.2 (24 Oct 2026) and v0.1 (23 Oct 2026). Changes are listed in the changelog below. |
-| Version | 0.5.1 |
+| Document status | Implementation-ready draft. Supersedes v0.5.1 and v0.5 (29 Oct 2026), v0.4 (28 Oct 2026), v0.3 (24 Oct 2026), v0.2 (24 Oct 2026) and v0.1 (23 Oct 2026). Changes are listed in the changelog below. |
+| Version | 0.6 |
 | Revised | 29 October 2026 |
 | Project name | **Flipwise** (Python package and CLI `flipwise`) [Decision]: it re-evaluates decision flips wisely. Renamed from FlipSim on 25 Oct 2026. Availability of the name on GitHub and PyPI is [Open], not yet checked. |
 | Project context | RV College of Engineering, Experiential Learning, V Semester, AY 2026–27; SDG 9 |
@@ -17,6 +17,7 @@
 
 | Version | Date | Changes |
 |---|---|---|
+| 0.6 | 29 Oct 2026 | Moved deployment stage DT2 (Docker) into EL Phase 2 as a stretch goal after DT1, and set the DT1 build order: `datacentre.py` first, then the `DatacentreClient` interface, the HTTP service, a scripted driver that tests local split before the simulator exists, then `local_cluster.sh` (18). Added R-DEP-7 (client conformance). |
 | 0.5.1 | 29 Oct 2026 | Build phases 1, 3 and 4 implemented; phase 2 partly (Indian truth waits for B4). Findings from the real data: tasks-per-job mean is 1.21 over Terminated jobs (1.19 was over all jobs) (6.1). `A_gb` rule made precise: the value at the last capture whose window covers the slot; `pt24h` windows reach back exactly 24 h, so a literal `capture ≥ k + 24 h` almost never matches, while the measured lag of the last covering capture is p50 24 h, p05 23 h (6.2.3). GB truth matches the NESO Data Portal regional series in 98–99 % of slots (MAE < 0.6 g/kWh). GB source-region means: London 156, South Wales 276, East Midlands 257 g/kWh; IDs 13, 7, 9 confirmed in the archive (O3). Archive coverage reported (B2): no forward captures on 2023-03-20, 2023-03-31 – 04-02, 2023-10-21 and from 2024-02-04, so the run tail to 8 Feb 2024 cannot be met for carbon starts after about 19 Jan 2024. `capture_coverage.csv` keeps `window_first_utc, window_last_utc, source` (forward captures only); `gb_truth.csv` added for `s_r` (6.7). Carbon Mondays fixed in `configs/base.yaml` to avoid the gaps (14.2). Layout gains `errors`, `trace`, `scenario`, `validate`, `smoke` modules and `configs/energy.yaml` holds CEA factors (13.1). Linux supported alongside Windows 11. |
 | 0.5 | 29 Oct 2026 | Made the simulated world India-only (D17–D20): three virtual datacentres in Delhi NCR, Mumbai and Chennai on the Northern, Western and Southern regional grids; Indian truth intensity from regional generation by fuel × CEA emission factors (6.2.2); Indian forecast vintages built from the NESO archive's real error paths, scaled to Indian levels (6.2.4); trace time aligned to IST (6.3). The CEA CO2 Baseline Database replaces DESNZ as the established emissions reference (7.5). Carbon-spread sweep redefined (14.4); new requirements R-ING-5/6; new blocker B4 (Indian generation data); DT3 default region `ap-south-1` (Mumbai). Novelty point (c) narrowed accordingly (19). |
 | 0.4 | 28 Oct 2026 | Added the deployment track (13.5): the three virtual datacentres run as separate services in three stages, DT1 local processes started by a shell script, DT2 Docker Compose, DT3 AWS. The coordinator keeps the simulated clock, so every mode must produce byte-identical `jobs.csv` and `decisions.csv` to the in-process run (R-DEP-1…6). Updated the non-goals (4.3), stack (12.1), layout (13.1), CLI (13.4), risks and open questions (17), roadmap and EL mapping (18). Recorded the GitHub repository. Added `CLAUDE.md` to the initial repository contents. |
@@ -1038,6 +1039,7 @@ For each metric and policy pair, report the mean over replicates, the paired dif
 | R-DEP-3 | MUST (DT1) | Service failure aborts the run cleanly | Kill one `dc-serve` mid-run: coordinator exits non-zero with `DeploymentError`, no `metrics.json` written, `local_cluster.sh` leaves no orphan process | R-DEP-1 |
 | R-DEP-4 | MUST (DT1) | Service enforces simulation rules | Unit tests: `/remove` of a running job → 409 `MIGRATION`; `t` lower than last seen → 409 `TIME_BACKWARDS`; `/state` contains no `end_s` or runtime field | — |
 | R-DEP-5 | SHOULD | Deployment overhead is measured, not assumed | `overhead` block in `manifest.json` for DT1, DT2, DT3 on the same replicate; reported in README | R-DEP-1 |
+| R-DEP-7 | MUST (DT1) | `InProcDatacentre` and `HttpDatacentre` behave identically | One scripted call sequence (enqueue, dispatch, remove, complete, state, and each error case) through both clients gives identical responses; runs before the simulator exists | R-DEP-4 |
 | R-DEP-6 | MUST (DT3) | No cloud resources left running | After `teardown.sh`, `aws resourcegroupstaggingapi get-resources --tag-filters Key=project,Values=flipwise` lists no running instance; AWS Budgets alert configured before first launch | — |
 
 ### 15.2 Test layers
@@ -1153,14 +1155,24 @@ Rule: no phase starts before the previous exit criterion is met, except that Pha
 
 Phase 3 must put datacentre state and dispatch in `datacentre.py` behind the `DatacentreClient` interface (13.5) from the start, even though only `InProcDatacentre` exists then. That one design choice is what lets the deployment track reuse the simulator without rewriting it.
 
-#### Deployment track [Decision, v0.4]
+#### Deployment track [Decision, v0.4; Phase 2 scope v0.6]
 
-Runs in parallel with the roadmap above, owned by one team member. It never blocks phases 1–9.
+Runs in parallel with the roadmap above. It never blocks phases 1–9.
+
+Build order for DT1 [Decision, v0.6], chosen so that no step is throwaway:
+
+1. Repository skeleton (roadmap phase 1): `pyproject.toml`, `uv.lock`, ruff, pytest, `src/flipwise/`, CLI stub.
+2. `datacentre.py` as plain Python, no networking: capacity, FIFO queue, running set, `enqueue/remove/dispatch/complete/state`, with unit tests for overbooking (R-SIM-3), `MigrationError` and backwards time (R-DEP-4). This is also roadmap phase 3 work: the simulator uses the same module.
+3. The `DatacentreClient` interface and `InProcDatacentre`.
+4. `dcservice.py`: the 13.5 endpoints on stdlib `http.server`, plus `HttpDatacentre`; conformance test R-DEP-7.
+5. A scripted driver (`tests/fixtures/toy/dc_script.yaml` + a test) that replays a fixed sequence of arrivals, dispatches, removals and completions through three datacentres in-process and through three local services, and compares outputs. This demonstrates the local split before the simulator exists; the simulator later replaces the script without changing the services.
+6. `scripts/local_cluster.sh`: start three services on `127.0.0.1:8101–8103`, wait for `/health`, run, stop on exit or Ctrl-C. On Windows, `uv run` starts a child Python process, so the script also stops services by port (`taskkill` fallback) to leave no orphans (R-DEP-3).
+7. Once the simulator core (roadmap phase 3) exists: `flipwise run --mode remote` and R-DEP-1 on the toy scenario.
 
 | Stage | Implement | Tested by | Starts when | Exit criterion |
 |---|---|---|---|---|
-| DT1. Local split | `dcservice.py` (service + `HttpDatacentre`), `flipwise dc-serve`, `--mode remote`, `scripts/local_cluster.sh` | R-DEP-1 (toy), R-DEP-3, R-DEP-4 | Service skeleton and script may start now against the 13.5 API; the equivalence test needs roadmap phase 3 | Toy run through three local services is byte-identical to in-process for every implemented policy |
-| DT2. Docker | `Dockerfile`, `docker-compose.yml`, `.dockerignore`, healthchecks | R-DEP-1, R-DEP-2 inside Compose | DT1 exit met | `docker compose up` from a clean clone reproduces the in-process toy and dev-replicate outputs |
+| DT1. Local split | Steps 1–7 above: `datacentre.py`, `DatacentreClient`, `dcservice.py`, scripted driver, `flipwise dc-serve`, `--mode remote`, `scripts/local_cluster.sh` | R-DEP-7, R-DEP-4, R-DEP-3, then R-DEP-1 (toy) | Now; step 7 needs roadmap phase 3 | Scripted driver gives identical outputs in-process and through three local services; then the toy simulation does too, for every implemented policy |
+| DT2. Docker | `Dockerfile`, `docker-compose.yml` (`dc-delhi`, `dc-mumbai`, `dc-chennai`, `coordinator`), `.dockerignore`, healthchecks | R-DEP-7 driver and R-DEP-1 inside Compose; R-DEP-2 once a dev replicate exists | DT1 steps 1–6 pass; every team laptop has Docker Desktop with WSL2 | `docker compose up` from a clean clone reproduces the in-process outputs (scripted driver in Phase 2; toy and dev replicate by Phase 3) |
 | DT3. AWS | `scripts/aws/` (push, launch, teardown), budget alert, security groups | R-DEP-1, R-DEP-2, R-DEP-5, R-DEP-6 | DT2 exit met, O8 decided, and the main test results (roadmap phase 8) exist | Same outputs on AWS; latency report; teardown verified |
 
 ### 18.1 Mapping to EL review phases [Decision, v0.3; deployment track added v0.4]
@@ -1169,8 +1181,8 @@ EL Phase 1 (pitch) is complete. Scope must be confirmed with the mentor (B1) bef
 
 | EL phase | Roadmap scope | Must show |
 |---|---|---|
-| **2. Partial results** | Roadmap phases 1–6 on a small slice: one week of the Alibaba trace (one validation slice, dev sampling) and the matching Indian truth and forecast vintages. Policies: `fcfs`, `place_once`, `periodic(T)`, `fixed_savings(g)`, `decision_flip(g, θ)`. `pred_error(ε)` is moved to EL Phase 3. Only the minimum of roadmap phase 7 needed to produce one table and `dashboard.html` (`run`, metrics, `dashboard`). | (1) Toy scenario whose kgCO2 is checked by hand (R-EN-1, toy `expected.yaml`), showing the simulator is correct. (2) At θ = 0, decision-flip makes exactly the same decisions as fixed-savings with fewer `stage2_calls` (P1, R-TRIG-2), the core claim. (3) One comparison table for the validation week: kgCO2, deadline-miss rate and re-score count per policy. (4) `dashboard.html` with the timeline, Pareto and results-table tabs (θ-sweep tab may show "no data"). kgCO2 labelled relative until B3 is resolved. (5) Deployment track **DT1**: the toy scenario run through three local datacentre services, with output hashes equal to the in-process run (R-DEP-1). If DT1 is late, items 1–4 are still presented; DT1 does not hold them back. |
-| **3. Full results and paper** | Remainder of roadmap phase 5 (`pred_error(ε)`, with `pig`), phase 7 (`compare`, `sweep`, `report`), phases 8–9: full validation and test split, threshold freeze, all sweeps and ablations, interval calibration. Deployment track **DT2** (Docker), then **DT3** (AWS) once the main test results exist. Optional extensions X1 (DRO) and X9 (Streamlit viewer) only after the main results exist. | Final test results, worse-regime table, full dashboard including θ sweep, reproducibility package, paper/report. DT2: `docker compose up` reproduces the results. DT3: a live run on AWS matching the in-process output, with its latency and cost reported. |
+| **2. Partial results** | Roadmap phases 1–6 on a small slice: one week of the Alibaba trace (one validation slice, dev sampling) and the matching Indian truth and forecast vintages. Policies: `fcfs`, `place_once`, `periodic(T)`, `fixed_savings(g)`, `decision_flip(g, θ)`. `pred_error(ε)` is moved to EL Phase 3. Only the minimum of roadmap phase 7 needed to produce one table and `dashboard.html` (`run`, metrics, `dashboard`). | (1) Toy scenario whose kgCO2 is checked by hand (R-EN-1, toy `expected.yaml`), showing the simulator is correct. (2) At θ = 0, decision-flip makes exactly the same decisions as fixed-savings with fewer `stage2_calls` (P1, R-TRIG-2), the core claim. (3) One comparison table for the validation week: kgCO2, deadline-miss rate and re-score count per policy. (4) `dashboard.html` with the timeline, Pareto and results-table tabs (θ-sweep tab may show "no data"). kgCO2 labelled relative until B3 is resolved. (5) Deployment track **DT1**: three local datacentre services giving outputs identical to the in-process run, first with the scripted driver (R-DEP-7), then with the toy simulation (R-DEP-1). (6) Stretch: **DT2**, the same run via `docker compose up`. Items 5–6 never hold back items 1–4. |
+| **3. Full results and paper** | Remainder of roadmap phase 5 (`pred_error(ε)`, with `pig`), phase 7 (`compare`, `sweep`, `report`), phases 8–9: full validation and test split, threshold freeze, all sweeps and ablations, interval calibration. Deployment track: finish **DT2** (Docker) if not done in Phase 2, including the dev replicate (R-DEP-2); then **DT3** (AWS) once the main test results exist. Optional extensions X1 (DRO) and X9 (Streamlit viewer) only after the main results exist. | Final test results, worse-regime table, full dashboard including θ sweep, reproducibility package, paper/report. DT2: `docker compose up` reproduces the results. DT3: a live run on AWS matching the in-process output, with its latency and cost reported. |
 
 ---
 
