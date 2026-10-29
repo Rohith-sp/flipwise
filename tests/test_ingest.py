@@ -143,6 +143,48 @@ def test_india_truth_hand_example_r_ing_5():
         india_truth(gen.assign(fuel="peat"), {"coal": 1000.0})
 
 
+def test_construct_india_generation_hand_example():
+    """PRD §6.2.2 option 3: regional daily MWh × national within-day shape of the fuel.
+
+    Day d = 2023-04-01 IST starts at 2023-03-31 18:30 UTC. National solar is 3 MW at 12:00 IST
+    (slot 24) and 1 MW at 12:30 (slot 25), 0 otherwise → shares 0.75 / 0.25, so 1,000 MWh of
+    Southern solar becomes 750 + 250. Thermal is missing on d but flat on d + 1 → d takes the
+    month's typical (flat) shape: 480 MWh coal → 10 MWh per slot. Gas has a national series only
+    in May → d takes the overall typical shape (flat here): 96 MWh → 2 per slot. Hydro has no
+    national series at all → spread evenly and counted. Biomass is always even.
+    """
+    import datetime as dt
+
+    from flipwise.ingest import construct_india_generation
+
+    d = dt.date(2023, 4, 1)
+    start = int(dt.datetime(2023, 3, 31, 18, 30, tzinfo=dt.UTC).timestamp())
+    slots = [start + 1800 * j for j in range(48)]
+    solar = [3.0 if j == 24 else 1.0 if j == 25 else 0.0 for j in range(48)]
+    profile = pd.concat([
+        pd.DataFrame({"slot_utc": slots, "shape": "solar", "mw": solar}),
+        pd.DataFrame({"slot_utc": [s + 86_400 for s in slots], "shape": "thermal", "mw": 2.0}),
+        pd.DataFrame({"slot_utc": [s + 30 * 86_400 for s in slots], "shape": "gas", "mw": 5.0}),
+    ])  # fmt: skip
+    daily = pd.DataFrame([(d, 3, "solar", 1000.0), (d, 3, "coal", 480.0), (d, 3, "gas", 96.0),
+                          (d, 3, "hydro", 96.0), (d, 3, "biomass", 48.0)],
+                         columns=["ist_date", "region_id", "fuel", "mwh_day"])  # fmt: skip
+    gen, counts = construct_india_generation(daily, profile)
+    g = gen.set_index(["fuel", "slot_utc"])["mwh"]
+    assert g[("solar", slots[24])] == pytest.approx(750.0)
+    assert g[("solar", slots[25])] == pytest.approx(250.0)
+    assert g[("solar", slots[0])] == 0.0
+    assert g[("coal", slots[7])] == pytest.approx(10.0)
+    assert g[("gas", slots[11])] == pytest.approx(2.0)
+    assert g[("hydro", slots[40])] == pytest.approx(2.0)
+    assert g[("biomass", slots[3])] == pytest.approx(1.0)
+    assert gen.groupby("fuel")["mwh"].sum().to_dict() == pytest.approx(
+        {"solar": 1000.0, "coal": 480.0, "gas": 96.0, "hydro": 96.0, "biomass": 48.0})  # fmt: skip
+    assert counts == {"days_typical_month": 1, "days_typical_overall": 1, "days_flat_shape": 1}
+    with pytest.raises(ValueError, match="no within-day shape"):
+        construct_india_generation(daily.assign(fuel="peat"), profile)
+
+
 def test_india_forecasts_from_error_paths_r_ing_6():
     """R-ING-6: F = max(0, A + α s_r E); captures (and missing captures) follow the archive.
 

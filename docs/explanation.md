@@ -5,7 +5,7 @@
 **SDG theme:** SDG 9 — Industry, Innovation and Infrastructure  
 **Document purpose:** Explain the project, its motivation, research direction, data, proposed simulation, evaluation plan, current decisions, and unresolved questions in one place.  
 **Project name:** Flipwise (Python package and CLI `flipwise`): it re-evaluates decision flips wisely  
-**Status:** Working explanation based on the submitted EL report, the team's subsequent discussion, and the implementation PRD (`prd.md`). Updated to match PRD v0.6 (India-only simulated world; Docker moved into Phase 2 as a stretch). Where the two disagree, the PRD is authoritative.  
+**Status:** Working explanation based on the submitted EL report, the team's subsequent discussion, and the implementation PRD (`prd.md`). Updated to match PRD v0.7 (India-only simulated world; Indian data from Grid-India; Docker in Phase 2 as a stretch). For the history of decisions, see `project_journey.md`. Where the two disagree, the PRD is authoritative.  
 **Last updated:** 28 October 2026
 
 ---
@@ -600,7 +600,12 @@ These are India's main datacentre hubs; the virtual datacentres are not real fac
 
 #### Truth: what the Indian grid actually emitted
 
-For each region and half-hour, carbon intensity is computed from **generation by fuel** multiplied by **fuel emission factors from the CEA CO2 Baseline Database** (India's official emission-factor source), divided by total generation. Hydro, nuclear, solar and wind count as zero. Power flows between regions are ignored (a production-based figure), which is stated as a limitation. The preferred source of regional generation by fuel is Grid-India; whether it is available at hourly or 15-minute resolution for 2023 is not yet confirmed (blocker B4), and the PRD lists fallbacks.
+For each region and half-hour, carbon intensity is computed from **generation by fuel** multiplied by **fuel emission factors from the CEA CO2 Baseline Database** (India's official emission-factor source), divided by total generation. Hydro, nuclear, solar and wind count as zero. Power flows between regions are ignored (a production-based figure), which is stated as a limitation. **Where the data comes from (PRD v0.7).** India does not publish hourly generation by fuel *per region*, so the series is constructed from two official Grid-India sources:
+
+1. **Daily reports** (Power Supply Position): how much each regional grid generated from each fuel on each day. This is measured.
+2. **National SCADA data** (every 10 seconds, published on Mendeley Data): how each fuel's output moves through the day across India, such as solar peaking at noon and coal ramping in the evening.
+
+Each region's daily total for a fuel is spread over the day following that fuel's national shape. The daily regional mix is therefore real, and the timing within the day is national. Free hourly regional alternatives were checked first: Electricity Maps stopped its free downloads in March 2026, and Energymap is paid. The emission factors come from the CEA database v19.0: coal 978, lignite 1286 and gas 478 gCO2/kWh.
 
 #### Forecasts: why and how they are built
 
@@ -1150,7 +1155,7 @@ Ticked items were decided in the PRD (decision IDs in brackets); unticked items 
 - [ ] Confirm the exact emissions table intended by the principal (O1; the CEA CO2 Baseline Database is the working answer).
 - [ ] Confirm that Pinedo's sixth edition is the book the principal meant (O2).
 - [x] Choose the primary Alibaba trace release: v2020 (D5).
-- [x] Simulated world: India only, with Indian truth from generation by fuel × CEA factors and forecasts from real NESO error paths (D17–D20). Indian generation data source still to be confirmed (B4); archive coverage still to be checked (B2).
+- [x] Simulated world: India only, with Indian truth from generation by fuel × CEA factors and forecasts from real NESO error paths (D17–D20). Indian generation data: Grid-India daily reports × national SCADA shape, CEA v19.0 factors (B4 resolved, PRD v0.7).
 - [x] Map virtual datacentres to carbon profiles: Delhi NCR (Northern), Mumbai (Western), Chennai (Southern).
 - [ ] Choose the base power values (B3; partly sourced). PUE is fixed at 1.0, IT energy only.
 - [x] Deadlines: synthetic, derived only from the frozen runtime estimate (D15).

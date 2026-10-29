@@ -30,8 +30,10 @@
 - **Central Electricity Authority: CO2 Baseline Database for the Indian Power Sector** *(emission factors; also the likely "established table" the principal meant)*
   - [CEA website](https://cea.nic.in/)
   - [User Guide v21.0 (PDF)](https://cea.nic.in/wp-content/uploads/baseline/2025/12/User_Guide_V_21.0.pdf)
-- **Grid-India (NLDC/RLDC) reports** *(preferred source for regional generation by fuel; blocker B4)*
-  - [Grid-India](https://grid-india.in/)
+- **Grid-India NLDC daily Power Supply Position reports** *(used: regional daily generation by fuel; B4 resolved in PRD v0.7)*
+  - [Grid-India](https://grid-india.in/), downloaded by `scripts/download_india.py` through the public file API
+- **Grid-India NLDC SCADA on Mendeley Data** *(used: all-India generation by fuel every 10 s, CC BY 4.0)*
+  - [doi:10.17632/y58jknpgs8.2](https://data.mendeley.com/datasets/y58jknpgs8/2)
 - **Candidate secondary sources** *(licences unchecked)*
   - [Energymap data shop: hourly state-level carbon intensity](https://www.energymap.in/data-shop)
   - [Grid-India hourly demand, solar and wind, Sep 2021 – Jun 2025 (Mendeley)](https://data.mendeley.com/datasets/y58jknpgs8)

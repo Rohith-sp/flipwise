@@ -8,6 +8,8 @@ dependencies = ["pandas>=3.0,<4", "numpy>=2.4,<3", "pyyaml>=6.0", "matplotlib>=3
 
 [project.optional-dependencies]
 dashboard = ["plotly>=6"]
+# Only for scripts/build_india_generation.py (Grid-India .xls/.xlsx reports, PRD §6.2.2)
+india-data = ["openpyxl>=3.1", "xlrd>=2.0"]
 
 [project.scripts]
 flipwise = "flipwise.cli:main"

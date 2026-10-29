@@ -1,0 +1,21 @@
+{
+  "created_utc": "2026-10-29T15:33:47Z",
+  "python": "3.12.10",
+  "pandas": "3.1.0",
+  "numpy": "2.5.4",
+  "generation": "data\\raw\\india\\india_generation.csv",
+  "generation_sha256": "e1f41d6a1773692d3d44517cef25d59d12fe4aea0717525cdc57ade45a2ee7bd",
+  "cea_database_version": "v19.0 (FY 2022-23), User Guide Table 6",
+  "factors_g_per_kwh": {
+    "coal": 978.0,
+    "lignite": 1286.0,
+    "gas": 478.0,
+    "biomass": 0.0,
+    "other": 0.0
+  },
+  "truth_kind": "constructed_psp_scada",
+  "rows": 63936,
+  "outputs_sha256": {
+    "carbon_truth.csv": "85ce86fd7ac70449873deeb3db13256b2e7b811e4e75c3de593952c976756643"
+  }
+}

@@ -1,0 +1,16 @@
+{
+  "psp_days": 333,
+  "psp_unreadable": [
+    "2023-06-10_NLDC_PSP.xls: could not convert string to float: '----------'"
+  ],
+  "psp_days_filled_from_neighbours": [
+    "2023-03-21",
+    "2023-06-10"
+  ],
+  "scada_slots": 40656,
+  "days_typical_month": 0,
+  "days_typical_overall": 780,
+  "days_flat_shape": 0,
+  "rows": 511488,
+  "output": "data/raw/india/india_generation.csv"
+}

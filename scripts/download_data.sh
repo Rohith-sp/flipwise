@@ -15,9 +15,10 @@ ARCHIVE=data/raw/carbon-intensity-forecast-tracking
 COMMIT="${1:-5d38b63cc93285b293a60eac750cb7923be75417}"
 if [ ! -d "$ARCHIVE" ]; then
   # Shallow + sparse: the full history is several GB and large clones tend to drop.
+  # MSYS_NO_PATHCONV: Git Bash on Windows would otherwise rewrite /data/... into C:/Program Files/Git/data/...
   git clone --filter=blob:none --no-checkout --sparse \
     https://github.com/nmpowell/carbon-intensity-forecast-tracking "$ARCHIVE"
-  git -C "$ARCHIVE" sparse-checkout set --no-cone /data/db/2023/ /data/db/2024/ \
+  MSYS_NO_PATHCONV=1 git -C "$ARCHIVE" sparse-checkout set --no-cone /data/db/2023/ /data/db/2024/ \
     /data/db/reference.sqlite /README.md
 fi
 git -C "$ARCHIVE" checkout --quiet "$COMMIT"

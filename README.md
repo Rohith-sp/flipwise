@@ -6,7 +6,7 @@ An offline research simulator that tests *when* a carbon-aware scheduler should 
 
 RV College of Engineering · Experiential Learning, V Semester, AY 2026–27 · UN SDG 9 (Industry, Innovation and Infrastructure)
 
-> Status: **EL Phase 1 (pitch) complete. Now on EL Phase 2 (partial results).** Build phases 1, 3 and 4 are implemented and phase 2 is partly done (Indian truth waits for generation data, blocker B4). The spec is [docs/prd.md](docs/prd.md) (v0.6).
+> Status: **EL Phase 1 (pitch) complete. Now on EL Phase 2 (partial results).** Build phases 1–4 are implemented; the full data pipeline now runs on real Indian grid data from Grid-India (blocker B4 resolved; `flipwise validate` passes). The spec is [docs/prd.md](docs/prd.md) (v0.7). How we got here: [docs/project_journey.md](docs/project_journey.md).
 
 ---
 
@@ -37,7 +37,8 @@ Raw and processed data are never committed. Download links and checksums will go
 | Dataset | Use | Source | Licence / terms |
 |---|---|---|---|
 | Alibaba Cluster Trace GPU v2020 (`pai_job_table`, `pai_task_table`, `pai_machine_spec`) | Job arrivals, runtimes, resource requests | [alibaba/clusterdata](https://github.com/alibaba/clusterdata/tree/master/cluster-trace-gpu-v2020) · [split-file mirror](https://github.com/qzweng/clusterdata-cluster-trace-gpu-v2020-data) | Research/study use; cite Weng et al., NSDI '22 |
-| Indian regional generation by fuel, Mar 2023 – Feb 2024 (≤ 1 h) | Indian carbon truth (PRD §6.2.2) | Grid-India reports first; fallbacks in PRD §6.2.2 | **To confirm (blocker B4)** |
+| Grid-India NLDC daily Power Supply Position reports, 13 Mar 2023 – 8 Feb 2024 | Regional daily generation by fuel (NR, WR, SR, ER) for the Indian truth (PRD §6.2.2) | [Grid-India](https://grid-india.in/) public file API, via `scripts/download_india.py` | Government of India publication |
+| Grid-India NLDC SCADA, all-India generation by fuel every 10 s (Mendeley Data) | Within-day shape of each fuel | [doi:10.17632/y58jknpgs8.2](https://data.mendeley.com/datasets/y58jknpgs8/2) | CC BY 4.0 |
 | CEA CO2 Baseline Database | Emission factor per fuel; grid-average factor for the static check | [cea.nic.in](https://cea.nic.in/) | Government of India publication |
 | NESO forecast-vintage archive, Mar 2023 – Feb 2024 | Real forecast-error paths, applied to Indian truth (PRD §6.2.4) | [nmpowell/carbon-intensity-forecast-tracking](https://github.com/nmpowell/carbon-intensity-forecast-tracking) | MIT (archive); NESO terms still to check (blocker B2) |
 
@@ -151,7 +152,7 @@ Work on a small slice: **one validation week** of the Alibaba trace (dev samplin
 | # | Build phase | What gets built | Exit criterion |
 |---|---|---|---|
 | 1 ✅ | Setup and audit | Repo, `pyproject.toml`, `uv.lock`, ruff, pytest; download v2020; clone the archive at a fixed commit | Checksums match; a script reproduces the PRD §6.1 audit numbers |
-| 2 ⏳ | Canonical data | `ingest alibaba`, `ingest india` (truth), `ingest carbon` (error paths), `build-forecasts`, manifests, `validate` | Processed CSVs plus ingest/coverage reports; B2 and B4 answered |
+| 2 ✅ | Canonical data | `ingest alibaba`, `ingest india` (truth), `ingest carbon` (error paths), `build-forecasts`, manifests, `validate` | Processed CSVs plus ingest/coverage reports; B2 and B4 answered |
 | 3 ✅ | Deterministic core | `models`, `simulator` (events, job states), `datacentre` (queue, dispatch) behind a `DatacentreClient` interface, toy fixture, `fcfs` | Toy FCFS output equals `expected.yaml` |
 | 4 ✅ | Energy and place-once | `energy`, `carbon` views, `planner` (candidates, feasibility, scoring), `place_once` | Toy emissions exact; static-factor test passes |
 | 5 | Baselines (partial) | `estimates` (runtime quantiles, wait profiles), `periodic(T)`, `fixed_savings(g)`, rescue, throttling | Baselines run on the toy scenario |
@@ -223,7 +224,7 @@ Optional, only after the main results exist: X1 (Global–Local DRO planner) and
 |---|---|---|
 | B1 | Mentor confirms decision-flip is the core contribution and DRO is extension X1 | Before Phase 2 work |
 | B2 | Archive coverage for the three GB error-source regions and NESO redistribution terms | Build phase 2 |
-| B4 | Indian regional generation-by-fuel data at ≤ 1 h resolution for Mar 2023 – Feb 2024, its licence, and the CEA database version | Build phase 2 |
+| ~~B4~~ | Resolved (v0.7): Grid-India daily reports × Grid-India SCADA shape; CEA v19.0 factors | — |
 | B3 | Cited power values: MISC GPU, CPU per core, utilisation factor `f` | Before absolute kgCO2 (build phase 8) |
 | O1 | Confirm the principal meant the CEA CO2 Baseline Database | Report |
 | O7 | Check that the name `flipwise` is free on PyPI | Before publishing the package |

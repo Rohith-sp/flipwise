@@ -15,7 +15,8 @@ powershell -ExecutionPolicy Bypass -File scripts\download_data.ps1   # Windows
 | Path | Content | Committed |
 |---|---|---|
 | `raw/v2020/` | Alibaba GPU trace v2020 archives and extracted CSVs | no |
-| `raw/india/` | Indian regional generation by fuel (blocker B4), converted to `region_id,slot_utc,fuel,mwh` with `region_id` 1 NR, 2 WR, 3 SR (4 ER for the variant) | no |
+| `raw/india/` | `grid-india/psp/` daily PSP reports, `mendeley/` SCADA workbooks, and the constructed `india_generation.csv` (`region_id,slot_utc,fuel,mwh`; `region_id` 1 NR, 2 WR, 3 SR, 4 ER) | no |
+| `raw/cea/` | CEA CO2 Baseline Database User Guide v19.0 (emission factors in `configs/energy.yaml`) | no |
 | `raw/carbon-intensity-forecast-tracking/` | Clone of the NESO forecast-vintage archive at the pinned commit. Source of real forecast-error paths only (PRD v0.5 §6.2.3); the simulated world is Indian | no |
 | `raw/carbon/neso_portal_regional_ci.csv` | NESO Data Portal regional carbon intensity (2018-09 to 2026-07). Cross-check for the GB truth `A_gb` that the error paths are measured against | no |
 | `processed/` | Output of `flipwise ingest` | no |
@@ -37,11 +38,14 @@ Manual download: `https://aliopentrace.oss-cn-beijing.aliyuncs.com/v2020GPUTrace
 
 Source: <https://github.com/nmpowell/carbon-intensity-forecast-tracking> (MIT). Pinned commit: `5d38b63cc93285b293a60eac750cb7923be75417` (also recorded in `manifests/carbon_archive.json`). The full history is several GB and large clones tend to drop; the download script does a shallow, sparse clone of only `data/db/2023`, `data/db/2024` and `reference.sqlite` (about 540 MB). To reproduce exactly, pass that commit to the download script (`bash scripts/download_data.sh <commit>` or `-ArchiveCommit <commit>`).
 
-## Indian generation by fuel and CEA factors (blocker B4)
+## Indian generation by fuel and CEA factors (PRD §6.2.2, v0.7)
 
-Not downloaded yet. Candidate sources are listed in PRD §6.2.2 and `docs/helpfullinks.md` (Grid-India first). Once a series is chosen, convert it to `raw/india/india_generation.csv` (`region_id,slot_utc,fuel,mwh`; 15-minute or hourly blocks are fine), fill the cited CEA factors in `configs/energy.yaml`, then:
+Constructed from two Grid-India sources: regional daily generation by fuel from the NLDC daily Power Supply Position reports, shaped within each IST day by all-India SCADA generation by fuel (10-second data on Mendeley Data, CC BY 4.0, doi:10.17632/y58jknpgs8.2). About 330 small report files and about 500 MB of SCADA workbooks; SHA-256 per file in `manifests/india_raw.json`. CEA factors (v19.0, Table 6) are already in `configs/energy.yaml`.
 
 ```bash
+uv sync --extra india-data                        # openpyxl + xlrd, only for reading the reports
+uv run python scripts/download_india.py           # re-runnable; skips files already present
+uv run python scripts/build_india_generation.py   # → raw/india/india_generation.csv + manifests/india_generation.json
 uv run flipwise ingest india --generation data/raw/india/india_generation.csv
 uv run flipwise build-forecasts
 uv run flipwise validate

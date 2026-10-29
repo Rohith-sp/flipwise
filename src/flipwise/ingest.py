@@ -413,6 +413,81 @@ def _utc_midnight(d: dt.date) -> int:
     return int(dt.datetime(d.year, d.month, d.day, tzinfo=dt.UTC).timestamp())
 
 
+# ---- Indian generation by fuel, constructed (PRD §6.2.2, source option 3) --------------------
+
+IST_OFFSET_S = 19_800  # UTC+5:30
+SLOTS_PER_DAY = 48
+# Fuel in the Grid-India daily report → national SCADA series whose within-day shape it takes.
+# Biomass and other RES have no national series and are spread evenly over the day.
+FUEL_SHAPE = {"coal": "thermal", "lignite": "thermal", "gas": "gas", "hydro": "hydro",
+              "nuclear": "nuclear", "wind": "wind", "solar": "solar", "biomass": None}  # fmt: skip
+
+
+def _ist_day_start_utc(d: dt.date) -> int:
+    return _utc_midnight(d) - IST_OFFSET_S
+
+
+def construct_india_generation(
+    daily: pd.DataFrame, profile: pd.DataFrame
+) -> tuple[pd.DataFrame, dict[str, int]]:
+    """Regional daily energy by fuel × national within-day shape of that fuel [Synthetic].
+
+    `daily`: `ist_date, region_id, fuel, mwh_day` from the Grid-India daily PSP reports.
+    `profile`: `slot_utc, shape, mw` national mean MW per 30-minute slot from Grid-India SCADA.
+
+    G(r, f, k) = E(r, f, d) × MW(s(f), k) / Σ_{k' in d} MW(s(f), k'). The regional daily totals
+    are measured; only the shape inside each IST day is borrowed from the national series. A day
+    whose national series is incomplete takes the typical shape of its month (mean over complete
+    days at the same slot of day); with no complete day in the month, the typical shape over the
+    whole profile (the 2024 SCADA file has wind and solar only); with no data at all for the
+    fuel, an even spread. Every fallback is counted for the manifest.
+    """
+    unknown = sorted(set(daily["fuel"]) - set(FUEL_SHAPE))
+    if unknown:
+        raise ValueError(f"no within-day shape mapping for fuels {unknown}")
+
+    p = profile.assign(mw=profile["mw"].clip(lower=0.0))
+    local = pd.to_datetime(p["slot_utc"] + IST_OFFSET_S, unit="s")
+    p = p.assign(ist_date=local.dt.date, j=(local.dt.hour * 2 + local.dt.minute // 30),
+                 month=local.dt.strftime("%Y-%m"))  # fmt: skip
+    day = p.groupby(["shape", "ist_date"])["mw"].agg(["count", "sum"])
+    complete = day[(day["count"] == SLOTS_PER_DAY) & (day["sum"] > 0)].index
+    p_ok = p.set_index(["shape", "ist_date"]).loc[lambda x: x.index.isin(complete)].reset_index()
+    own = p_ok.assign(w=p_ok["mw"] / p_ok.groupby(["shape", "ist_date"])["mw"].transform("sum"))
+    own_w = {(s, d): g.set_index("j")["w"] for (s, d), g in own.groupby(["shape", "ist_date"])}
+    typ = own.groupby(["shape", "month", "j"])["w"].mean()
+    typ_w = {(s, m): g.droplevel([0, 1]) / g.sum() for (s, m), g in typ.groupby(level=[0, 1])}
+    typ_all = own.groupby(["shape", "j"])["w"].mean()
+    all_w = {s: g.droplevel(0) / g.sum() for s, g in typ_all.groupby(level=0)}
+
+    flat = pd.Series(1.0 / SLOTS_PER_DAY, index=range(SLOTS_PER_DAY))
+    counts = {"days_typical_month": 0, "days_typical_overall": 0, "days_flat_shape": 0}
+    rows = []
+    for (d, r, f), e in daily.groupby(["ist_date", "region_id", "fuel"], sort=True)["mwh_day"]:
+        shape, month = FUEL_SHAPE[f], f"{d:%Y-%m}"
+        if shape is None:
+            w = flat
+        elif (shape, d) in own_w:
+            w = own_w[(shape, d)]
+        elif (shape, month) in typ_w:
+            w = typ_w[(shape, month)]
+            counts["days_typical_month"] += 1
+        elif shape in all_w:
+            w = all_w[shape]
+            counts["days_typical_overall"] += 1
+        else:
+            w = flat
+            counts["days_flat_shape"] += 1
+        w = w.reindex(range(SLOTS_PER_DAY), fill_value=0.0)
+        start = _ist_day_start_utc(d)
+        rows.append(pd.DataFrame({"region_id": int(r), "fuel": f,
+                                  "slot_utc": start + 1800 * np.arange(SLOTS_PER_DAY),
+                                  "mwh": float(e.sum()) * w.to_numpy()}))  # fmt: skip
+    gen = pd.concat(rows, ignore_index=True)
+    gen = gen.sort_values(["region_id", "slot_utc", "fuel"], kind="stable", ignore_index=True)
+    return gen[["region_id", "slot_utc", "fuel", "mwh"]], counts
+
+
 # ---- Indian truth (PRD §6.2.2) -------------------------------------------------------------
 
 ZERO_CARBON_FUELS = ("hydro", "nuclear", "solar", "wind")

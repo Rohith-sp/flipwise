@@ -1,0 +1,2067 @@
+{
+  "retrieved_utc": "2026-10-29T15:16:20+00:00",
+  "window": [
+    "2023-03-13",
+    "2024-02-08"
+  ],
+  "psp": {
+    "source": "Grid-India NLDC daily PSP reports",
+    "api": "https://webapi.grid-india.in/api/v1/file",
+    "files": [
+      {
+        "date": "2023-03-13",
+        "file": "data/raw/india/grid-india/psp/2023-03-13_NLDC_PSP.xls",
+        "url": "https://webcdn.grid-india.in/files/grdw/2026/02/13.03.23_NLDC_PSP_118.xls",
+        "sha256": "2efbe1d6a6bfb34f9a21f0616d6b0d50e6686426ec276382ffd3e7fce4d8deb8"
+      },
+      {
+        "date": "2023-03-14",
+        "file": "data/raw/india/grid-india/psp/2023-03-14_NLDC_PSP.xls",
+        "url": "https://webcdn.grid-india.in/files/grdw/2026/02/14.03.23_NLDC_PSP_784.xls",
+        "sha256": "161e0918122a0bca04d15aee1a64b3d37baca4ce228f818d435bec8fa8f83ba4"
+      },
+      {
+        "date": "2023-03-15",
+        "file": "data/raw/india/grid-india/psp/2023-03-15_NLDC_PSP.xls",
+        "url": "https://webcdn.grid-india.in/files/grdw/2026/02/15.03.23_NLDC_PSP_946.xls",
+        "sha256": "c3063857445a7ff6554a3c24eb7c36ed709a68412ce8de0b64fae63222fa0133"
+      },
+      {
+        "date": "2023-03-16",
+        "file": "data/raw/india/grid-india/psp/2023-03-16_NLDC_PSP.xls",
+        "url": "https://webcdn.grid-india.in/files/grdw/2026/02/16.03.23_NLDC_PSP_452.xls",
+        "sha256": "6d4b148dca9a233ffb3ff412d1bd2c93aec7a6f580d1fbed23ef854159dc407e"
+      },
+      {
+        "date": "2023-03-17",
+        "file": "data/raw/india/grid-india/psp/2023-03-17_NLDC_PSP.xls",
+        "url": "https://webcdn.grid-india.in/files/grdw/2026/02/17.03.23_NLDC_PSP_675.xls",
+        "sha256": "23382a50fa24e37dd30eb5d2f17b403b9405129c6f7db0fbcfae8bd226974132"
+      },
+      {
+        "date": "2023-03-18",
+        "file": "data/raw/india/grid-india/psp/2023-03-18_NLDC_PSP.xls",
+        "url": "https://webcdn.grid-india.in/files/grdw/2026/02/18.03.23_NLDC_PSP_100.xls",
+        "sha256": "8c3dccdc1ca02c4527324b70f567af5f09e8283626d9584187f6dc3462b7ec80"
+      },
+      {
+        "date": "2023-03-19",
+        "file": "data/raw/india/grid-india/psp/2023-03-19_NLDC_PSP.xls",
+        "url": "https://webcdn.grid-india.in/files/grdw/2026/02/19.03.23_NLDC_PSP_461.xls",
+        "sha256": "704a91ab7701fdf7e625d87f7ee90b7a398ccbe15fb22767b0d6fc834f1bbf69"
+      },
+      {
+        "date": "2023-03-20",
+        "file": "data/raw/india/grid-india/psp/2023-03-20_NLDC_PSP.xls",
+        "url": "https://webcdn.grid-india.in/files/grdw/2026/02/20.03.23_NLDC_PSP_519.xls",
+        "sha256": "f3f975154df8ba107d561e2465d7e07adeaadc14b75aabd83fdf04419d65e1f3"
+      },
+      {
+        "date": "2023-03-22",
+        "file": "data/raw/india/grid-india/psp/2023-03-22_NLDC_PSP.xls",
+        "url": "https://webcdn.grid-india.in/files/grdw/2026/02/22.03.23_NLDC_PSP_351.xls",
+        "sha256": "ad3bc8d2eccd3b9f6b1bba1ce4c9e0771b7650c28ed91defcd443b88c4119e5e"
+      },
+      {
+        "date": "2023-03-23",
+        "file": "data/raw/india/grid-india/psp/2023-03-23_NLDC_PSP.xls",
+        "url": "https://webcdn.grid-india.in/files/grdw/2026/02/23.03.23_NLDC_PSP_226.xls",
+        "sha256": "25c0752dbc25d871d3f4eaa0d9fb15b4b58d84c258c59b3bd882a51c015cd2ff"
+      },
+      {
+        "date": "2023-03-24",
+        "file": "data/raw/india/grid-india/psp/2023-03-24_NLDC_PSP.xls",
+        "url": "https://webcdn.grid-india.in/files/grdw/2026/02/24.03.23_NLDC_PSP_967.xls",
+        "sha256": "e9f4191dd479bf54a4d73388a937675a624253a19a655e490725c9674a1922f9"
+      },
+      {
+        "date": "2023-03-25",
+        "file": "data/raw/india/grid-india/psp/2023-03-25_NLDC_PSP.xls",
+        "url": "https://webcdn.grid-india.in/files/grdw/2026/02/25.03.23_NLDC_PSP_183.xls",
+        "sha256": "fea3f8fb83d5be70aa11dfe6a8f6d2c6408ed0fa5d6a37a0f87f5f777a3c3669"
+      },
+      {
+        "date": "2023-03-26",
+        "file": "data/raw/india/grid-india/psp/2023-03-26_NLDC_PSP.xls",
+        "url": "https://webcdn.grid-india.in/files/grdw/2026/02/26.03.23_NLDC_PSP_512.xls",
+        "sha256": "97ba60e809b90c9ca7bc3de56aadcf731486020329b584d3d3677e274e5b608b"
+      },
+      {
+        "date": "2023-03-27",
+        "file": "data/raw/india/grid-india/psp/2023-03-27_NLDC_PSP.xls",
+        "url": "https://webcdn.grid-india.in/files/grdw/2026/02/27.03.23_NLDC_PSP_778.xls",
+        "sha256": "5225c140432503783963492e502cfa6215454eecd093a77eb796f73b54da4704"
+      },
+      {
+        "date": "2023-03-28",
+        "file": "data/raw/india/grid-india/psp/2023-03-28_NLDC_PSP.xls",
+        "url": "https://webcdn.grid-india.in/files/grdw/2026/02/28.03.23_NLDC_PSP_792.xls",
+        "sha256": "b91194d5581eb2ffa52146867e5f9f1f92167403089d0fade089904b7c9a6625"
+      },
+      {
+        "date": "2023-03-29",
+        "file": "data/raw/india/grid-india/psp/2023-03-29_NLDC_PSP.xls",
+        "url": "https://webcdn.grid-india.in/files/grdw/2026/02/29.03.23_NLDC_PSP_369.xls",
+        "sha256": "a2601b2d55a255d71d7c0e2cb3b1711cee7d7404a68ac6f6e37809688665e328"
+      },
+      {
+        "date": "2023-03-30",
+        "file": "data/raw/india/grid-india/psp/2023-03-30_NLDC_PSP.xls",
+        "url": "https://webcdn.grid-india.in/files/grdw/2026/02/30.03.23_NLDC_PSP_263.xls",
+        "sha256": "0935267f75793d71b90361f0209d8eebef7eb45cfb98882aef7d441e2e3f16d2"
+      },
+      {
+        "date": "2023-03-31",
+        "file": "data/raw/india/grid-india/psp/2023-03-31_NLDC_PSP.xls",
+        "url": "https://webcdn.grid-india.in/files/grdw/2026/02/31.03.23_NLDC_PSP_836.xls",
+        "sha256": "ff3ebc5c7fc1bda3eff22967595fa41c28682fc738787be59d0e16e9cc116449"
+      },
+      {
+        "date": "2023-04-01",
+        "file": "data/raw/india/grid-india/psp/2023-04-01_NLDC_PSP.xls",
+        "url": "https://webcdn.grid-india.in/files/grdw/uploads/daily-reports/psp-reports/2023-2024/01.04.23_NLDC_PSP.xls",
+        "sha256": "7c0c566915cef649f52baa5fc0b24f2958d2d81abed529b408b1666442b5b828"
+      },
+      {
+        "date": "2023-04-02",
+        "file": "data/raw/india/grid-india/psp/2023-04-02_NLDC_PSP.xls",
+        "url": "https://webcdn.grid-india.in/files/grdw/uploads/daily-reports/psp-reports/2023-2024/02.04.23_NLDC_PSP.xls",
+        "sha256": "d7a0225545ea49beae7defa34d3f4ad6d9eabfbe63e1e39b5b41c006fe332b40"
+      },
+      {
+        "date": "2023-04-03",
+        "file": "data/raw/india/grid-india/psp/2023-04-03_NLDC_PSP.xls",
+        "url": "https://webcdn.grid-india.in/files/grdw/uploads/daily-reports/psp-reports/2023-2024/03.04.23_NLDC_PSP.xls",
+        "sha256": "df8256bac240c647045b3bb5603ec8118c4e34e195aee86898120a09f41c8aa5"
+      },
+      {
+        "date": "2023-04-04",
+        "file": "data/raw/india/grid-india/psp/2023-04-04_NLDC_PSP.xls",
+        "url": "https://webcdn.grid-india.in/files/grdw/uploads/daily-reports/psp-reports/2023-2024/04.04.23_NLDC_PSP.xls",
+        "sha256": "97659bac772c64d250de51f6a825718e27d8c2f50126fe36fb670b0a7f3879d2"
+      },
+      {
+        "date": "2023-04-05",
+        "file": "data/raw/india/grid-india/psp/2023-04-05_NLDC_PSP.xls",
+        "url": "https://webcdn.grid-india.in/files/grdw/uploads/daily-reports/psp-reports/2023-2024/05.04.23_NLDC_PSP.xls",
+        "sha256": "d6d791fff5baa418fa4d3b2309908b1792568d2302e4d0ef08a4c01f4851f948"
+      },
+      {
+        "date": "2023-04-06",
+        "file": "data/raw/india/grid-india/psp/2023-04-06_NLDC_PSP.xls",
+        "url": "https://webcdn.grid-india.in/files/grdw/uploads/daily-reports/psp-reports/2023-2024/06.04.23_NLDC_PSP.xls",
+        "sha256": "ef8aacfb10cf08cc38f225148a930b30305c47144b063211f32b4b93a6232500"
+      },
+      {
+        "date": "2023-04-07",
+        "file": "data/raw/india/grid-india/psp/2023-04-07_NLDC_PSP.xls",
+        "url": "https://webcdn.grid-india.in/files/grdw/uploads/daily-reports/psp-reports/2023-2024/07.04.23_NLDC_PSP.xls",
+        "sha256": "0fbc3a8d19f2ff972149988163e664a43dd5c9629cf7d6db0f27934bba0708e0"
+      },
+      {
+        "date": "2023-04-08",
+        "file": "data/raw/india/grid-india/psp/2023-04-08_NLDC_PSP.xls",
+        "url": "https://webcdn.grid-india.in/files/grdw/uploads/daily-reports/psp-reports/2023-2024/08.04.23_NLDC_PSP.xls",
+        "sha256": "6f12356c7de5d05108f9c981a24bb309a99ff0329a931a48a87adbe0cc9fd31a"
+      },
+      {
+        "date": "2023-04-09",
+        "file": "data/raw/india/grid-india/psp/2023-04-09_NLDC_PSP.xls",
+        "url": "https://webcdn.grid-india.in/files/grdw/uploads/daily-reports/psp-reports/2023-2024/09.04.23_NLDC_PSP.xls",
+        "sha256": "eb600558e159bffb365c14243e80f395c8608a4c7c6753bc8cf36acfb8e65e57"
+      },
+      {
+        "date": "2023-04-10",
+        "file": "data/raw/india/grid-india/psp/2023-04-10_NLDC_PSP.xls",
+        "url": "https://webcdn.grid-india.in/files/grdw/uploads/daily-reports/psp-reports/2023-2024/10.04.23_NLDC_PSP.xls",
+        "sha256": "d767094da7a745950277b198373ea9a3de47ec2079671a4829310678a7030215"
+      },
+      {
+        "date": "2023-04-11",
+        "file": "data/raw/india/grid-india/psp/2023-04-11_NLDC_PSP.xls",
+        "url": "https://webcdn.grid-india.in/files/grdw/uploads/daily-reports/psp-reports/2023-2024/11.04.23_NLDC_PSP.xls",
+        "sha256": "71aa02a03e18a4477da9b7583b59337104d76965cac05c1ace1779349dc90cfe"
+      },
+      {
+        "date": "2023-04-12",
+        "file": "data/raw/india/grid-india/psp/2023-04-12_NLDC_PSP.xls",
+        "url": "https://webcdn.grid-india.in/files/grdw/uploads/daily-reports/psp-reports/2023-2024/12.04.23_NLDC_PSP.xls",
+        "sha256": "e758763aa4fc397456464c2bec1ba8b4ee6c778d9c6f0f4c5ab47432467bf506"
+      },
+      {
+        "date": "2023-04-13",
+        "file": "data/raw/india/grid-india/psp/2023-04-13_NLDC_PSP.xls",
+        "url": "https://webcdn.grid-india.in/files/grdw/uploads/daily-reports/psp-reports/2023-2024/13.04.23_NLDC_PSP.xls",
+        "sha256": "765e2814f5c7341e0ef28bd17b77844aa98a0cc76e7e2ad5b25ec1bcc97e8975"
+      },
+      {
+        "date": "2023-04-14",
+        "file": "data/raw/india/grid-india/psp/2023-04-14_NLDC_PSP.xls",
+        "url": "https://webcdn.grid-india.in/files/grdw/uploads/daily-reports/psp-reports/2023-2024/14.04.23_NLDC_PSP.xls",
+        "sha256": "f6a2a4410ae3b2c4aff92ff072b83a9859c31e1da6eba12ff5edccf9f24e724f"
+      },
+      {
+        "date": "2023-04-15",
+        "file": "data/raw/india/grid-india/psp/2023-04-15_NLDC_PSP.xls",
+        "url": "https://webcdn.grid-india.in/files/grdw/uploads/daily-reports/psp-reports/2023-2024/15.04.23_NLDC_PSP.xls",
+        "sha256": "73b953f2f7fcf52dab6f4cc7c4b6fcd9ac52f5eb8126e628937c5b723a115c14"
+      },
+      {
+        "date": "2023-04-16",
+        "file": "data/raw/india/grid-india/psp/2023-04-16_NLDC_PSP.xlsx",
+        "url": "https://webcdn.grid-india.in/files/grdw/uploads/daily-reports/psp-reports/2023-2024/16.04.23_NLDC_PSP.xlsx",
+        "sha256": "cc64c046e2036a6f16b1681be01cf08f99b41d2c8b378e056860a1c88d05e334"
+      },
+      {
+        "date": "2023-04-17",
+        "file": "data/raw/india/grid-india/psp/2023-04-17_NLDC_PSP.xlsx",
+        "url": "https://webcdn.grid-india.in/files/grdw/uploads/daily-reports/psp-reports/2023-2024/17.04.23_NLDC_PSP.xlsx",
+        "sha256": "2da3e96a7176172c52ccb6bd64a1da8db1a786870b0454ff3d05ef0444f8fdfe"
+      },
+      {
+        "date": "2023-04-18",
+        "file": "data/raw/india/grid-india/psp/2023-04-18_NLDC_PSP.xlsx",
+        "url": "https://webcdn.grid-india.in/files/grdw/uploads/daily-reports/psp-reports/2023-2024/18.04.23_NLDC_PSP.xlsx",
+        "sha256": "93b25a28af21d36c78344590cea3809093b374e579684d0e2faea73f73d42525"
+      },
+      {
+        "date": "2023-04-19",
+        "file": "data/raw/india/grid-india/psp/2023-04-19_NLDC_PSP.xlsx",
+        "url": "https://webcdn.grid-india.in/files/grdw/uploads/daily-reports/psp-reports/2023-2024/19.04.23_NLDC_PSP.xlsx",
+        "sha256": "ab50c517b45ec49573a3eeeb3101884bf7c8910985dd39f117026c63a3b3b713"
+      },
+      {
+        "date": "2023-04-20",
+        "file": "data/raw/india/grid-india/psp/2023-04-20_NLDC_PSP.xlsx",
+        "url": "https://webcdn.grid-india.in/files/grdw/uploads/daily-reports/psp-reports/2023-2024/20.04.23_NLDC_PSP.xlsx",
+        "sha256": "eb190d64faa4981165b25a80ade82e36954694282d1f2cd992573ad8a6ea9a59"
+      },
+      {
+        "date": "2023-04-21",
+        "file": "data/raw/india/grid-india/psp/2023-04-21_NLDC_PSP.xlsx",
+        "url": "https://webcdn.grid-india.in/files/grdw/uploads/daily-reports/psp-reports/2023-2024/21.04.23_NLDC_PSP.xlsx",
+        "sha256": "ef4dc0f067caf2012c97eec7009714c0df4e29dfea49b256476558168c4acbae"
+      },
+      {
+        "date": "2023-04-22",
+        "file": "data/raw/india/grid-india/psp/2023-04-22_NLDC_PSP.xlsx",
+        "url": "https://webcdn.grid-india.in/files/grdw/uploads/daily-reports/psp-reports/2023-2024/22.04.23_NLDC_PSP.xlsx",
+        "sha256": "5ad49630e706cf58c1e210cb12d1d51b964bb3010696a6001b407ebe32065748"
+      },
+      {
+        "date": "2023-04-23",
+        "file": "data/raw/india/grid-india/psp/2023-04-23_NLDC_PSP.xlsx",
+        "url": "https://webcdn.grid-india.in/files/grdw/uploads/daily-reports/psp-reports/2023-2024/23.04.23_NLDC_PSP.xlsx",
+        "sha256": "803f68bd38c7def2d82b6f3fecb18b96a8e5d23b98462d4e332ff99f349b359d"
+      },
+      {
+        "date": "2023-04-24",
+        "file": "data/raw/india/grid-india/psp/2023-04-24_NLDC_PSP.xlsx",
+        "url": "https://webcdn.grid-india.in/files/grdw/uploads/daily-reports/psp-reports/2023-2024/24.04.23_NLDC_PSP.xlsx",
+        "sha256": "8b366a9e0b466aec1c19895decccfc2299b156263c205ee4f76c7e1411c9332e"
+      },
+      {
+        "date": "2023-04-25",
+        "file": "data/raw/india/grid-india/psp/2023-04-25_NLDC_PSP.xlsx",
+        "url": "https://webcdn.grid-india.in/files/grdw/uploads/daily-reports/psp-reports/2023-2024/25.04.23_NLDC_PSP.xlsx",
+        "sha256": "12ba2ed26a1649b5ea54a6de55900590c3a7a0f6f8e616b206aad9ea4b2f205a"
+      },
+      {
+        "date": "2023-04-26",
+        "file": "data/raw/india/grid-india/psp/2023-04-26_NLDC_PSP.xlsx",
+        "url": "https://webcdn.grid-india.in/files/grdw/uploads/daily-reports/psp-reports/2023-2024/26.04.23_NLDC_PSP.xlsx",
+        "sha256": "647e309882f8ed37feabcec1e1ef2962458d40fc4a1a19ca1b873840a01a3e68"
+      },
+      {
+        "date": "2023-04-27",
+        "file": "data/raw/india/grid-india/psp/2023-04-27_NLDC_PSP.xlsx",
+        "url": "https://webcdn.grid-india.in/files/grdw/uploads/daily-reports/psp-reports/2023-2024/27.04.23_NLDC_PSP.xlsx",
+        "sha256": "5c99d0aca50ee4a71558b88a680c073312ef7b3392de701007a4e3a3fb1695f0"
+      },
+      {
+        "date": "2023-04-28",
+        "file": "data/raw/india/grid-india/psp/2023-04-28_NLDC_PSP.xlsx",
+        "url": "https://webcdn.grid-india.in/files/grdw/uploads/daily-reports/psp-reports/2023-2024/28.04.23_NLDC_PSP.xlsx",
+        "sha256": "c58a7602bc9238c50a8b19f4de5e487751f626bff0555fd3b481f23ff3b8a853"
+      },
+      {
+        "date": "2023-04-29",
+        "file": "data/raw/india/grid-india/psp/2023-04-29_NLDC_PSP.xlsx",
+        "url": "https://webcdn.grid-india.in/files/grdw/uploads/daily-reports/psp-reports/2023-2024/29.04.23_NLDC_PSP.xlsx",
+        "sha256": "a0d5733cb20a2e4d89608263e353a5a4ccbe9a156755f87ab039f7a94e35aa26"
+      },
+      {
+        "date": "2023-04-30",
+        "file": "data/raw/india/grid-india/psp/2023-04-30_NLDC_PSP.xls",
+        "url": "https://webcdn.grid-india.in/files/grdw/uploads/daily-reports/psp-reports/2023-2024/30.04.23_NLDC_PSP.xls",
+        "sha256": "5d4824ff1f03c0b7b56c2e7ca75b9c138b0ec5ddd34bc0b0b86338f186e377dc"
+      },
+      {
+        "date": "2023-05-01",
+        "file": "data/raw/india/grid-india/psp/2023-05-01_NLDC_PSP.xls",
+        "url": "https://webcdn.grid-india.in/files/grdw/uploads/daily-reports/psp-reports/2023-2024/01.05.23_NLDC_PSP.xls",
+        "sha256": "83aff1771e66454cd2cc9b736c10102d1595fd446741d30ab7f2325e64502941"
+      },
+      {
+        "date": "2023-05-02",
+        "file": "data/raw/india/grid-india/psp/2023-05-02_NLDC_PSP.xls",
+        "url": "https://webcdn.grid-india.in/files/grdw/uploads/daily-reports/psp-reports/2023-2024/02.05.23_NLDC_PSP.xls",
+        "sha256": "dd876f08e7df69cfd4908a26fb51e1b2e9a4d77d942043d560c56b5f404d89a7"
+      },
+      {
+        "date": "2023-05-03",
+        "file": "data/raw/india/grid-india/psp/2023-05-03_NLDC_PSP.xls",
+        "url": "https://webcdn.grid-india.in/files/grdw/uploads/daily-reports/psp-reports/2023-2024/03.05.23_NLDC_PSP.xls",
+        "sha256": "861e569de42494479d33a71fac81091955dac4a42b7b5d9a70ae3155567d034e"
+      },
+      {
+        "date": "2023-05-04",
+        "file": "data/raw/india/grid-india/psp/2023-05-04_NLDC_PSP.xls",
+        "url": "https://webcdn.grid-india.in/files/grdw/uploads/daily-reports/psp-reports/2023-2024/04.05.23_NLDC_PSP.xls",
+        "sha256": "7a52ee6bcde205f11f7d88bc490d69205db29b74baec4f72619b0752ee37c1b0"
+      },
+      {
+        "date": "2023-05-05",
+        "file": "data/raw/india/grid-india/psp/2023-05-05_NLDC_PSP.xls",
+        "url": "https://webcdn.grid-india.in/files/grdw/uploads/daily-reports/psp-reports/2023-2024/05.05.23_NLDC_PSP.xls",
+        "sha256": "3ca97025e1df8b996a5ae7fc6afbad81d89f13f8b7817e3573c2db34da5038c0"
+      },
+      {
+        "date": "2023-05-06",
+        "file": "data/raw/india/grid-india/psp/2023-05-06_NLDC_PSP.xls",
+        "url": "https://webcdn.grid-india.in/files/grdw/uploads/daily-reports/psp-reports/2023-2024/06.05.23_NLDC_PSP.xls",
+        "sha256": "42e6b99bfbe620a327d410141e2b1c7b1a73c4215f70be67eac40ffc17e642cd"
+      },
+      {
+        "date": "2023-05-07",
+        "file": "data/raw/india/grid-india/psp/2023-05-07_NLDC_PSP.xls",
+        "url": "https://webcdn.grid-india.in/files/grdw/uploads/daily-reports/psp-reports/2023-2024/07.05.23_NLDC_PSP.xls",
+        "sha256": "24f57e51e850c344eb99911ef58fbf8bb950e2c97a9c91d127040628edad9fe1"
+      },
+      {
+        "date": "2023-05-08",
+        "file": "data/raw/india/grid-india/psp/2023-05-08_NLDC_PSP.xls",
+        "url": "https://webcdn.grid-india.in/files/grdw/uploads/daily-reports/psp-reports/2023-2024/08.05.23_NLDC_PSP.xls",
+        "sha256": "315c50488cc698bb6170ed5d10d18423fc97a53e4af79af1ae9bfac839bf28ca"
+      },
+      {
+        "date": "2023-05-09",
+        "file": "data/raw/india/grid-india/psp/2023-05-09_NLDC_PSP.xls",
+        "url": "https://webcdn.grid-india.in/files/grdw/uploads/daily-reports/psp-reports/2023-2024/09.05.23_NLDC_PSP.xls",
+        "sha256": "b39613f97b6960fef1bece79e2c6ca59162cc5ab5f323608072ee5d6e719114e"
+      },
+      {
+        "date": "2023-05-10",
+        "file": "data/raw/india/grid-india/psp/2023-05-10_NLDC_PSP.xls",
+        "url": "https://webcdn.grid-india.in/files/grdw/uploads/daily-reports/psp-reports/2023-2024/10.05.23_NLDC_PSP.xls",
+        "sha256": "a59edc34d61ea2f6d44b43f13a07685c56db38e17f3a1171101e5cced8d64301"
+      },
+      {
+        "date": "2023-05-11",
+        "file": "data/raw/india/grid-india/psp/2023-05-11_NLDC_PSP.xls",
+        "url": "https://webcdn.grid-india.in/files/grdw/uploads/daily-reports/psp-reports/2023-2024/11.05.23_NLDC_PSP.xls",
+        "sha256": "2550eec6bb101dd305b26274eb8dac29f8ec0d0dc62bf593471074b3d59220ff"
+      },
+      {
+        "date": "2023-05-12",
+        "file": "data/raw/india/grid-india/psp/2023-05-12_NLDC_PSP.xls",
+        "url": "https://webcdn.grid-india.in/files/grdw/uploads/daily-reports/psp-reports/2023-2024/12.05.23_NLDC_PSP.xls",
+        "sha256": "8b32cb7290e9d36521e2240d928f51ec1f2904d7a81db28c19deab81bcea68b5"
+      },
+      {
+        "date": "2023-05-13",
+        "file": "data/raw/india/grid-india/psp/2023-05-13_NLDC_PSP.xls",
+        "url": "https://webcdn.grid-india.in/files/grdw/uploads/daily-reports/psp-reports/2023-2024/13.05.23_NLDC_PSP.xls",
+        "sha256": "aef173f8680c9ee053980a77eca181d1eafb4305aa2505489642912a3331a182"
+      },
+      {
+        "date": "2023-05-14",
+        "file": "data/raw/india/grid-india/psp/2023-05-14_NLDC_PSP.xls",
+        "url": "https://webcdn.grid-india.in/files/grdw/uploads/daily-reports/psp-reports/2023-2024/14.05.23_NLDC_PSP.xls",
+        "sha256": "d143011e2ca4de56cd807e890fd7449ef6124c73086c5f617f59d62ce66ddd33"
+      },
+      {
+        "date": "2023-05-15",
+        "file": "data/raw/india/grid-india/psp/2023-05-15_NLDC_PSP.xls",
+        "url": "https://webcdn.grid-india.in/files/grdw/uploads/daily-reports/psp-reports/2023-2024/15.05.23_NLDC_PSP.xls",
+        "sha256": "fe1287d3cd54711677f55f2a7906a2c9e874ee7d977d0e40a941eefd307ac9e4"
+      },
+      {
+        "date": "2023-05-16",
+        "file": "data/raw/india/grid-india/psp/2023-05-16_NLDC_PSP.xls",
+        "url": "https://webcdn.grid-india.in/files/grdw/uploads/daily-reports/psp-reports/2023-2024/16.05.23_NLDC_PSP.xls",
+        "sha256": "deda6527a1761c5c6996d36e0cef4b0dca0f04421ae8d4bf0d11fb53542e8632"
+      },
+      {
+        "date": "2023-05-17",
+        "file": "data/raw/india/grid-india/psp/2023-05-17_NLDC_PSP.xls",
+        "url": "https://webcdn.grid-india.in/files/grdw/uploads/daily-reports/psp-reports/2023-2024/17.05.23_NLDC_PSP.xls",
+        "sha256": "010e108ca933d08a747ae9f2a644b75f5c7822254456ec9b621f6912379cdb40"
+      },
+      {
+        "date": "2023-05-18",
+        "file": "data/raw/india/grid-india/psp/2023-05-18_NLDC_PSP.xls",
+        "url": "https://webcdn.grid-india.in/files/grdw/uploads/daily-reports/psp-reports/2023-2024/18.05.23_NLDC_PSP.xls",
+        "sha256": "445d32be88d84344548428296a3026eca1d97a738f8a55ceaa12931039236b56"
+      },
+      {
+        "date": "2023-05-19",
+        "file": "data/raw/india/grid-india/psp/2023-05-19_NLDC_PSP.xls",
+        "url": "https://webcdn.grid-india.in/files/grdw/uploads/daily-reports/psp-reports/2023-2024/19.05.23_NLDC_PSP.xls",
+        "sha256": "b52ac3dfd4119cc250e584a3635c8dd372868594a03d46140e83acf535bd9264"
+      },
+      {
+        "date": "2023-05-20",
+        "file": "data/raw/india/grid-india/psp/2023-05-20_NLDC_PSP.xls",
+        "url": "https://webcdn.grid-india.in/files/grdw/uploads/daily-reports/psp-reports/2023-2024/20.05.23_NLDC_PSP.xls",
+        "sha256": "a134d7bff9b8d7619712b6c04de0ec1fed8ab70b89dd792cfe948dbdb9c9ec9e"
+      },
+      {
+        "date": "2023-05-21",
+        "file": "data/raw/india/grid-india/psp/2023-05-21_NLDC_PSP.xls",
+        "url": "https://webcdn.grid-india.in/files/grdw/uploads/daily-reports/psp-reports/2023-2024/21.05.23_NLDC_PSP.xls",
+        "sha256": "327a08362ec1b674d2958e85ea0ad87073a7668805aa894b1cd5ba089c2d2935"
+      },
+      {
+        "date": "2023-05-22",
+        "file": "data/raw/india/grid-india/psp/2023-05-22_NLDC_PSP.xls",
+        "url": "https://webcdn.grid-india.in/files/grdw/uploads/daily-reports/psp-reports/2023-2024/22.05.23_NLDC_PSP.xls",
+        "sha256": "fee5b1342c76d83e0f48cc3538cb29ace6702c6ce0de21b8299f4daa81ad4a2b"
+      },
+      {
+        "date": "2023-05-23",
+        "file": "data/raw/india/grid-india/psp/2023-05-23_NLDC_PSP.xls",
+        "url": "https://webcdn.grid-india.in/files/grdw/uploads/daily-reports/psp-reports/2023-2024/23.05.23_NLDC_PSP.xls",
+        "sha256": "e319cd42f8437cedb7358a7b35cd39c11d06b9e2dbf768bd0d74720c4a35e1ac"
+      },
+      {
+        "date": "2023-05-24",
+        "file": "data/raw/india/grid-india/psp/2023-05-24_NLDC_PSP.xls",
+        "url": "https://webcdn.grid-india.in/files/grdw/uploads/daily-reports/psp-reports/2023-2024/24.05.23_NLDC_PSP.xls",
+        "sha256": "8fac42cf507eb6a4df9b9785629fafb926c606f572039b3126a21d8d85ac3a39"
+      },
+      {
+        "date": "2023-05-25",
+        "file": "data/raw/india/grid-india/psp/2023-05-25_NLDC_PSP.xls",
+        "url": "https://webcdn.grid-india.in/files/grdw/uploads/daily-reports/psp-reports/2023-2024/25.05.23_NLDC_PSP.xls",
+        "sha256": "a05b40a8af3c201516557e356486f73b146ec396bd94147ab36e09dcd2fd5e8c"
+      },
+      {
+        "date": "2023-05-26",
+        "file": "data/raw/india/grid-india/psp/2023-05-26_NLDC_PSP.xls",
+        "url": "https://webcdn.grid-india.in/files/grdw/uploads/daily-reports/psp-reports/2023-2024/26.05.23_NLDC_PSP.xls",
+        "sha256": "e325937e0cdda4b0824ce67523541110db59352dd640d15af7300153b9f4e9b9"
+      },
+      {
+        "date": "2023-05-27",
+        "file": "data/raw/india/grid-india/psp/2023-05-27_NLDC_PSP.xls",
+        "url": "https://webcdn.grid-india.in/files/grdw/uploads/daily-reports/psp-reports/2023-2024/27.05.23_NLDC_PSP.xls",
+        "sha256": "ee632fcba60cd6ea11eaf10d1c45774f630d001034a134237241425039b0a1f4"
+      },
+      {
+        "date": "2023-05-28",
+        "file": "data/raw/india/grid-india/psp/2023-05-28_NLDC_PSP.xls",
+        "url": "https://webcdn.grid-india.in/files/grdw/uploads/daily-reports/psp-reports/2023-2024/28.05.23_NLDC_PSP.xls",
+        "sha256": "2c3988cdbf4d5e063c7f831eb41093a929b5aef9a27fef21b79b22b7f0f73781"
+      },
+      {
+        "date": "2023-05-29",
+        "file": "data/raw/india/grid-india/psp/2023-05-29_NLDC_PSP.xls",
+        "url": "https://webcdn.grid-india.in/files/grdw/uploads/daily-reports/psp-reports/2023-2024/29.05.23_NLDC_PSP.xls",
+        "sha256": "dfa5c50f86478d78faff9aeeede5ece9b36f817336bd5af56366940d1cf938dc"
+      },
+      {
+        "date": "2023-05-30",
+        "file": "data/raw/india/grid-india/psp/2023-05-30_NLDC_PSP.xls",
+        "url": "https://webcdn.grid-india.in/files/grdw/uploads/daily-reports/psp-reports/2023-2024/30.05.23_NLDC_PSP.xls",
+        "sha256": "611aa8a7ca43e5c20e321e8044a0bef09e5c64af9845f9b2b15cfd5951a430d8"
+      },
+      {
+        "date": "2023-05-31",
+        "file": "data/raw/india/grid-india/psp/2023-05-31_NLDC_PSP.xls",
+        "url": "https://webcdn.grid-india.in/files/grdw/uploads/daily-reports/psp-reports/2023-2024/31.05.23_NLDC_PSP.xls",
+        "sha256": "bd1fe4ecaabd8646bd86f63d8d9e1e176c82efc241dd070bb08025dd66bc8458"
+      },
+      {
+        "date": "2023-06-01",
+        "file": "data/raw/india/grid-india/psp/2023-06-01_NLDC_PSP.xls",
+        "url": "https://webcdn.grid-india.in/files/grdw/uploads/daily-reports/psp-reports/2023-2024/01.06.23_NLDC_PSP.xls",
+        "sha256": "c425f0bb4747c1780e89991118de6c0a0c593c57eeb0bedb610093abc4c10540"
+      },
+      {
+        "date": "2023-06-02",
+        "file": "data/raw/india/grid-india/psp/2023-06-02_NLDC_PSP.xls",
+        "url": "https://webcdn.grid-india.in/files/grdw/uploads/daily-reports/psp-reports/2023-2024/02.06.23_NLDC_PSP.xls",
+        "sha256": "2465c3679b0e90abffa4ca0d8a084a860f41a9fa729d888189953d71a99d5294"
+      },
+      {
+        "date": "2023-06-03",
+        "file": "data/raw/india/grid-india/psp/2023-06-03_NLDC_PSP.xls",
+        "url": "https://webcdn.grid-india.in/files/grdw/uploads/daily-reports/psp-reports/2023-2024/03.06.23_NLDC_PSP.xls",
+        "sha256": "d8e864de9aa9b9af78b163712b9650b138cfeadaa966562ff6e39fbfdd6e5a9d"
+      },
+      {
+        "date": "2023-06-04",
+        "file": "data/raw/india/grid-india/psp/2023-06-04_NLDC_PSP.xls",
+        "url": "https://webcdn.grid-india.in/files/grdw/uploads/daily-reports/psp-reports/2023-2024/04.06.23_NLDC_PSP.xls",
+        "sha256": "8e57a39604280d7b136b831aa880d9282367ee0b413b59d2a99d8e4f6dff987c"
+      },
+      {
+        "date": "2023-06-05",
+        "file": "data/raw/india/grid-india/psp/2023-06-05_NLDC_PSP.xls",
+        "url": "https://webcdn.grid-india.in/files/grdw/uploads/daily-reports/psp-reports/2023-2024/05.06.23_NLDC_PSP.xls",
+        "sha256": "64fd73efc205814c87eb14470ebf204e082817b4ce50967979fe05eabebe0dc8"
+      },
+      {
+        "date": "2023-06-06",
+        "file": "data/raw/india/grid-india/psp/2023-06-06_NLDC_PSP.xls",
+        "url": "https://webcdn.grid-india.in/files/grdw/uploads/daily-reports/psp-reports/2023-2024/06.06.23_NLDC_PSP.xls",
+        "sha256": "02aab7b84bbf302e33673d108aada6322b071b6d1fba33635218e1d3860c3303"
+      },
+      {
+        "date": "2023-06-07",
+        "file": "data/raw/india/grid-india/psp/2023-06-07_NLDC_PSP.xls",
+        "url": "https://webcdn.grid-india.in/files/grdw/uploads/daily-reports/psp-reports/2023-2024/07.06.23_NLDC_PSP.xls",
+        "sha256": "1febcf502799599d0a429fee81da8f370f3ba9ba0c92126a462dec844ae7e78e"
+      },
+      {
+        "date": "2023-06-08",
+        "file": "data/raw/india/grid-india/psp/2023-06-08_NLDC_PSP.xls",
+        "url": "https://webcdn.grid-india.in/files/grdw/uploads/daily-reports/psp-reports/2023-2024/08.06.23_NLDC_PSP.xls",
+        "sha256": "ba3bb93c4a883a0a27e338e858f5bc932a15f3880d8026cd7942f7ce3c9787fd"
+      },
+      {
+        "date": "2023-06-09",
+        "file": "data/raw/india/grid-india/psp/2023-06-09_NLDC_PSP.xls",
+        "url": "https://webcdn.grid-india.in/files/grdw/uploads/daily-reports/psp-reports/2023-2024/09.06.23_NLDC_PSP.xls",
+        "sha256": "d671ad81d55577f5662e495c55678cf9fe1ba4ebf17d5300c4a59d0e2e6eaa57"
+      },
+      {
+        "date": "2023-06-10",
+        "file": "data/raw/india/grid-india/psp/2023-06-10_NLDC_PSP.xls",
+        "url": "https://webcdn.grid-india.in/files/grdw/uploads/daily-reports/psp-reports/2023-2024/10.06.23_NLDC_PSP.xls",
+        "sha256": "a6e596bb9da3c4510dd8fe6c08d629618ad4ee4afec70222e13f4070d143e7c1"
+      },
+      {
+        "date": "2023-06-11",
+        "file": "data/raw/india/grid-india/psp/2023-06-11_NLDC_PSP.xls",
+        "url": "https://webcdn.grid-india.in/files/grdw/uploads/daily-reports/psp-reports/2023-2024/11.06.23_NLDC_PSP.xls",
+        "sha256": "8d1ac4abb03573ab71b034e6ec079c79448e7aa68f1be70073253e0994763cb1"
+      },
+      {
+        "date": "2023-06-12",
+        "file": "data/raw/india/grid-india/psp/2023-06-12_NLDC_PSP.xls",
+        "url": "https://webcdn.grid-india.in/files/grdw/uploads/daily-reports/psp-reports/2023-2024/12.06.23_NLDC_PSP.xls",
+        "sha256": "a4c679f956f96d709baa93edce8d49a425ce9375c32f748fc6f6d88f43c074c5"
+      },
+      {
+        "date": "2023-06-13",
+        "file": "data/raw/india/grid-india/psp/2023-06-13_NLDC_PSP.xls",
+        "url": "https://webcdn.grid-india.in/files/grdw/uploads/daily-reports/psp-reports/2023-2024/13.06.23_NLDC_PSP.xls",
+        "sha256": "883f5ad3723608c4f6f21d161f5384ad05f0580f8be551b04c7eb1287891c8a6"
+      },
+      {
+        "date": "2023-06-14",
+        "file": "data/raw/india/grid-india/psp/2023-06-14_NLDC_PSP.xls",
+        "url": "https://webcdn.grid-india.in/files/grdw/uploads/daily-reports/psp-reports/2023-2024/14.06.23_NLDC_PSP.xls",
+        "sha256": "55538cd175508c7ced225a23026c6992f40f1987b7593cb9476b8d117ba2313d"
+      },
+      {
+        "date": "2023-06-15",
+        "file": "data/raw/india/grid-india/psp/2023-06-15_NLDC_PSP.xls",
+        "url": "https://webcdn.grid-india.in/files/grdw/uploads/daily-reports/psp-reports/2023-2024/15.06.23_NLDC_PSP.xls",
+        "sha256": "8e6204a82f7e71bf042e5db5ba987d5abdb2d4ae89e76783c9831bbe8317cd76"
+      },
+      {
+        "date": "2023-06-16",
+        "file": "data/raw/india/grid-india/psp/2023-06-16_NLDC_PSP.xls",
+        "url": "https://webcdn.grid-india.in/files/grdw/uploads/daily-reports/psp-reports/2023-2024/16.06.23_NLDC_PSP.xls",
+        "sha256": "da17145d2e3b4c79caeddc657cd5ffb2c1a434ef46de47d677835fde1ff92fa4"
+      },
+      {
+        "date": "2023-06-17",
+        "file": "data/raw/india/grid-india/psp/2023-06-17_NLDC_PSP.xls",
+        "url": "https://webcdn.grid-india.in/files/grdw/uploads/daily-reports/psp-reports/2023-2024/17.06.23_NLDC_PSP.xls",
+        "sha256": "1b095d5bff0983d511530a7f49dc12d018831a46e1b84686c4cc9bfbe350808b"
+      },
+      {
+        "date": "2023-06-18",
+        "file": "data/raw/india/grid-india/psp/2023-06-18_NLDC_PSP.xls",
+        "url": "https://webcdn.grid-india.in/files/grdw/uploads/daily-reports/psp-reports/2023-2024/18.06.23_NLDC_PSP.xls",
+        "sha256": "329da9fd1a4f7a5c4f3e5c27044874aaa26fc9d2d069a8cc170c50e8bdcf8420"
+      },
+      {
+        "date": "2023-06-19",
+        "file": "data/raw/india/grid-india/psp/2023-06-19_NLDC_PSP.xls",
+        "url": "https://webcdn.grid-india.in/files/grdw/uploads/daily-reports/psp-reports/2023-2024/19.06.23_NLDC_PSP.xls",
+        "sha256": "7386478af7592c911e9c0cf366631c1e8f1bb933cbd409a50dd78f34a9268270"
+      },
+      {
+        "date": "2023-06-20",
+        "file": "data/raw/india/grid-india/psp/2023-06-20_NLDC_PSP.xls",
+        "url": "https://webcdn.grid-india.in/files/grdw/uploads/daily-reports/psp-reports/2023-2024/20.06.23_NLDC_PSP.xls",
+        "sha256": "51e41ad5013f41234e673992df35dd4a3d41aee6caa57936d5795ec0f9f066dd"
+      },
+      {
+        "date": "2023-06-21",
+        "file": "data/raw/india/grid-india/psp/2023-06-21_NLDC_PSP.xls",
+        "url": "https://webcdn.grid-india.in/files/grdw/uploads/daily-reports/psp-reports/2023-2024/21.06.23_NLDC_PSP.xls",
+        "sha256": "e45bc2f50bd4d9b8725f3340ac8aada5815e10bf87bfe7da71150df337fd5b0d"
+      },
+      {
+        "date": "2023-06-22",
+        "file": "data/raw/india/grid-india/psp/2023-06-22_NLDC_PSP.xls",
+        "url": "https://webcdn.grid-india.in/files/grdw/uploads/daily-reports/psp-reports/2023-2024/22.06.23_NLDC_PSP.xls",
+        "sha256": "8f84ea4113230cfa49d2e14b3631415c95f06637869a73549defb9a77970ac06"
+      },
+      {
+        "date": "2023-06-23",
+        "file": "data/raw/india/grid-india/psp/2023-06-23_NLDC_PSP.xls",
+        "url": "https://webcdn.grid-india.in/files/grdw/uploads/daily-reports/psp-reports/2023-2024/23.06.23_NLDC_PSP.xls",
+        "sha256": "34605c1e5fdd1f928f8fea50158aeb35e0687ad753bac2cbab1627d63dd35e88"
+      },
+      {
+        "date": "2023-06-24",
+        "file": "data/raw/india/grid-india/psp/2023-06-24_NLDC_PSP.xls",
+        "url": "https://webcdn.grid-india.in/files/grdw/uploads/daily-reports/psp-reports/2023-2024/24.06.23_NLDC_PSP.xls",
+        "sha256": "f210538ef9ea61fbc8ce8e070e87d4a96b87f8d1b52ccb24a563858d2bbc38c3"
+      },
+      {
+        "date": "2023-06-25",
+        "file": "data/raw/india/grid-india/psp/2023-06-25_NLDC_PSP.xls",
+        "url": "https://webcdn.grid-india.in/files/grdw/uploads/daily-reports/psp-reports/2023-2024/25.06.23_NLDC_PSP.xls",
+        "sha256": "cd19133bd9276cf8349d8f62433e2117fc6329d2648a20835f5f9bd0ddd2933b"
+      },
+      {
+        "date": "2023-06-26",
+        "file": "data/raw/india/grid-india/psp/2023-06-26_NLDC_PSP.xls",
+        "url": "https://webcdn.grid-india.in/files/grdw/uploads/daily-reports/psp-reports/2023-2024/26.06.23_NLDC_PSP.xls",
+        "sha256": "2af3614d2f1575427cfb1a6f389f2a2adef6c55495cbb79f8e5e8c8a0eb2ef3e"
+      },
+      {
+        "date": "2023-06-27",
+        "file": "data/raw/india/grid-india/psp/2023-06-27_NLDC_PSP.xls",
+        "url": "https://webcdn.grid-india.in/files/grdw/uploads/daily-reports/psp-reports/2023-2024/27.06.23_NLDC_PSP.xls",
+        "sha256": "b17379b77c2d2ff4ed6017dee3a197e509d602cc462d3901c6a6e9250690ec99"
+      },
+      {
+        "date": "2023-06-28",
+        "file": "data/raw/india/grid-india/psp/2023-06-28_NLDC_PSP.xls",
+        "url": "https://webcdn.grid-india.in/files/grdw/uploads/daily-reports/psp-reports/2023-2024/28.06.23_NLDC_PSP.xls",
+        "sha256": "3681da38f8f6ddff2b9aade0a5bee08f4a07db6bb7a72972ad90d69d6348344a"
+      },
+      {
+        "date": "2023-06-29",
+        "file": "data/raw/india/grid-india/psp/2023-06-29_NLDC_PSP.xls",
+        "url": "https://webcdn.grid-india.in/files/grdw/uploads/daily-reports/psp-reports/2023-2024/29.06.23_NLDC_PSP.xls",
+        "sha256": "46c4a1a5667e6c4b25bca37f7e1091b54dab627fa0fae2a4ff9a3a54e0b602b6"
+      },
+      {
+        "date": "2023-06-30",
+        "file": "data/raw/india/grid-india/psp/2023-06-30_NLDC_PSP.xls",
+        "url": "https://webcdn.grid-india.in/files/grdw/uploads/daily-reports/psp-reports/2023-2024/30.06.23_NLDC_PSP.xls",
+        "sha256": "21d064b48e74f48b377764604a5721cf37333b9dc0c06a77e4fb0ae319d225f1"
+      },
+      {
+        "date": "2023-07-01",
+        "file": "data/raw/india/grid-india/psp/2023-07-01_NLDC_PSP.xls",
+        "url": "https://webcdn.grid-india.in/files/grdw/uploads/daily-reports/psp-reports/2023-2024/01.07.23_NLDC_PSP.xls",
+        "sha256": "02728e803439c0ac88b90ec530c6e614402585539689e3a090f01b668dfccb1d"
+      },
+      {
+        "date": "2023-07-02",
+        "file": "data/raw/india/grid-india/psp/2023-07-02_NLDC_PSP.xls",
+        "url": "https://webcdn.grid-india.in/files/grdw/uploads/daily-reports/psp-reports/2023-2024/02.07.23_NLDC_PSP.xls",
+        "sha256": "6ca7572d4b2fefcbe74c1a40dcc60cc88915d628f750661ed03ffd5c7a8eb403"
+      },
+      {
+        "date": "2023-07-03",
+        "file": "data/raw/india/grid-india/psp/2023-07-03_NLDC_PSP.xls",
+        "url": "https://webcdn.grid-india.in/files/grdw/uploads/daily-reports/psp-reports/2023-2024/03.07.23_NLDC_PSP.xls",
+        "sha256": "0b602704d16a79a1bb92a471872b874bd9a71fe836405711c49f1fd4459448fc"
+      },
+      {
+        "date": "2023-07-04",
+        "file": "data/raw/india/grid-india/psp/2023-07-04_NLDC_PSP.xls",
+        "url": "https://webcdn.grid-india.in/files/grdw/uploads/daily-reports/psp-reports/2023-2024/04.07.23_NLDC_PSP.xls",
+        "sha256": "d0659789867248681cc54bacdbae321b5630685a918e0db2687e7f0ade5f799b"
+      },
+      {
+        "date": "2023-07-05",
+        "file": "data/raw/india/grid-india/psp/2023-07-05_NLDC_PSP.xls",
+        "url": "https://webcdn.grid-india.in/files/grdw/uploads/daily-reports/psp-reports/2023-2024/05.07.23_NLDC_PSP.xls",
+        "sha256": "21e821877466928c58e342c26c9ef73ed4c93a0fd6d2f8e402eaa764d0901aaa"
+      },
+      {
+        "date": "2023-07-06",
+        "file": "data/raw/india/grid-india/psp/2023-07-06_NLDC_PSP.xls",
+        "url": "https://webcdn.grid-india.in/files/grdw/uploads/daily-reports/psp-reports/2023-2024/06.07.23_NLDC_PSP.xls",
+        "sha256": "1930c16892bee981cd3b066bad7ef4337fb905991e66d7179e26c4845975e225"
+      },
+      {
+        "date": "2023-07-07",
+        "file": "data/raw/india/grid-india/psp/2023-07-07_NLDC_PSP.xls",
+        "url": "https://webcdn.grid-india.in/files/grdw/uploads/daily-reports/psp-reports/2023-2024/07.07.23_NLDC_PSP.xls",
+        "sha256": "edacb06896f1c36dca947b647ef3c4a5fc18c535546c0701476092d787fb4d8e"
+      },
+      {
+        "date": "2023-07-08",
+        "file": "data/raw/india/grid-india/psp/2023-07-08_NLDC_PSP.xls",
+        "url": "https://webcdn.grid-india.in/files/grdw/uploads/daily-reports/psp-reports/2023-2024/08.07.23_NLDC_PSP.xls",
+        "sha256": "024e5ea4f24db813bb8319af2d24f43e33de72f9f48093e0ab6f843226019313"
+      },
+      {
+        "date": "2023-07-09",
+        "file": "data/raw/india/grid-india/psp/2023-07-09_NLDC_PSP.xls",
+        "url": "https://webcdn.grid-india.in/files/grdw/uploads/daily-reports/psp-reports/2023-2024/09.07.23_NLDC_PSP.xls",
+        "sha256": "136bc4c46d14cf2589b016b94a42297ed5feff909c14ad25b57926f7b5294c22"
+      },
+      {
+        "date": "2023-07-10",
+        "file": "data/raw/india/grid-india/psp/2023-07-10_NLDC_PSP.xls",
+        "url": "https://webcdn.grid-india.in/files/grdw/uploads/daily-reports/psp-reports/2023-2024/10.07.23_NLDC_PSP.xls",
+        "sha256": "1f25aa07b3cedbe403660ea715fd1342935253f5b0eb787a25af257576615e0f"
+      },
+      {
+        "date": "2023-07-11",
+        "file": "data/raw/india/grid-india/psp/2023-07-11_NLDC_PSP.xls",
+        "url": "https://webcdn.grid-india.in/files/grdw/uploads/daily-reports/psp-reports/2023-2024/11.07.23_NLDC_PSP.xls",
+        "sha256": "0e626134b5bdb18d66ff5d3ba21b9cea6c6b5c57f80c90f6fe3038489abce461"
+      },
+      {
+        "date": "2023-07-12",
+        "file": "data/raw/india/grid-india/psp/2023-07-12_NLDC_PSP.xls",
+        "url": "https://webcdn.grid-india.in/files/grdw/uploads/daily-reports/psp-reports/2023-2024/12.07.23_NLDC_PSP.xls",
+        "sha256": "311241532037600a3522f538df1401af34cee3ce2ff949bd7dd65cb3ee2855ad"
+      },
+      {
+        "date": "2023-07-13",
+        "file": "data/raw/india/grid-india/psp/2023-07-13_NLDC_PSP.xls",
+        "url": "https://webcdn.grid-india.in/files/grdw/uploads/daily-reports/psp-reports/2023-2024/13.07.23_NLDC_PSP.xls",
+        "sha256": "8dc4642f3339b62ec39c495eef70b98d705c80ae49f0e28a5f5b0b1c1f851ede"
+      },
+      {
+        "date": "2023-07-14",
+        "file": "data/raw/india/grid-india/psp/2023-07-14_NLDC_PSP.xls",
+        "url": "https://webcdn.grid-india.in/files/grdw/uploads/daily-reports/psp-reports/2023-2024/14.07.23_NLDC_PSP.xls",
+        "sha256": "29fff355bfb975d234336df7cf9f694d05883633c704a0f82d49ae638f875491"
+      },
+      {
+        "date": "2023-07-15",
+        "file": "data/raw/india/grid-india/psp/2023-07-15_NLDC_PSP.xls",
+        "url": "https://webcdn.grid-india.in/files/grdw/uploads/daily-reports/psp-reports/2023-2024/15.07.23_NLDC_PSP.xls",
+        "sha256": "92daa454876ea59b0d3e7d1466a93234e394d9a83c21be868b564659aaed6333"
+      },
+      {
+        "date": "2023-07-16",
+        "file": "data/raw/india/grid-india/psp/2023-07-16_NLDC_PSP.xls",
+        "url": "https://webcdn.grid-india.in/files/grdw/uploads/daily-reports/psp-reports/2023-2024/16.07.23_NLDC_PSP.xls",
+        "sha256": "e56e8a291b3ce1061a35435049bcc28e277a84e66c3d9895a4f658df06d66313"
+      },
+      {
+        "date": "2023-07-17",
+        "file": "data/raw/india/grid-india/psp/2023-07-17_NLDC_PSP.xls",
+        "url": "https://webcdn.grid-india.in/files/grdw/uploads/daily-reports/psp-reports/2023-2024/17.07.23_NLDC_PSP.xls",
+        "sha256": "1cf7a17b0451f78f5cfd2be99b4b31924d3d9e9cf87e32675ce00860026e1a53"
+      },
+      {
+        "date": "2023-07-18",
+        "file": "data/raw/india/grid-india/psp/2023-07-18_NLDC_PSP.xls",
+        "url": "https://webcdn.grid-india.in/files/grdw/uploads/daily-reports/psp-reports/2023-2024/18.07.23_NLDC_PSP.xls",
+        "sha256": "246c4c90a5371efc1086e5ce5b6553a673befef100aa21bec4980a97ad9de0f0"
+      },
+      {
+        "date": "2023-07-19",
+        "file": "data/raw/india/grid-india/psp/2023-07-19_NLDC_PSP.xls",
+        "url": "https://webcdn.grid-india.in/files/grdw/uploads/daily-reports/psp-reports/2023-2024/19.07.23_NLDC_PSP.xls",
+        "sha256": "08d8de0b3c57de6c6329da1e5b091edf9c32abc11190ec0fe52e1609763a87fe"
+      },
+      {
+        "date": "2023-07-20",
+        "file": "data/raw/india/grid-india/psp/2023-07-20_NLDC_PSP.xls",
+        "url": "https://webcdn.grid-india.in/files/grdw/uploads/daily-reports/psp-reports/2023-2024/20.07.23_NLDC_PSP.xls",
+        "sha256": "05d3e981e62e24d3ddd3873c99f7e3b1ce77dcf8f4dd9af6c424238b1043966d"
+      },
+      {
+        "date": "2023-07-21",
+        "file": "data/raw/india/grid-india/psp/2023-07-21_NLDC_PSP.xls",
+        "url": "https://webcdn.grid-india.in/files/grdw/uploads/daily-reports/psp-reports/2023-2024/21.07.23_NLDC_PSP.xls",
+        "sha256": "8a3ad7bcedc8276d2855d9bd7b3f65fdd9305cb58dd421f80f962c2f545d247c"
+      },
+      {
+        "date": "2023-07-22",
+        "file": "data/raw/india/grid-india/psp/2023-07-22_NLDC_PSP.xls",
+        "url": "https://webcdn.grid-india.in/files/grdw/uploads/daily-reports/psp-reports/2023-2024/22.07.23_NLDC_PSP.xls",
+        "sha256": "8427104fdab9b7b5b791e1b775d19651e460d923215062fcfbf92e9fe3606103"
+      },
+      {
+        "date": "2023-07-23",
+        "file": "data/raw/india/grid-india/psp/2023-07-23_NLDC_PSP.xls",
+        "url": "https://webcdn.grid-india.in/files/grdw/uploads/daily-reports/psp-reports/2023-2024/23.07.23_NLDC_PSP.xls",
+        "sha256": "d6ac88c2f6d6131a1b396ac6078399366970fbbd6990815a257536b1f7f9d3d8"
+      },
+      {
+        "date": "2023-07-24",
+        "file": "data/raw/india/grid-india/psp/2023-07-24_NLDC_PSP.xls",
+        "url": "https://webcdn.grid-india.in/files/grdw/uploads/daily-reports/psp-reports/2023-2024/24.07.23_NLDC_PSP.xls",
+        "sha256": "4fee1bb65a63758544eff81966496ef3beebcb93f5766c294e48cdbc39b2e47a"
+      },
+      {
+        "date": "2023-07-25",
+        "file": "data/raw/india/grid-india/psp/2023-07-25_NLDC_PSP.xls",
+        "url": "https://webcdn.grid-india.in/files/grdw/uploads/daily-reports/psp-reports/2023-2024/25.07.23_NLDC_PSP.xls",
+        "sha256": "852a0eb2c10450f411c6bedf19b2dc0a1719ed39d71b7c5bdcee5b0ec3d4060b"
+      },
+      {
+        "date": "2023-07-26",
+        "file": "data/raw/india/grid-india/psp/2023-07-26_NLDC_PSP.xls",
+        "url": "https://webcdn.grid-india.in/files/grdw/uploads/daily-reports/psp-reports/2023-2024/26.07.23_NLDC_PSP.xls",
+        "sha256": "dd6e21d2360364f15aae5c7c4c625645cf80d5287654648507ff6fa5ed200f6f"
+      },
+      {
+        "date": "2023-07-27",
+        "file": "data/raw/india/grid-india/psp/2023-07-27_NLDC_PSP.xls",
+        "url": "https://webcdn.grid-india.in/files/grdw/uploads/daily-reports/psp-reports/2023-2024/27.07.23_NLDC_PSP.xls",
+        "sha256": "27fdc8112db8b6aa0672fb03ece91201877ffe48c3b0454151422f8de9e86c56"
+      },
+      {
+        "date": "2023-07-28",
+        "file": "data/raw/india/grid-india/psp/2023-07-28_NLDC_PSP.xls",
+        "url": "https://webcdn.grid-india.in/files/grdw/uploads/daily-reports/psp-reports/2023-2024/28.07.23_NLDC_PSP.xls",
+        "sha256": "2c04ebea0f9ef2a20e47e8ff17539058f29ddd2dfa5e594d5dce49bc513a5dcb"
+      },
+      {
+        "date": "2023-07-29",
+        "file": "data/raw/india/grid-india/psp/2023-07-29_NLDC_PSP.xls",
+        "url": "https://webcdn.grid-india.in/files/grdw/uploads/daily-reports/psp-reports/2023-2024/29.07.23_NLDC_PSP.xls",
+        "sha256": "93a0459b6fdaf11a9b7412b65e9da39cce10e3743c83c89f9866ddb24fd879b3"
+      },
+      {
+        "date": "2023-07-30",
+        "file": "data/raw/india/grid-india/psp/2023-07-30_NLDC_PSP.xls",
+        "url": "https://webcdn.grid-india.in/files/grdw/uploads/daily-reports/psp-reports/2023-2024/30.07.23_NLDC_PSP.xls",
+        "sha256": "6cea3f25c7f9ea4bb01a37cc0d8a1a9dc936e3d3c65bd3a7fb0223e36489269b"
+      },
+      {
+        "date": "2023-07-31",
+        "file": "data/raw/india/grid-india/psp/2023-07-31_NLDC_PSP.xls",
+        "url": "https://webcdn.grid-india.in/files/grdw/uploads/daily-reports/psp-reports/2023-2024/31.07.23_NLDC_PSP.xls",
+        "sha256": "b88ef7cfe4885768e4db98cddab7addcf4021e7456db24d80caedab07f256d0e"
+      },
+      {
+        "date": "2023-08-01",
+        "file": "data/raw/india/grid-india/psp/2023-08-01_NLDC_PSP.xls",
+        "url": "https://webcdn.grid-india.in/files/grdw/uploads/daily-reports/psp-reports/2023-2024/01.08.23_NLDC_PSP.xls",
+        "sha256": "fb04070b288eeca022c348bdd306ed751b6933aa63ab3bac1e9aabf3a2a40b31"
+      },
+      {
+        "date": "2023-08-02",
+        "file": "data/raw/india/grid-india/psp/2023-08-02_NLDC_PSP.xls",
+        "url": "https://webcdn.grid-india.in/files/grdw/uploads/daily-reports/psp-reports/2023-2024/02.08.23_NLDC_PSP.xls",
+        "sha256": "e357f559fc6b2adb533e022a54a680299c69b9f22371c3c86833c0e6690948c3"
+      },
+      {
+        "date": "2023-08-03",
+        "file": "data/raw/india/grid-india/psp/2023-08-03_NLDC_PSP.xls",
+        "url": "https://webcdn.grid-india.in/files/grdw/uploads/daily-reports/psp-reports/2023-2024/03.08.23_NLDC_PSP.xls",
+        "sha256": "085b4a96b728c1414fa3add93864920c0e76f790049993cefe60ea8b357e93cf"
+      },
+      {
+        "date": "2023-08-04",
+        "file": "data/raw/india/grid-india/psp/2023-08-04_NLDC_PSP.xls",
+        "url": "https://webcdn.grid-india.in/files/grdw/uploads/daily-reports/psp-reports/2023-2024/04.08.23_NLDC_PSP.xls",
+        "sha256": "7ca4271ef99b6472ff6fe18bf566cce1178c1668830136cadea96eb1ffd83c39"
+      },
+      {
+        "date": "2023-08-05",
+        "file": "data/raw/india/grid-india/psp/2023-08-05_NLDC_PSP.xls",
+        "url": "https://webcdn.grid-india.in/files/grdw/uploads/daily-reports/psp-reports/2023-2024/05.08.23_NLDC_PSP.xls",
+        "sha256": "72044a50fb99c052a576a6d7a8a06c3a228449d8e2b226f10255c2a01f6f0584"
+      },
+      {
+        "date": "2023-08-06",
+        "file": "data/raw/india/grid-india/psp/2023-08-06_NLDC_PSP.xls",
+        "url": "https://webcdn.grid-india.in/files/grdw/uploads/daily-reports/psp-reports/2023-2024/06.08.23_NLDC_PSP.xls",
+        "sha256": "21da331fda86b8ca2699d1095800a62e9cbe10a779b4339dad9749780a803d18"
+      },
+      {
+        "date": "2023-08-07",
+        "file": "data/raw/india/grid-india/psp/2023-08-07_NLDC_PSP.xls",
+        "url": "https://webcdn.grid-india.in/files/grdw/uploads/daily-reports/psp-reports/2023-2024/07.08.23_NLDC_PSP.xls",
+        "sha256": "262caa17272ba5c3f5330594e98ce67a9d5c08ba428adc2c6d5600f38cc983ec"
+      },
+      {
+        "date": "2023-08-08",
+        "file": "data/raw/india/grid-india/psp/2023-08-08_NLDC_PSP.xls",
+        "url": "https://webcdn.grid-india.in/files/grdw/uploads/daily-reports/psp-reports/2023-2024/08.08.23_NLDC_PSP.xls",
+        "sha256": "c9c1526fbb7d7160cd2bf4d989b6854b3046c0452ea2c29a72a0a19bac2895a6"
+      },
+      {
+        "date": "2023-08-09",
+        "file": "data/raw/india/grid-india/psp/2023-08-09_NLDC_PSP.xls",
+        "url": "https://webcdn.grid-india.in/files/grdw/uploads/daily-reports/psp-reports/2023-2024/09.08.23_NLDC_PSP.xls",
+        "sha256": "e70424c6b86f34996d10d3a93e8f5911777b79834d356aa9984c5fd06f03ac57"
+      },
+      {
+        "date": "2023-08-10",
+        "file": "data/raw/india/grid-india/psp/2023-08-10_NLDC_PSP.xls",
+        "url": "https://webcdn.grid-india.in/files/grdw/uploads/daily-reports/psp-reports/2023-2024/10.08.23_NLDC_PSP.xls",
+        "sha256": "cf406dc7d9b7a95f86f4102d2dd881100a37d85888c9f346221b1ddfd6dc82b1"
+      },
+      {
+        "date": "2023-08-11",
+        "file": "data/raw/india/grid-india/psp/2023-08-11_NLDC_PSP.xls",
+        "url": "https://webcdn.grid-india.in/files/grdw/uploads/daily-reports/psp-reports/2023-2024/11.08.23_NLDC_PSP.xls",
+        "sha256": "4ce99866bb47ff415392204f14aa2801e042e2dde7c979923ffe3f9625787fd0"
+      },
+      {
+        "date": "2023-08-12",
+        "file": "data/raw/india/grid-india/psp/2023-08-12_NLDC_PSP.xls",
+        "url": "https://webcdn.grid-india.in/files/grdw/uploads/daily-reports/psp-reports/2023-2024/12.08.23_NLDC_PSP.xls",
+        "sha256": "0eb8e3f631a8a94ab2431e83093f9d85f91a017d15a0a6c109353f39a25ef1a6"
+      },
+      {
+        "date": "2023-08-13",
+        "file": "data/raw/india/grid-india/psp/2023-08-13_NLDC_PSP.xls",
+        "url": "https://webcdn.grid-india.in/files/grdw/uploads/daily-reports/psp-reports/2023-2024/13.08.23_NLDC_PSP.xls",
+        "sha256": "2250fe9c5740c951fdb6afb4458a087b8b1e916f7c34d65674bb8a797a5f50ab"
+      },
+      {
+        "date": "2023-08-14",
+        "file": "data/raw/india/grid-india/psp/2023-08-14_NLDC_PSP.xls",
+        "url": "https://webcdn.grid-india.in/files/grdw/uploads/daily-reports/psp-reports/2023-2024/14.08.23_NLDC_PSP.xls",
+        "sha256": "0f9a5c59d899ba13dd383f3a46a23a80b4f5808c2690bf4a485d20d8e50a56b5"
+      },
+      {
+        "date": "2023-08-15",
+        "file": "data/raw/india/grid-india/psp/2023-08-15_NLDC_PSP.xls",
+        "url": "https://webcdn.grid-india.in/files/grdw/uploads/daily-reports/psp-reports/2023-2024/15.08.23_NLDC_PSP.xls",
+        "sha256": "a5fb22cd8ab009ee1608debafc4b6cb38486bd4c77e951a51e96871a1b6c0eb5"
+      },
+      {
+        "date": "2023-08-16",
+        "file": "data/raw/india/grid-india/psp/2023-08-16_NLDC_PSP.xls",
+        "url": "https://webcdn.grid-india.in/files/grdw/uploads/daily-reports/psp-reports/2023-2024/16.08.23_NLDC_PSP.xls",
+        "sha256": "709932521912e376e20b9fa89ac02b3396473c0f009a0a709b3562c06d646e3f"
+      },
+      {
+        "date": "2023-08-17",
+        "file": "data/raw/india/grid-india/psp/2023-08-17_NLDC_PSP.xls",
+        "url": "https://webcdn.grid-india.in/files/grdw/uploads/daily-reports/psp-reports/2023-2024/17.08.23_NLDC_PSP.xls",
+        "sha256": "725f1889b4ee10867a9dc7749b81040a10ad6b0956dcfc8c14332cd366b94b0b"
+      },
+      {
+        "date": "2023-08-18",
+        "file": "data/raw/india/grid-india/psp/2023-08-18_NLDC_PSP.xls",
+        "url": "https://webcdn.grid-india.in/files/grdw/uploads/daily-reports/psp-reports/2023-2024/18.08.23_NLDC_PSP.xls",
+        "sha256": "62f6ae530124a44364b2c04626e90406b1b2a9db8b0ccca902668600718e05bf"
+      },
+      {
+        "date": "2023-08-19",
+        "file": "data/raw/india/grid-india/psp/2023-08-19_NLDC_PSP.xls",
+        "url": "https://webcdn.grid-india.in/files/grdw/uploads/daily-reports/psp-reports/2023-2024/19.08.23_NLDC_PSP.xls",
+        "sha256": "c5848e301a165a68c44f4dc5ffb407ccb505dea35791f3583472d32bb6ab0a74"
+      },
+      {
+        "date": "2023-08-20",
+        "file": "data/raw/india/grid-india/psp/2023-08-20_NLDC_PSP.xls",
+        "url": "https://webcdn.grid-india.in/files/grdw/uploads/daily-reports/psp-reports/2023-2024/20.08.23_NLDC_PSP.xls",
+        "sha256": "d98282ba3f53e49afdcdabb1215f11f68476e1ffbb6a29d6e6720068f4740403"
+      },
+      {
+        "date": "2023-08-21",
+        "file": "data/raw/india/grid-india/psp/2023-08-21_NLDC_PSP.xls",
+        "url": "https://webcdn.grid-india.in/files/grdw/uploads/daily-reports/psp-reports/2023-2024/21.08.23_NLDC_PSP.xls",
+        "sha256": "cc77ba8bbcca73d91f22e23f097103b600c580120534e6319abbc3444976d32c"
+      },
+      {
+        "date": "2023-08-22",
+        "file": "data/raw/india/grid-india/psp/2023-08-22_NLDC_PSP.xls",
+        "url": "https://webcdn.grid-india.in/files/grdw/uploads/daily-reports/psp-reports/2023-2024/22.08.23_NLDC_PSP.xls",
+        "sha256": "9c4120113dd4bcfdfb775dfb02db1919c07e6fee4463cc18418bfb18107516ab"
+      },
+      {
+        "date": "2023-08-23",
+        "file": "data/raw/india/grid-india/psp/2023-08-23_NLDC_PSP.xls",
+        "url": "https://webcdn.grid-india.in/files/grdw/uploads/daily-reports/psp-reports/2023-2024/23.08.23_NLDC_PSP.xls",
+        "sha256": "3c2350d9563d88f25cd20f0e30083d04b7d1b993969222fd8aadf0f643a3738f"
+      },
+      {
+        "date": "2023-08-24",
+        "file": "data/raw/india/grid-india/psp/2023-08-24_NLDC_PSP.xls",
+        "url": "https://webcdn.grid-india.in/files/grdw/uploads/daily-reports/psp-reports/2023-2024/24.08.23_NLDC_PSP.xls",
+        "sha256": "8694438cfcf0d41bf386d6300c15b1d23e40f95d7a465460ab38cdb1fd9d0b50"
+      },
+      {
+        "date": "2023-08-25",
+        "file": "data/raw/india/grid-india/psp/2023-08-25_NLDC_PSP.xls",
+        "url": "https://webcdn.grid-india.in/files/grdw/uploads/daily-reports/psp-reports/2023-2024/25.08.23_NLDC_PSP.xls",
+        "sha256": "3d12fac366a9a7de1c7e9f5e62b2569af6a77352bdad458a2973b1e932d1c9c8"
+      },
+      {
+        "date": "2023-08-26",
+        "file": "data/raw/india/grid-india/psp/2023-08-26_NLDC_PSP.xls",
+        "url": "https://webcdn.grid-india.in/files/grdw/uploads/daily-reports/psp-reports/2023-2024/26.08.23_NLDC_PSP.xls",
+        "sha256": "e11b3d0c222a05cd4e6148d3e4c7db0f8ae3dbdd8614973d5bf72350369fc9a6"
+      },
+      {
+        "date": "2023-08-27",
+        "file": "data/raw/india/grid-india/psp/2023-08-27_NLDC_PSP.xls",
+        "url": "https://webcdn.grid-india.in/files/grdw/uploads/daily-reports/psp-reports/2023-2024/27.08.23_NLDC_PSP.xls",
+        "sha256": "d2f95ddd2a5865d64e1fa2122aaacc53d646497f3db804a65c738ed5f7dc0f8e"
+      },
+      {
+        "date": "2023-08-28",
+        "file": "data/raw/india/grid-india/psp/2023-08-28_NLDC_PSP.xls",
+        "url": "https://webcdn.grid-india.in/files/grdw/uploads/daily-reports/psp-reports/2023-2024/28.08.23_NLDC_PSP.xls",
+        "sha256": "3c4d22e05325c642d46bbb83327921e2fff7f0838930a8c3c6ae59f417912837"
+      },
+      {
+        "date": "2023-08-29",
+        "file": "data/raw/india/grid-india/psp/2023-08-29_NLDC_PSP.xls",
+        "url": "https://webcdn.grid-india.in/files/grdw/uploads/daily-reports/psp-reports/2023-2024/29.08.23_NLDC_PSP.xls",
+        "sha256": "03c9f7311fecdf3c5f5e7e1712d390e4069b2df53fce77bad87cfd4005103272"
+      },
+      {
+        "date": "2023-08-30",
+        "file": "data/raw/india/grid-india/psp/2023-08-30_NLDC_PSP.xls",
+        "url": "https://webcdn.grid-india.in/files/grdw/uploads/daily-reports/psp-reports/2023-2024/30.08.23_NLDC_PSP.xls",
+        "sha256": "aeb8a8c4cc1833a4e32a940b59f9107ccd19a3259aa6da90a06ac2f17eec79f7"
+      },
+      {
+        "date": "2023-08-31",
+        "file": "data/raw/india/grid-india/psp/2023-08-31_NLDC_PSP.xls",
+        "url": "https://webcdn.grid-india.in/files/grdw/uploads/daily-reports/psp-reports/2023-2024/31.08.23_NLDC_PSP.xls",
+        "sha256": "3fedcffc8b95c91430c8228197482f591094558a35fa8a1e17502c041bed53b0"
+      },
+      {
+        "date": "2023-09-01",
+        "file": "data/raw/india/grid-india/psp/2023-09-01_NLDC_PSP.xls",
+        "url": "https://webcdn.grid-india.in/files/grdw/uploads/daily-reports/psp-reports/2023-2024/01.09.23_NLDC_PSP.xls",
+        "sha256": "4669ac24421e62cc4ef294f01ae18739cc2253c0220c934346acbda9857da059"
+      },
+      {
+        "date": "2023-09-02",
+        "file": "data/raw/india/grid-india/psp/2023-09-02_NLDC_PSP.xls",
+        "url": "https://webcdn.grid-india.in/files/grdw/uploads/daily-reports/psp-reports/2023-2024/02.09.23_NLDC_PSP.xls",
+        "sha256": "629810e15a7477f1281703a9c665d405fba434a3728ba8f5c12374190309c0dc"
+      },
+      {
+        "date": "2023-09-03",
+        "file": "data/raw/india/grid-india/psp/2023-09-03_NLDC_PSP.xls",
+        "url": "https://webcdn.grid-india.in/files/grdw/uploads/daily-reports/psp-reports/2023-2024/03.09.23_NLDC_PSP.xls",
+        "sha256": "5f5b9013cd3912f540a7fd87f66db157e4f6ccd09be6fd9becb919604e4b6c66"
+      },
+      {
+        "date": "2023-09-04",
+        "file": "data/raw/india/grid-india/psp/2023-09-04_NLDC_PSP.xls",
+        "url": "https://webcdn.grid-india.in/files/grdw/uploads/daily-reports/psp-reports/2023-2024/04.09.23_NLDC_PSP.xls",
+        "sha256": "6191ec9341ff79b9cde6fa08ceaa6ee8f70365f48f52db54cef2b87e4fa4e66c"
+      },
+      {
+        "date": "2023-09-05",
+        "file": "data/raw/india/grid-india/psp/2023-09-05_NLDC_PSP.xls",
+        "url": "https://webcdn.grid-india.in/files/grdw/uploads/daily-reports/psp-reports/2023-2024/05.09.23_NLDC_PSP.xls",
+        "sha256": "85efe04159e07f553d39b04c592494ac22cba64c23fdfda89b7491220a655120"
+      },
+      {
+        "date": "2023-09-06",
+        "file": "data/raw/india/grid-india/psp/2023-09-06_NLDC_PSP.xls",
+        "url": "https://webcdn.grid-india.in/files/grdw/uploads/daily-reports/psp-reports/2023-2024/06.09.23_NLDC_PSP.xls",
+        "sha256": "feabe6c9ed8494865b8677deedc978ffb62f6c0d5b21f3aa77208ab7a0861fc0"
+      },
+      {
+        "date": "2023-09-07",
+        "file": "data/raw/india/grid-india/psp/2023-09-07_NLDC_PSP.xls",
+        "url": "https://webcdn.grid-india.in/files/grdw/uploads/daily-reports/psp-reports/2023-2024/07.09.23_NLDC_PSP.xls",
+        "sha256": "c09e1c9ddf69b6ae25f71f87e3c87f2c406e737be8157dacf5c6f1756387b6fc"
+      },
+      {
+        "date": "2023-09-08",
+        "file": "data/raw/india/grid-india/psp/2023-09-08_NLDC_PSP.xls",
+        "url": "https://webcdn.grid-india.in/files/grdw/uploads/daily-reports/psp-reports/2023-2024/08.09.23_NLDC_PSP.xls",
+        "sha256": "9ce14e036c6dd529f169311ac50aefeb7607d2aca2100b1af90c32764ac84c54"
+      },
+      {
+        "date": "2023-09-09",
+        "file": "data/raw/india/grid-india/psp/2023-09-09_NLDC_PSP.xls",
+        "url": "https://webcdn.grid-india.in/files/grdw/uploads/daily-reports/psp-reports/2023-2024/09.09.23_NLDC_PSP.xls",
+        "sha256": "3e5bcad34ae475380315152cd8b1409510d41af83d9e5da3e4b3cee9a29cc765"
+      },
+      {
+        "date": "2023-09-10",
+        "file": "data/raw/india/grid-india/psp/2023-09-10_NLDC_PSP.xls",
+        "url": "https://webcdn.grid-india.in/files/grdw/uploads/daily-reports/psp-reports/2023-2024/10.09.23_NLDC_PSP.xls",
+        "sha256": "faa4b74c1679c1a61b6b79039b9f09dbed0778c1e5471c6949e28820bdefbf36"
+      },
+      {
+        "date": "2023-09-11",
+        "file": "data/raw/india/grid-india/psp/2023-09-11_NLDC_PSP.xls",
+        "url": "https://webcdn.grid-india.in/files/grdw/uploads/daily-reports/psp-reports/2023-2024/11.09.23_NLDC_PSP.xls",
+        "sha256": "4e096c6d82765378c039460a28eeae22939d060d87d8493353c2758bd6720634"
+      },
+      {
+        "date": "2023-09-12",
+        "file": "data/raw/india/grid-india/psp/2023-09-12_NLDC_PSP.xls",
+        "url": "https://webcdn.grid-india.in/files/grdw/uploads/daily-reports/psp-reports/2023-2024/12.09.23_NLDC_PSP.xls",
+        "sha256": "649c05bc951adf2f35de7015240144994b836ee5240ce841319d9831ce4022a0"
+      },
+      {
+        "date": "2023-09-13",
+        "file": "data/raw/india/grid-india/psp/2023-09-13_NLDC_PSP.xls",
+        "url": "https://webcdn.grid-india.in/files/grdw/uploads/daily-reports/psp-reports/2023-2024/13.09.23_NLDC_PSP.xls",
+        "sha256": "75bf9ffa45691265f6b2ef88887af393154c797227270152d22a8490d89211fc"
+      },
+      {
+        "date": "2023-09-14",
+        "file": "data/raw/india/grid-india/psp/2023-09-14_NLDC_PSP.xls",
+        "url": "https://webcdn.grid-india.in/files/grdw/uploads/daily-reports/psp-reports/2023-2024/14.09.23_NLDC_PSP.xls",
+        "sha256": "f7a6f783fdd7735bcf4e6b6de87d604553eab618f10c6242d22d10c1d5af9565"
+      },
+      {
+        "date": "2023-09-15",
+        "file": "data/raw/india/grid-india/psp/2023-09-15_NLDC_PSP.xls",
+        "url": "https://webcdn.grid-india.in/files/grdw/uploads/daily-reports/psp-reports/2023-2024/15.09.23_NLDC_PSP.xls",
+        "sha256": "f059be2192a1f1e789cc79525ecb165c9cacd737a4bbe6cf5de8c97ba504d6c9"
+      },
+      {
+        "date": "2023-09-16",
+        "file": "data/raw/india/grid-india/psp/2023-09-16_NLDC_PSP.xls",
+        "url": "https://webcdn.grid-india.in/files/grdw/uploads/daily-reports/psp-reports/2023-2024/16.09.23_NLDC_PSP.xls",
+        "sha256": "0ff6f9ba386bd62575c927efdd3e965ae7647de6cdd2992535b578f0806d48b6"
+      },
+      {
+        "date": "2023-09-17",
+        "file": "data/raw/india/grid-india/psp/2023-09-17_NLDC_PSP.xls",
+        "url": "https://webcdn.grid-india.in/files/grdw/uploads/daily-reports/psp-reports/2023-2024/17.09.23_NLDC_PSP.xls",
+        "sha256": "5f21e302b7a677dadefd41823d3e129d8a84b11232c8a08a38665cfcb2e2891c"
+      },
+      {
+        "date": "2023-09-18",
+        "file": "data/raw/india/grid-india/psp/2023-09-18_NLDC_PSP.xls",
+        "url": "https://webcdn.grid-india.in/files/grdw/uploads/daily-reports/psp-reports/2023-2024/18.09.23_NLDC_PSP.xls",
+        "sha256": "8fd530ba7ecf9b128303f0083c13bd6421adedce58c07b67a9ab24dd50282939"
+      },
+      {
+        "date": "2023-09-19",
+        "file": "data/raw/india/grid-india/psp/2023-09-19_NLDC_PSP.xls",
+        "url": "https://webcdn.grid-india.in/files/grdw/uploads/daily-reports/psp-reports/2023-2024/19.09.23_NLDC_PSP.xls",
+        "sha256": "292e3b1c32d4818c8b076b923e85feff6d2db792214e954c9fb5b4517b1941d9"
+      },
+      {
+        "date": "2023-09-20",
+        "file": "data/raw/india/grid-india/psp/2023-09-20_NLDC_PSP.xls",
+        "url": "https://webcdn.grid-india.in/files/grdw/uploads/daily-reports/psp-reports/2023-2024/20.09.23_NLDC_PSP.xls",
+        "sha256": "e2f96d39a131b6498da8409376e1875cba82cfc000f401f816cec160f063f4f1"
+      },
+      {
+        "date": "2023-09-21",
+        "file": "data/raw/india/grid-india/psp/2023-09-21_NLDC_PSP.xls",
+        "url": "https://webcdn.grid-india.in/files/grdw/uploads/daily-reports/psp-reports/2023-2024/21.09.23_NLDC_PSP.xls",
+        "sha256": "ed3a87d741d457de44b9f208e72844a73edf5d4478cee4540289407a455e7acf"
+      },
+      {
+        "date": "2023-09-22",
+        "file": "data/raw/india/grid-india/psp/2023-09-22_NLDC_PSP.xls",
+        "url": "https://webcdn.grid-india.in/files/grdw/uploads/daily-reports/psp-reports/2023-2024/22.09.23_NLDC_PSP.xls",
+        "sha256": "ad9b221cfe86c19c73d2aec546dee05cb1fa0429f06b0f8b410ad98fc8e3b489"
+      },
+      {
+        "date": "2023-09-23",
+        "file": "data/raw/india/grid-india/psp/2023-09-23_NLDC_PSP.xls",
+        "url": "https://webcdn.grid-india.in/files/grdw/uploads/daily-reports/psp-reports/2023-2024/23.09.23_NLDC_PSP.xls",
+        "sha256": "3c7dd6fdf6ad4de144366a031a6ee2ae58d20ad28e40a1caf1f2bf5960f45891"
+      },
+      {
+        "date": "2023-09-24",
+        "file": "data/raw/india/grid-india/psp/2023-09-24_NLDC_PSP.xls",
+        "url": "https://webcdn.grid-india.in/files/grdw/uploads/daily-reports/psp-reports/2023-2024/24.09.23_NLDC_PSP.xls",
+        "sha256": "fde4b4a2da2b7b9376fad57a499557d3a07c60205d533ad76cbf759aeca71873"
+      },
+      {
+        "date": "2023-09-25",
+        "file": "data/raw/india/grid-india/psp/2023-09-25_NLDC_PSP.xls",
+        "url": "https://webcdn.grid-india.in/files/grdw/uploads/daily-reports/psp-reports/2023-2024/25.09.23_NLDC_PSP.xls",
+        "sha256": "4909a53dbdf4233dec48a32c9a72feabafdb2300571c96dcdfe7139035cd6f73"
+      },
+      {
+        "date": "2023-09-26",
+        "file": "data/raw/india/grid-india/psp/2023-09-26_NLDC_PSP.xls",
+        "url": "https://webcdn.grid-india.in/files/grdw/uploads/daily-reports/psp-reports/2023-2024/26.09.23_NLDC_PSP.xls",
+        "sha256": "ca2bde888077cccf3923612397cbd0937d7692fc21e995c0c55b315698395716"
+      },
+      {
+        "date": "2023-09-27",
+        "file": "data/raw/india/grid-india/psp/2023-09-27_NLDC_PSP.xls",
+        "url": "https://webcdn.grid-india.in/files/grdw/uploads/daily-reports/psp-reports/2023-2024/27.09.23_NLDC_PSP.xls",
+        "sha256": "6529b7bf144c583b1bd985004f542a3086402f19af5d5ad67779c8a69afb9851"
+      },
+      {
+        "date": "2023-09-28",
+        "file": "data/raw/india/grid-india/psp/2023-09-28_NLDC_PSP.xls",
+        "url": "https://webcdn.grid-india.in/files/grdw/uploads/daily-reports/psp-reports/2023-2024/28.09.23_NLDC_PSP.xls",
+        "sha256": "6972785cc8c9ba811a6c1f02b747cdb08967234e084eae29526ec5c0689fc7d4"
+      },
+      {
+        "date": "2023-09-29",
+        "file": "data/raw/india/grid-india/psp/2023-09-29_NLDC_PSP.xls",
+        "url": "https://webcdn.grid-india.in/files/grdw/uploads/daily-reports/psp-reports/2023-2024/29.09.23_NLDC_PSP.xls",
+        "sha256": "317fa2f9b4d09bc3954ed576f5b2afb48bb7e4a49d344cbb145e070c9d903f93"
+      },
+      {
+        "date": "2023-09-30",
+        "file": "data/raw/india/grid-india/psp/2023-09-30_NLDC_PSP.xls",
+        "url": "https://webcdn.grid-india.in/files/grdw/uploads/daily-reports/psp-reports/2023-2024/30.09.23_NLDC_PSP.xls",
+        "sha256": "8bd2c7e2142f89cd27a2b3ea163241dde80d59f13867643468c17113c9273611"
+      },
+      {
+        "date": "2023-10-01",
+        "file": "data/raw/india/grid-india/psp/2023-10-01_NLDC_PSP.xls",
+        "url": "https://webcdn.grid-india.in/files/grdw/uploads/daily-reports/psp-reports/2023-2024/01.10.23_NLDC_PSP.xls",
+        "sha256": "5966c0c78abff931e0873c22a79ab7e68c226146ed9f62628bd8a29fce30e1d2"
+      },
+      {
+        "date": "2023-10-02",
+        "file": "data/raw/india/grid-india/psp/2023-10-02_NLDC_PSP.xls",
+        "url": "https://webcdn.grid-india.in/files/grdw/uploads/daily-reports/psp-reports/2023-2024/02.10.23_NLDC_PSP.xls",
+        "sha256": "fc802e0161c49d512455902a5e5b8eddee0eb3913ce849bfc5275fc6188343c4"
+      },
+      {
+        "date": "2023-10-03",
+        "file": "data/raw/india/grid-india/psp/2023-10-03_NLDC_PSP.xls",
+        "url": "https://webcdn.grid-india.in/files/grdw/uploads/daily-reports/psp-reports/2023-2024/03.10.23_NLDC_PSP.xls",
+        "sha256": "4fcf723acffdd846f808ca6acac8a2d341eb30938c1d5e1e1cb8c539a97dd693"
+      },
+      {
+        "date": "2023-10-04",
+        "file": "data/raw/india/grid-india/psp/2023-10-04_NLDC_PSP.xls",
+        "url": "https://webcdn.grid-india.in/files/grdw/uploads/daily-reports/psp-reports/2023-2024/04.10.23_NLDC_PSP.xls",
+        "sha256": "dba2d9bc8fc69db4439e23c80a9865f1707d054a7d6c0696721568256b39741d"
+      },
+      {
+        "date": "2023-10-05",
+        "file": "data/raw/india/grid-india/psp/2023-10-05_NLDC_PSP.xls",
+        "url": "https://webcdn.grid-india.in/files/grdw/uploads/daily-reports/psp-reports/2023-2024/05.10.23_NLDC_PSP.xls",
+        "sha256": "2caec29893304f7009b841a1758b913fd8db16533cc4058ecac37a4ed2e7fbfc"
+      },
+      {
+        "date": "2023-10-06",
+        "file": "data/raw/india/grid-india/psp/2023-10-06_NLDC_PSP.xls",
+        "url": "https://webcdn.grid-india.in/files/grdw/uploads/daily-reports/psp-reports/2023-2024/06.10.23_NLDC_PSP.xls",
+        "sha256": "e4dc6dddc6f83d542a0500eee623e72e50ee46b5221165e4762532a9ab39220c"
+      },
+      {
+        "date": "2023-10-07",
+        "file": "data/raw/india/grid-india/psp/2023-10-07_NLDC_PSP.xls",
+        "url": "https://webcdn.grid-india.in/files/grdw/uploads/daily-reports/psp-reports/2023-2024/07.10.23_NLDC_PSP.xls",
+        "sha256": "29017ca97f20d789e2a6ea4e73d2b1dcefd5d041f922b53da2378cf71ee8c9c1"
+      },
+      {
+        "date": "2023-10-08",
+        "file": "data/raw/india/grid-india/psp/2023-10-08_NLDC_PSP.xls",
+        "url": "https://webcdn.grid-india.in/files/grdw/uploads/daily-reports/psp-reports/2023-2024/08.10.23_NLDC_PSP.xls",
+        "sha256": "9fba729e1c0bcbb3a9a8c366b844eacb560f96b92fcd876436204cd9f8337ab1"
+      },
+      {
+        "date": "2023-10-09",
+        "file": "data/raw/india/grid-india/psp/2023-10-09_NLDC_PSP.xls",
+        "url": "https://webcdn.grid-india.in/files/grdw/uploads/daily-reports/psp-reports/2023-2024/09.10.23_NLDC_PSP.xls",
+        "sha256": "311fb4d2348738a2aa4cd8e01836b381fc08225cb1ad59da157ad615e62947be"
+      },
+      {
+        "date": "2023-10-10",
+        "file": "data/raw/india/grid-india/psp/2023-10-10_NLDC_PSP.xls",
+        "url": "https://webcdn.grid-india.in/files/grdw/uploads/daily-reports/psp-reports/2023-2024/10.10.23_NLDC_PSP.xls",
+        "sha256": "d25bd5bbeb696f3407fa75062472040f3afecd5a862b81327ba2ea51ca8bb78a"
+      },
+      {
+        "date": "2023-10-11",
+        "file": "data/raw/india/grid-india/psp/2023-10-11_NLDC_PSP.xls",
+        "url": "https://webcdn.grid-india.in/files/grdw/uploads/daily-reports/psp-reports/2023-2024/11.10.23_NLDC_PSP.xls",
+        "sha256": "18cd793ab9d1a35356df675838d113ed58f2508186d23b5c795d9b0814faab71"
+      },
+      {
+        "date": "2023-10-12",
+        "file": "data/raw/india/grid-india/psp/2023-10-12_NLDC_PSP.xls",
+        "url": "https://webcdn.grid-india.in/files/grdw/uploads/daily-reports/psp-reports/2023-2024/12.10.23_NLDC_PSP.xls",
+        "sha256": "bf681c6ac847003976d4acf34617c151be2406f4d3e22cbb90b6246cb0a03a8d"
+      },
+      {
+        "date": "2023-10-13",
+        "file": "data/raw/india/grid-india/psp/2023-10-13_NLDC_PSP.xls",
+        "url": "https://webcdn.grid-india.in/files/grdw/uploads/daily-reports/psp-reports/2023-2024/13.10.23_NLDC_PSP.xls",
+        "sha256": "5ebe012b7182338ecea03bc6d0a94052a5de6830194c5c77b8024197acbd89ff"
+      },
+      {
+        "date": "2023-10-14",
+        "file": "data/raw/india/grid-india/psp/2023-10-14_NLDC_PSP.xls",
+        "url": "https://webcdn.grid-india.in/files/grdw/uploads/daily-reports/psp-reports/2023-2024/14.10.23_NLDC_PSP.xls",
+        "sha256": "fee1096b828465474096358c5f0c38e5525b065c5e12c24bda0cc2b474ed8494"
+      },
+      {
+        "date": "2023-10-15",
+        "file": "data/raw/india/grid-india/psp/2023-10-15_NLDC_PSP.xls",
+        "url": "https://webcdn.grid-india.in/files/grdw/uploads/daily-reports/psp-reports/2023-2024/15.10.23_NLDC_PSP.xls",
+        "sha256": "2b801b8d289135bc74264be7d4d8ae7f3b42831635a5ce45cf0a7441c9ace903"
+      },
+      {
+        "date": "2023-10-16",
+        "file": "data/raw/india/grid-india/psp/2023-10-16_NLDC_PSP.xls",
+        "url": "https://webcdn.grid-india.in/files/grdw/uploads/daily-reports/psp-reports/2023-2024/16.10.23_NLDC_PSP.xls",
+        "sha256": "8af9c2b8038e672bcd607b854e779a5a182a72c744ec1e62eb441f1d00cc6390"
+      },
+      {
+        "date": "2023-10-17",
+        "file": "data/raw/india/grid-india/psp/2023-10-17_NLDC_PSP.xls",
+        "url": "https://webcdn.grid-india.in/files/grdw/uploads/daily-reports/psp-reports/2023-2024/17.10.23_NLDC_PSP.xls",
+        "sha256": "11041a06fd70849e2e375c0399a7c79757a398aee1fe6530899bbe2d12a0acd9"
+      },
+      {
+        "date": "2023-10-18",
+        "file": "data/raw/india/grid-india/psp/2023-10-18_NLDC_PSP.xls",
+        "url": "https://webcdn.grid-india.in/files/grdw/uploads/daily-reports/psp-reports/2023-2024/18.10.23_NLDC_PSP.xls",
+        "sha256": "d25a513a3cb89a4047fe8bd59630de17401cf4f7c14145632543bd399c6d9723"
+      },
+      {
+        "date": "2023-10-19",
+        "file": "data/raw/india/grid-india/psp/2023-10-19_NLDC_PSP.xls",
+        "url": "https://webcdn.grid-india.in/files/grdw/uploads/daily-reports/psp-reports/2023-2024/19.10.23_NLDC_PSP.xls",
+        "sha256": "87b1ef4f1b7e3cac6c6ef14439fc5efc2fea9db009ea54b0f169ea0a0e8d0312"
+      },
+      {
+        "date": "2023-10-20",
+        "file": "data/raw/india/grid-india/psp/2023-10-20_NLDC_PSP.xls",
+        "url": "https://webcdn.grid-india.in/files/grdw/uploads/daily-reports/psp-reports/2023-2024/20.10.23_NLDC_PSP.xls",
+        "sha256": "1b1a1e8aa68aed0f2bc930db90c0a0d51d301a5f9ec13e774c16693aeab56524"
+      },
+      {
+        "date": "2023-10-21",
+        "file": "data/raw/india/grid-india/psp/2023-10-21_NLDC_PSP.xls",
+        "url": "https://webcdn.grid-india.in/files/grdw/uploads/daily-reports/psp-reports/2023-2024/21.10.23_NLDC_PSP.xls",
+        "sha256": "7493235ddd609e5b52f183dca857a2e8f3fddc12cd7e47d0a769a7a867154f49"
+      },
+      {
+        "date": "2023-10-22",
+        "file": "data/raw/india/grid-india/psp/2023-10-22_NLDC_PSP.xls",
+        "url": "https://webcdn.grid-india.in/files/grdw/uploads/daily-reports/psp-reports/2023-2024/22.10.23_NLDC_PSP.xls",
+        "sha256": "b8115c74996118a1f70d63880ea3234a9adc1e16788ce5ad311c534c7a0722f6"
+      },
+      {
+        "date": "2023-10-23",
+        "file": "data/raw/india/grid-india/psp/2023-10-23_NLDC_PSP.xls",
+        "url": "https://webcdn.grid-india.in/files/grdw/uploads/daily-reports/psp-reports/2023-2024/23.10.23_NLDC_PSP.xls",
+        "sha256": "fc618ecd1978d5e0a0eb911b233bed0f33becb75b63774ac97445e4b659b948c"
+      },
+      {
+        "date": "2023-10-24",
+        "file": "data/raw/india/grid-india/psp/2023-10-24_NLDC_PSP.xls",
+        "url": "https://webcdn.grid-india.in/files/grdw/uploads/daily-reports/psp-reports/2023-2024/24.10.23_NLDC_PSP.xls",
+        "sha256": "eba96acd9af5f55b0be323884ecf71b65ad0bf1ef521ac811693e6243036b95c"
+      },
+      {
+        "date": "2023-10-25",
+        "file": "data/raw/india/grid-india/psp/2023-10-25_NLDC_PSP.xls",
+        "url": "https://webcdn.grid-india.in/files/grdw/uploads/daily-reports/psp-reports/2023-2024/25.10.23_NLDC_PSP.xls",
+        "sha256": "3fbcd9d8519c5f231fdd4ab0a678fba938eacabc85f15522ba9b58e09657fdad"
+      },
+      {
+        "date": "2023-10-26",
+        "file": "data/raw/india/grid-india/psp/2023-10-26_NLDC_PSP.xls",
+        "url": "https://webcdn.grid-india.in/files/grdw/uploads/daily-reports/psp-reports/2023-2024/26.10.23_NLDC_PSP.xls",
+        "sha256": "73f065532faffce59ac0ed7f202a80fa17f2d2e3149484229a11efb63b530b9d"
+      },
+      {
+        "date": "2023-10-27",
+        "file": "data/raw/india/grid-india/psp/2023-10-27_NLDC_PSP.xls",
+        "url": "https://webcdn.grid-india.in/files/grdw/uploads/daily-reports/psp-reports/2023-2024/27.10.23_NLDC_PSP.xls",
+        "sha256": "37511bc8c243de468cc65e18f34f9d602637f77537d068c7ba2c5d2937aae70c"
+      },
+      {
+        "date": "2023-10-28",
+        "file": "data/raw/india/grid-india/psp/2023-10-28_NLDC_PSP.xls",
+        "url": "https://webcdn.grid-india.in/files/grdw/uploads/daily-reports/psp-reports/2023-2024/28.10.23_NLDC_PSP.xls",
+        "sha256": "f42ec3aae4f80cae96c674ee2300f0fac5a6c382564cb252a51d364aa7d43b58"
+      },
+      {
+        "date": "2023-10-29",
+        "file": "data/raw/india/grid-india/psp/2023-10-29_NLDC_PSP.xls",
+        "url": "https://webcdn.grid-india.in/files/grdw/uploads/daily-reports/psp-reports/2023-2024/29.10.23_NLDC_PSP.xls",
+        "sha256": "f31182e0a34ff9fa48ab213fe0127a010b52cd5700ef554b54a2ce41d26c1b42"
+      },
+      {
+        "date": "2023-10-30",
+        "file": "data/raw/india/grid-india/psp/2023-10-30_NLDC_PSP.xls",
+        "url": "https://webcdn.grid-india.in/files/grdw/uploads/daily-reports/psp-reports/2023-2024/30.10.23_NLDC_PSP.xls",
+        "sha256": "bee3e98cf91b520d37d77456c4037d588973400f692b9ec4f437621522178213"
+      },
+      {
+        "date": "2023-10-31",
+        "file": "data/raw/india/grid-india/psp/2023-10-31_NLDC_PSP.xls",
+        "url": "https://webcdn.grid-india.in/files/grdw/uploads/daily-reports/psp-reports/2023-2024/31.10.23_NLDC_PSP.xls",
+        "sha256": "213edf15eccc67ffb3831f8ed5d7740b63515eda0f603a16e9b477f4b61a73a7"
+      },
+      {
+        "date": "2023-11-01",
+        "file": "data/raw/india/grid-india/psp/2023-11-01_NLDC_PSP.xls",
+        "url": "https://webcdn.grid-india.in/files/grdw/uploads/daily-reports/psp-reports/2023-2024/01.11.23_NLDC_PSP.xls",
+        "sha256": "9e52431cf00efeec520234eb02ca21e0a4d55b9d26a87493a3345c6b5035b607"
+      },
+      {
+        "date": "2023-11-02",
+        "file": "data/raw/india/grid-india/psp/2023-11-02_NLDC_PSP.xls",
+        "url": "https://webcdn.grid-india.in/files/grdw/uploads/daily-reports/psp-reports/2023-2024/02.11.23_NLDC_PSP.xls",
+        "sha256": "39420ef9a92729f25076df86aa7252e173d47a6a3003b2382a5765c79fc27ac6"
+      },
+      {
+        "date": "2023-11-03",
+        "file": "data/raw/india/grid-india/psp/2023-11-03_NLDC_PSP.xls",
+        "url": "https://webcdn.grid-india.in/files/grdw/uploads/daily-reports/psp-reports/2023-2024/03.11.23_NLDC_PSP.xls",
+        "sha256": "98becb29f274585ca92ff2b4c36b3a39c5baa71201d7aad4a197350ffe163118"
+      },
+      {
+        "date": "2023-11-04",
+        "file": "data/raw/india/grid-india/psp/2023-11-04_NLDC_PSP.xls",
+        "url": "https://webcdn.grid-india.in/files/grdw/uploads/daily-reports/psp-reports/2023-2024/04.11.23_NLDC_PSP.xls",
+        "sha256": "4b938a2736aefa1bc36651fa31d3f0e7cb20b35c74043ed20420d0fb16038b0b"
+      },
+      {
+        "date": "2023-11-05",
+        "file": "data/raw/india/grid-india/psp/2023-11-05_NLDC_PSP.xls",
+        "url": "https://webcdn.grid-india.in/files/grdw/uploads/daily-reports/psp-reports/2023-2024/05.11.23_NLDC_PSP.xls",
+        "sha256": "43ad296d85e835266855c6b12458f5e3e6bcfa741697023b06a309a9b1d21b4d"
+      },
+      {
+        "date": "2023-11-06",
+        "file": "data/raw/india/grid-india/psp/2023-11-06_NLDC_PSP.xls",
+        "url": "https://webcdn.grid-india.in/files/grdw/uploads/daily-reports/psp-reports/2023-2024/06.11.23_NLDC_PSP.xls",
+        "sha256": "5cc2972dd0251a407e830094f019cd4d6713dc42bec200ac842630342ce7637b"
+      },
+      {
+        "date": "2023-11-07",
+        "file": "data/raw/india/grid-india/psp/2023-11-07_NLDC_PSP.xls",
+        "url": "https://webcdn.grid-india.in/files/grdw/uploads/daily-reports/psp-reports/2023-2024/07.11.23_NLDC_PSP.xls",
+        "sha256": "ae7a0ae8b3f0213e2b4949f4622724306c7e7ba89d1fc5108eb7ec830d533ca1"
+      },
+      {
+        "date": "2023-11-08",
+        "file": "data/raw/india/grid-india/psp/2023-11-08_NLDC_PSP.xls",
+        "url": "https://webcdn.grid-india.in/files/grdw/uploads/daily-reports/psp-reports/2023-2024/08.11.23_NLDC_PSP.xls",
+        "sha256": "7e7d3376636cdfbc32be350a7981c589bff5692648223aa815aeb27e7cf36797"
+      },
+      {
+        "date": "2023-11-09",
+        "file": "data/raw/india/grid-india/psp/2023-11-09_NLDC_PSP.xls",
+        "url": "https://webcdn.grid-india.in/files/grdw/uploads/daily-reports/psp-reports/2023-2024/09.11.23_NLDC_PSP.xls",
+        "sha256": "6909cc8412e49874b8c2b913eadff1bd892abf6e73fecb61dc9ac35f4bab28fc"
+      },
+      {
+        "date": "2023-11-10",
+        "file": "data/raw/india/grid-india/psp/2023-11-10_NLDC_PSP.xls",
+        "url": "https://webcdn.grid-india.in/files/grdw/uploads/daily-reports/psp-reports/2023-2024/10.11.23_NLDC_PSP.xls",
+        "sha256": "0968ad6d05a1bd1b405caaa7bafc6042b108e48228d55c5bca495f5bd25716a8"
+      },
+      {
+        "date": "2023-11-11",
+        "file": "data/raw/india/grid-india/psp/2023-11-11_NLDC_PSP.xls",
+        "url": "https://webcdn.grid-india.in/files/grdw/uploads/daily-reports/psp-reports/2023-2024/11.11.23_NLDC_PSP.xls",
+        "sha256": "507f35b1ddae24bf46e4f7fdb44937217de47caceeded0612552a9b882cb87e6"
+      },
+      {
+        "date": "2023-11-12",
+        "file": "data/raw/india/grid-india/psp/2023-11-12_NLDC_PSP.xls",
+        "url": "https://webcdn.grid-india.in/files/grdw/uploads/daily-reports/psp-reports/2023-2024/12.11.23_NLDC_PSP.xls",
+        "sha256": "4cd37734347ab042018f0eae3dafb3a5961391b2fb5baee9ca93dc69f0133ece"
+      },
+      {
+        "date": "2023-11-13",
+        "file": "data/raw/india/grid-india/psp/2023-11-13_NLDC_PSP.xls",
+        "url": "https://webcdn.grid-india.in/files/grdw/uploads/daily-reports/psp-reports/2023-2024/13.11.23_NLDC_PSP.xls",
+        "sha256": "23f5a68eb1e2a288204b5ddb430c8bc0d3e39c6556659117c9d3422f4874e4bb"
+      },
+      {
+        "date": "2023-11-14",
+        "file": "data/raw/india/grid-india/psp/2023-11-14_NLDC_PSP.xls",
+        "url": "https://webcdn.grid-india.in/files/grdw/uploads/daily-reports/psp-reports/2023-2024/14.11.23_NLDC_PSP.xls",
+        "sha256": "e4bb5213f04ddc0bc2b086b917f2084ee8d3adaff73cc03f0204e02fda241e67"
+      },
+      {
+        "date": "2023-11-15",
+        "file": "data/raw/india/grid-india/psp/2023-11-15_NLDC_PSP.xls",
+        "url": "https://webcdn.grid-india.in/files/grdw/uploads/daily-reports/psp-reports/2023-2024/15.11.23_NLDC_PSP.xls",
+        "sha256": "e640cfdeee432d00fbd5f2ff1d43c0de9575473f2962f3c2446633ffb512f5b1"
+      },
+      {
+        "date": "2023-11-16",
+        "file": "data/raw/india/grid-india/psp/2023-11-16_NLDC_PSP.xls",
+        "url": "https://webcdn.grid-india.in/files/grdw/uploads/daily-reports/psp-reports/2023-2024/16.11.23_NLDC_PSP.xls",
+        "sha256": "ff13fd80079970e07864263065fb23238b3e6fda4d538c529fc8ec5abafabf6a"
+      },
+      {
+        "date": "2023-11-17",
+        "file": "data/raw/india/grid-india/psp/2023-11-17_NLDC_PSP.xls",
+        "url": "https://webcdn.grid-india.in/files/grdw/uploads/daily-reports/psp-reports/2023-2024/17.11.23_NLDC_PSP.xls",
+        "sha256": "38ffd4cf2d9199d8b05406e2ef8e93945f8d91dfe71553d2a59aa4d9749457e4"
+      },
+      {
+        "date": "2023-11-18",
+        "file": "data/raw/india/grid-india/psp/2023-11-18_NLDC_PSP.xls",
+        "url": "https://webcdn.grid-india.in/files/grdw/uploads/daily-reports/psp-reports/2023-2024/18.11.23_NLDC_PSP.xls",
+        "sha256": "5f2a47e131e140ceddb317a3de1dbfe2bbbf576918685720b8e1a8ac3afa4505"
+      },
+      {
+        "date": "2023-11-19",
+        "file": "data/raw/india/grid-india/psp/2023-11-19_NLDC_PSP.xls",
+        "url": "https://webcdn.grid-india.in/files/grdw/uploads/daily-reports/psp-reports/2023-2024/19.11.23_NLDC_PSP.xls",
+        "sha256": "106545f67b82428ede09a11b58c529f42ab3888b51e08a7ea7efcc092145c205"
+      },
+      {
+        "date": "2023-11-20",
+        "file": "data/raw/india/grid-india/psp/2023-11-20_NLDC_PSP.xls",
+        "url": "https://webcdn.grid-india.in/files/grdw/uploads/daily-reports/psp-reports/2023-2024/20.11.23_NLDC_PSP.xls",
+        "sha256": "0b75c8f8b403d915f4d258d1dff3566201386d0bb9223ab54fb125178ae19180"
+      },
+      {
+        "date": "2023-11-21",
+        "file": "data/raw/india/grid-india/psp/2023-11-21_NLDC_PSP.xls",
+        "url": "https://webcdn.grid-india.in/files/grdw/uploads/daily-reports/psp-reports/2023-2024/21.11.23_NLDC_PSP.xls",
+        "sha256": "dc5344b3b54a25b199c3732a63c567d2b3908637afd9aa1f8234dbf4f42bd74e"
+      },
+      {
+        "date": "2023-11-22",
+        "file": "data/raw/india/grid-india/psp/2023-11-22_NLDC_PSP.xls",
+        "url": "https://webcdn.grid-india.in/files/grdw/uploads/daily-reports/psp-reports/2023-2024/22.11.23_NLDC_PSP.xls",
+        "sha256": "ea33e63d7627640927a54680a8d28ea3c37b29d5f8c0db63800fc6467e9f2a18"
+      },
+      {
+        "date": "2023-11-23",
+        "file": "data/raw/india/grid-india/psp/2023-11-23_NLDC_PSP.xls",
+        "url": "https://webcdn.grid-india.in/files/grdw/uploads/daily-reports/psp-reports/2023-2024/23.11.23_NLDC_PSP.xls",
+        "sha256": "2e38a88b6169043caa139fed804e2c63ccf7c0805559a569d2b8fa9de7940182"
+      },
+      {
+        "date": "2023-11-24",
+        "file": "data/raw/india/grid-india/psp/2023-11-24_NLDC_PSP.xls",
+        "url": "https://webcdn.grid-india.in/files/grdw/uploads/daily-reports/psp-reports/2023-2024/24.11.23_NLDC_PSP.xls",
+        "sha256": "5a5bf7339eb194dacedc9a594c02bbd705e4341117fbed1c727d5a5805d97666"
+      },
+      {
+        "date": "2023-11-25",
+        "file": "data/raw/india/grid-india/psp/2023-11-25_NLDC_PSP.xls",
+        "url": "https://webcdn.grid-india.in/files/grdw/uploads/daily-reports/psp-reports/2023-2024/25.11.23_NLDC_PSP.xls",
+        "sha256": "f6b3e1dc54b95aafa6fc6b99e5a06005f1f079906c98ed9d45784e73bbbb0809"
+      },
+      {
+        "date": "2023-11-26",
+        "file": "data/raw/india/grid-india/psp/2023-11-26_NLDC_PSP.xls",
+        "url": "https://webcdn.grid-india.in/files/grdw/uploads/daily-reports/psp-reports/2023-2024/26.11.23_NLDC_PSP.xls",
+        "sha256": "8434f689b969e1fa60291eef408ddd85114cab23db31d2d5d90b205883bb0630"
+      },
+      {
+        "date": "2023-11-27",
+        "file": "data/raw/india/grid-india/psp/2023-11-27_NLDC_PSP.xls",
+        "url": "https://webcdn.grid-india.in/files/grdw/uploads/daily-reports/psp-reports/2023-2024/27.11.23_NLDC_PSP.xls",
+        "sha256": "2b7cec5e7f057f00ca239ea0943357d8d514db630a1956e5764d97e5ce4aa976"
+      },
+      {
+        "date": "2023-11-28",
+        "file": "data/raw/india/grid-india/psp/2023-11-28_NLDC_PSP.xls",
+        "url": "https://webcdn.grid-india.in/files/grdw/uploads/daily-reports/psp-reports/2023-2024/28.11.23_NLDC_PSP.xls",
+        "sha256": "3fdb1345bff04b45d3b19510a5c31e280e6ec64828d285ed330f08d6e729da74"
+      },
+      {
+        "date": "2023-11-29",
+        "file": "data/raw/india/grid-india/psp/2023-11-29_NLDC_PSP.xls",
+        "url": "https://webcdn.grid-india.in/files/grdw/uploads/daily-reports/psp-reports/2023-2024/29.11.23_NLDC_PSP.xls",
+        "sha256": "0e4f1fb42a0ce9be9215f2433aacc748f8be32ae877698eb84a4003c6bfdef5f"
+      },
+      {
+        "date": "2023-11-30",
+        "file": "data/raw/india/grid-india/psp/2023-11-30_NLDC_PSP.xls",
+        "url": "https://webcdn.grid-india.in/files/grdw/uploads/daily-reports/psp-reports/2023-2024/30.11.23_NLDC_PSP.xls",
+        "sha256": "c06a887564b4cb76fb69bc09d2b3fe2e0e9bb61c65185c11da9d7f0e66588333"
+      },
+      {
+        "date": "2023-12-01",
+        "file": "data/raw/india/grid-india/psp/2023-12-01_NLDC_PSP.xls",
+        "url": "https://webcdn.grid-india.in/files/grdw/uploads/daily-reports/psp-reports/2023-2024/01.12.23_NLDC_PSP.xls",
+        "sha256": "cfc6a8bb124b4ee77219bb554e096631bf5a47589b0bb191a7288472b758577a"
+      },
+      {
+        "date": "2023-12-02",
+        "file": "data/raw/india/grid-india/psp/2023-12-02_NLDC_PSP.xls",
+        "url": "https://webcdn.grid-india.in/files/grdw/uploads/daily-reports/psp-reports/2023-2024/02.12.23_NLDC_PSP.xls",
+        "sha256": "6c9e0acea8d17759fe341a54cddc98f9902beef1a740ee4396cf288adc3dea18"
+      },
+      {
+        "date": "2023-12-03",
+        "file": "data/raw/india/grid-india/psp/2023-12-03_NLDC_PSP.xls",
+        "url": "https://webcdn.grid-india.in/files/grdw/uploads/daily-reports/psp-reports/2023-2024/03.12.23_NLDC_PSP.xls",
+        "sha256": "49cc1b1043c130371a2bdf76f878e4cd4dfa1ff9ebe90a5184c2adad53f32dfc"
+      },
+      {
+        "date": "2023-12-04",
+        "file": "data/raw/india/grid-india/psp/2023-12-04_NLDC_PSP.xls",
+        "url": "https://webcdn.grid-india.in/files/grdw/uploads/daily-reports/psp-reports/2023-2024/04.12.23_NLDC_PSP.xls",
+        "sha256": "b95f3b4af707ede06f87c0361be5c63b962ce4dd49a76cdf558d3ff45efca81c"
+      },
+      {
+        "date": "2023-12-05",
+        "file": "data/raw/india/grid-india/psp/2023-12-05_NLDC_PSP.xls",
+        "url": "https://webcdn.grid-india.in/files/grdw/uploads/daily-reports/psp-reports/2023-2024/05.12.23_NLDC_PSP.xls",
+        "sha256": "828438a9ca3cf4d8d4ba36b70257b3148abc6697d0e6a47aaf8da51d5c65b035"
+      },
+      {
+        "date": "2023-12-06",
+        "file": "data/raw/india/grid-india/psp/2023-12-06_NLDC_PSP.xls",
+        "url": "https://webcdn.grid-india.in/files/grdw/uploads/daily-reports/psp-reports/2023-2024/06.12.23_NLDC_PSP.xls",
+        "sha256": "38f48a03854388c73e70530276741730b1d4bd6dbf2a3a1829d069ba1a1e54ba"
+      },
+      {
+        "date": "2023-12-07",
+        "file": "data/raw/india/grid-india/psp/2023-12-07_NLDC_PSP.xls",
+        "url": "https://webcdn.grid-india.in/files/grdw/uploads/daily-reports/psp-reports/2023-2024/07.12.23_NLDC_PSP.xls",
+        "sha256": "bea90a91a59cb1a6eb60a12cb99d75660db5e92670ab1f97509a312753b964a1"
+      },
+      {
+        "date": "2023-12-08",
+        "file": "data/raw/india/grid-india/psp/2023-12-08_NLDC_PSP.xls",
+        "url": "https://webcdn.grid-india.in/files/grdw/uploads/daily-reports/psp-reports/2023-2024/08.12.23_NLDC_PSP.xls",
+        "sha256": "c1526523fb687f33bbcb55b38abcce79501ca0287cded25ab34984998e6e2417"
+      },
+      {
+        "date": "2023-12-09",
+        "file": "data/raw/india/grid-india/psp/2023-12-09_NLDC_PSP.xls",
+        "url": "https://webcdn.grid-india.in/files/grdw/uploads/daily-reports/psp-reports/2023-2024/09.12.23_NLDC_PSP.xls",
+        "sha256": "c60a454f9192f28fa011d151fc9223e8ffde9c2c11b5eeb72d614c0cde0e644b"
+      },
+      {
+        "date": "2023-12-10",
+        "file": "data/raw/india/grid-india/psp/2023-12-10_NLDC_PSP.xls",
+        "url": "https://webcdn.grid-india.in/files/grdw/uploads/daily-reports/psp-reports/2023-2024/10.12.23_NLDC_PSP.xls",
+        "sha256": "b5d39bd1293b6ef9682c2f9a862b1c7b36582b02f60af4b04ef52196ea4f6130"
+      },
+      {
+        "date": "2023-12-11",
+        "file": "data/raw/india/grid-india/psp/2023-12-11_NLDC_PSP.xls",
+        "url": "https://webcdn.grid-india.in/files/grdw/uploads/daily-reports/psp-reports/2023-2024/11.12.23_NLDC_PSP.xls",
+        "sha256": "0392da963a33dc3d9816beb636f552687de1ac9486b2a0506dfd5d300b88834f"
+      },
+      {
+        "date": "2023-12-12",
+        "file": "data/raw/india/grid-india/psp/2023-12-12_NLDC_PSP.xls",
+        "url": "https://webcdn.grid-india.in/files/grdw/uploads/daily-reports/psp-reports/2023-2024/12.12.23_NLDC_PSP.xls",
+        "sha256": "811c58495a6637fce88922598dc3a68a036a98404564b185843978f4f8dc2726"
+      },
+      {
+        "date": "2023-12-13",
+        "file": "data/raw/india/grid-india/psp/2023-12-13_NLDC_PSP.xls",
+        "url": "https://webcdn.grid-india.in/files/grdw/uploads/daily-reports/psp-reports/2023-2024/13.12.23_NLDC_PSP.xls",
+        "sha256": "957bd78b5461fa01ecc19a627fe31cb6f3a40dcc3b611e0fc681ac7ca64df29d"
+      },
+      {
+        "date": "2023-12-14",
+        "file": "data/raw/india/grid-india/psp/2023-12-14_NLDC_PSP.xls",
+        "url": "https://webcdn.grid-india.in/files/grdw/uploads/daily-reports/psp-reports/2023-2024/14.12.23_NLDC_PSP.xls",
+        "sha256": "1756f42a5673958976cab7c3ff9263c870f93e398829d94ec626fc7617d031e0"
+      },
+      {
+        "date": "2023-12-15",
+        "file": "data/raw/india/grid-india/psp/2023-12-15_NLDC_PSP.xls",
+        "url": "https://webcdn.grid-india.in/files/grdw/uploads/daily-reports/psp-reports/2023-2024/15.12.23_NLDC_PSP.xls",
+        "sha256": "a57df265231ec04667691c0a61e43d718b148ca985f87779729a33cd6eac48d9"
+      },
+      {
+        "date": "2023-12-16",
+        "file": "data/raw/india/grid-india/psp/2023-12-16_NLDC_PSP.xls",
+        "url": "https://webcdn.grid-india.in/files/grdw/uploads/daily-reports/psp-reports/2023-2024/16.12.23_NLDC_PSP.xls",
+        "sha256": "0b045a4310de50b575ba29ef1618ad815271026fe152cefb130fab51790901d1"
+      },
+      {
+        "date": "2023-12-17",
+        "file": "data/raw/india/grid-india/psp/2023-12-17_NLDC_PSP.xls",
+        "url": "https://webcdn.grid-india.in/files/grdw/uploads/daily-reports/psp-reports/2023-2024/17.12.23_NLDC_PSP.xls",
+        "sha256": "e4dd949fd4cf5ab1e08f6f7abb44538ecfa1a9554b8b96d833ed06f880cd77b1"
+      },
+      {
+        "date": "2023-12-18",
+        "file": "data/raw/india/grid-india/psp/2023-12-18_NLDC_PSP.xls",
+        "url": "https://webcdn.grid-india.in/files/grdw/uploads/daily-reports/psp-reports/2023-2024/18.12.23_NLDC_PSP.xls",
+        "sha256": "c925e14837bb3364b2ef6cab069e234b92850ae189fe92266e1c2dbbb06732d1"
+      },
+      {
+        "date": "2023-12-19",
+        "file": "data/raw/india/grid-india/psp/2023-12-19_NLDC_PSP.xls",
+        "url": "https://webcdn.grid-india.in/files/grdw/uploads/daily-reports/psp-reports/2023-2024/19.12.23_NLDC_PSP.xls",
+        "sha256": "f3c41d477b5c496d3ed6f787a2e13cb6f6020e5d329ce266152541477e2da725"
+      },
+      {
+        "date": "2023-12-20",
+        "file": "data/raw/india/grid-india/psp/2023-12-20_NLDC_PSP.xls",
+        "url": "https://webcdn.grid-india.in/files/grdw/uploads/daily-reports/psp-reports/2023-2024/20.12.23_NLDC_PSP.xls",
+        "sha256": "0ade21d971e63c6cf5be9618394e7e0ff001137f83c8c30762a86897fa9cfe77"
+      },
+      {
+        "date": "2023-12-21",
+        "file": "data/raw/india/grid-india/psp/2023-12-21_NLDC_PSP.xls",
+        "url": "https://webcdn.grid-india.in/files/grdw/uploads/daily-reports/psp-reports/2023-2024/21.12.23_NLDC_PSP.xls",
+        "sha256": "0786428723f4ac69f0da1767ed0f9626521cc421575c8954064aa17e9442222a"
+      },
+      {
+        "date": "2023-12-22",
+        "file": "data/raw/india/grid-india/psp/2023-12-22_NLDC_PSP.xls",
+        "url": "https://webcdn.grid-india.in/files/grdw/uploads/daily-reports/psp-reports/2023-2024/22.12.23_NLDC_PSP.xls",
+        "sha256": "d273851aece8d0b16c57d55611004e0314a15b678fe9f6b6450461fbb2a9872d"
+      },
+      {
+        "date": "2023-12-23",
+        "file": "data/raw/india/grid-india/psp/2023-12-23_NLDC_PSP.xls",
+        "url": "https://webcdn.grid-india.in/files/grdw/uploads/daily-reports/psp-reports/2023-2024/23.12.23_NLDC_PSP.xls",
+        "sha256": "e923ae193356635e5d15c38c36b1e96a099463036aa16a10e608f7ae1c5ea66a"
+      },
+      {
+        "date": "2023-12-24",
+        "file": "data/raw/india/grid-india/psp/2023-12-24_NLDC_PSP.xls",
+        "url": "https://webcdn.grid-india.in/files/grdw/uploads/daily-reports/psp-reports/2023-2024/24.12.23_NLDC_PSP.xls",
+        "sha256": "a778489d32ed3ca350609b8f9df8819c5afdd958680e88b0ada783d21fd88bf8"
+      },
+      {
+        "date": "2023-12-25",
+        "file": "data/raw/india/grid-india/psp/2023-12-25_NLDC_PSP.xls",
+        "url": "https://webcdn.grid-india.in/files/grdw/uploads/daily-reports/psp-reports/2023-2024/25.12.23_NLDC_PSP.xls",
+        "sha256": "3b84bc7c0f09f05bbfab59cf55ad0cccdf95093ee033c7b3bb9d642dfa41dce9"
+      },
+      {
+        "date": "2023-12-26",
+        "file": "data/raw/india/grid-india/psp/2023-12-26_NLDC_PSP.xls",
+        "url": "https://webcdn.grid-india.in/files/grdw/uploads/daily-reports/psp-reports/2023-2024/26.12.23_NLDC_PSP.xls",
+        "sha256": "abfe246fe2173e50449a481fc6c0d821513716fd8942719a4644ee6c9d8fec99"
+      },
+      {
+        "date": "2023-12-27",
+        "file": "data/raw/india/grid-india/psp/2023-12-27_NLDC_PSP.xls",
+        "url": "https://webcdn.grid-india.in/files/grdw/uploads/daily-reports/psp-reports/2023-2024/27.12.23_NLDC_PSP.xls",
+        "sha256": "f2e23eb457f4678369986d3065ade8581c571189c56956e0dec03f34329ceaaf"
+      },
+      {
+        "date": "2023-12-28",
+        "file": "data/raw/india/grid-india/psp/2023-12-28_NLDC_PSP.xls",
+        "url": "https://webcdn.grid-india.in/files/grdw/uploads/daily-reports/psp-reports/2023-2024/28.12.23_NLDC_PSP.xls",
+        "sha256": "3ad076c1ba4cf4e6b0c73758da0ed6afa4f46adb6800ca445ba624146d949051"
+      },
+      {
+        "date": "2023-12-29",
+        "file": "data/raw/india/grid-india/psp/2023-12-29_NLDC_PSP.xls",
+        "url": "https://webcdn.grid-india.in/files/grdw/uploads/daily-reports/psp-reports/2023-2024/29.12.23_NLDC_PSP.xls",
+        "sha256": "696c1080a3676828897abef33584d8844eeeb330bda6d96346a9d8fa3d2d948f"
+      },
+      {
+        "date": "2023-12-30",
+        "file": "data/raw/india/grid-india/psp/2023-12-30_NLDC_PSP.xls",
+        "url": "https://webcdn.grid-india.in/files/grdw/uploads/daily-reports/psp-reports/2023-2024/30.12.23_NLDC_PSP.xls",
+        "sha256": "83ab3b3a065b4605b92cefde21841af3cee6491bf2a6add47a505d20b022b7a6"
+      },
+      {
+        "date": "2023-12-31",
+        "file": "data/raw/india/grid-india/psp/2023-12-31_NLDC_PSP.xls",
+        "url": "https://webcdn.grid-india.in/files/grdw/uploads/daily-reports/psp-reports/2023-2024/31.12.23_NLDC_PSP.xls",
+        "sha256": "b0178fba62410225a3f5ed1363775991c596344293f58f14c7c447cc72c143f9"
+      },
+      {
+        "date": "2024-01-01",
+        "file": "data/raw/india/grid-india/psp/2024-01-01_NLDC_PSP.xls",
+        "url": "https://webcdn.grid-india.in/files/grdw/uploads/daily-reports/psp-reports/2023-2024/01.01.24_NLDC_PSP.xls",
+        "sha256": "136e8e0707efeef281b4e8bc3f64e6a50e2c86ad5b750629dc881654107dac35"
+      },
+      {
+        "date": "2024-01-02",
+        "file": "data/raw/india/grid-india/psp/2024-01-02_NLDC_PSP.xls",
+        "url": "https://webcdn.grid-india.in/files/grdw/uploads/daily-reports/psp-reports/2023-2024/02.01.24_NLDC_PSP.xls",
+        "sha256": "49c27a75767bb5335235e76185545f89efdef6722f757da87813a625a5bbe4ee"
+      },
+      {
+        "date": "2024-01-03",
+        "file": "data/raw/india/grid-india/psp/2024-01-03_NLDC_PSP.xls",
+        "url": "https://webcdn.grid-india.in/files/grdw/uploads/daily-reports/psp-reports/2023-2024/03.01.24_NLDC_PSP.xls",
+        "sha256": "8ad5cb1d7bf31baf7efadc54c077b96463fc54f1c163e0a0e3f278197fdea7b2"
+      },
+      {
+        "date": "2024-01-04",
+        "file": "data/raw/india/grid-india/psp/2024-01-04_NLDC_PSP.xls",
+        "url": "https://webcdn.grid-india.in/files/grdw/uploads/daily-reports/psp-reports/2023-2024/04.01.24_NLDC_PSP.xls",
+        "sha256": "633ef5faa72911a76fdcaf8ae512b39d78d944ad426d8e973df96b650b5e081d"
+      },
+      {
+        "date": "2024-01-05",
+        "file": "data/raw/india/grid-india/psp/2024-01-05_NLDC_PSP.xls",
+        "url": "https://webcdn.grid-india.in/files/grdw/uploads/daily-reports/psp-reports/2023-2024/05.01.24_NLDC_PSP.xls",
+        "sha256": "a3cf7c9fea049f14b6b0a7e7d220b783b46952f945ff22e4651737ea6b538b26"
+      },
+      {
+        "date": "2024-01-06",
+        "file": "data/raw/india/grid-india/psp/2024-01-06_NLDC_PSP.xls",
+        "url": "https://webcdn.grid-india.in/files/grdw/uploads/daily-reports/psp-reports/2023-2024/06.01.24_NLDC_PSP.xls",
+        "sha256": "ef764bd7d3798382ad9b6fa39bfd31ecdd1f52db74514f7851648fe5ac803507"
+      },
+      {
+        "date": "2024-01-07",
+        "file": "data/raw/india/grid-india/psp/2024-01-07_NLDC_PSP.xls",
+        "url": "https://webcdn.grid-india.in/files/grdw/uploads/daily-reports/psp-reports/2023-2024/07.01.24_NLDC_PSP.xls",
+        "sha256": "e9f8178d88d9ade330135105fe73779083f0ff158d19684784da68362172590b"
+      },
+      {
+        "date": "2024-01-08",
+        "file": "data/raw/india/grid-india/psp/2024-01-08_NLDC_PSP.xls",
+        "url": "https://webcdn.grid-india.in/files/grdw/uploads/daily-reports/psp-reports/2023-2024/08.01.24_NLDC_PSP.xls",
+        "sha256": "57e784b2508f5fda08eff2b2b5f1deb2530c915558121b8840d9122a1efb6d64"
+      },
+      {
+        "date": "2024-01-09",
+        "file": "data/raw/india/grid-india/psp/2024-01-09_NLDC_PSP.xls",
+        "url": "https://webcdn.grid-india.in/files/grdw/uploads/daily-reports/psp-reports/2023-2024/09.01.24_NLDC_PSP.xls",
+        "sha256": "b972b210074c521686ee75eda0f03d0150f2bed357681fd87471d3499aa5ee9f"
+      },
+      {
+        "date": "2024-01-10",
+        "file": "data/raw/india/grid-india/psp/2024-01-10_NLDC_PSP.xls",
+        "url": "https://webcdn.grid-india.in/files/grdw/uploads/daily-reports/psp-reports/2023-2024/10.01.24_NLDC_PSP.xls",
+        "sha256": "94d0a7cd3a6af02a0fccf4f0dc2418573323909f08f2a99574524c8ef8d13f49"
+      },
+      {
+        "date": "2024-01-11",
+        "file": "data/raw/india/grid-india/psp/2024-01-11_NLDC_PSP.xls",
+        "url": "https://webcdn.grid-india.in/files/grdw/uploads/daily-reports/psp-reports/2023-2024/11.01.24_NLDC_PSP.xls",
+        "sha256": "e205e9fdf07873e858f01dee8536e6072352e60ac50d7cec37926b2ea1e5afbe"
+      },
+      {
+        "date": "2024-01-12",
+        "file": "data/raw/india/grid-india/psp/2024-01-12_NLDC_PSP.xls",
+        "url": "https://webcdn.grid-india.in/files/grdw/uploads/daily-reports/psp-reports/2023-2024/12.01.24_NLDC_PSP.xls",
+        "sha256": "b43f2a508c68c7b3357721521a7cb9e050863e3519049c6b5311ada8a74cf08d"
+      },
+      {
+        "date": "2024-01-13",
+        "file": "data/raw/india/grid-india/psp/2024-01-13_NLDC_PSP.xls",
+        "url": "https://webcdn.grid-india.in/files/grdw/uploads/daily-reports/psp-reports/2023-2024/13.01.24_NLDC_PSP.xls",
+        "sha256": "716a3c9905b31fce21f3c08bec6b6634abc1b88a30ffa00665c1986a4c56a9b6"
+      },
+      {
+        "date": "2024-01-14",
+        "file": "data/raw/india/grid-india/psp/2024-01-14_NLDC_PSP.xls",
+        "url": "https://webcdn.grid-india.in/files/grdw/uploads/daily-reports/psp-reports/2023-2024/14.01.24_NLDC_PSP.xls",
+        "sha256": "18c6867144264c3ccfe992709778554a3261e2e562389d99d45605c32c7c1fc0"
+      },
+      {
+        "date": "2024-01-15",
+        "file": "data/raw/india/grid-india/psp/2024-01-15_NLDC_PSP.xls",
+        "url": "https://webcdn.grid-india.in/files/grdw/uploads/daily-reports/psp-reports/2023-2024/15.01.24_NLDC_PSP.xls",
+        "sha256": "eca2a5ac17d31d275c7dd91e3b194a0bd413d3c23871d9b7c173c2dab9c437b6"
+      },
+      {
+        "date": "2024-01-16",
+        "file": "data/raw/india/grid-india/psp/2024-01-16_NLDC_PSP.xls",
+        "url": "https://webcdn.grid-india.in/files/grdw/uploads/daily-reports/psp-reports/2023-2024/16.01.24_NLDC_PSP.xls",
+        "sha256": "cfa0064d96a567945fb0f8c56345aa5c4f89d9909eaae4e518dcb2bc9b1c9c8e"
+      },
+      {
+        "date": "2024-01-17",
+        "file": "data/raw/india/grid-india/psp/2024-01-17_NLDC_PSP.xls",
+        "url": "https://webcdn.grid-india.in/files/grdw/uploads/daily-reports/psp-reports/2023-2024/17.01.24_NLDC_PSP.xls",
+        "sha256": "22a49601742fec8e95fd722cc82b544900ba3cd757f991c9e426f9cd7d81553f"
+      },
+      {
+        "date": "2024-01-18",
+        "file": "data/raw/india/grid-india/psp/2024-01-18_NLDC_PSP.xls",
+        "url": "https://webcdn.grid-india.in/files/grdw/uploads/daily-reports/psp-reports/2023-2024/18.01.24_NLDC_PSP.xls",
+        "sha256": "0fca6ad8a9dea53626f0fc0d987659da0de2f0e1a9310ef761b3743e46a1ed08"
+      },
+      {
+        "date": "2024-01-19",
+        "file": "data/raw/india/grid-india/psp/2024-01-19_NLDC_PSP.xls",
+        "url": "https://webcdn.grid-india.in/files/grdw/uploads/daily-reports/psp-reports/2023-2024/19.01.24_NLDC_PSP.xls",
+        "sha256": "880c3621febbf87a3afa0041435beaa92dbf2284961e76cfe72d7f82668ffb0f"
+      },
+      {
+        "date": "2024-01-20",
+        "file": "data/raw/india/grid-india/psp/2024-01-20_NLDC_PSP.xls",
+        "url": "https://webcdn.grid-india.in/files/grdw/uploads/daily-reports/psp-reports/2023-2024/20.01.24_NLDC_PSP.xls",
+        "sha256": "0df73b79e1059982fa141176ca0b2db575ce023a6bbc7ddb7ad6c2bb0efba9d5"
+      },
+      {
+        "date": "2024-01-21",
+        "file": "data/raw/india/grid-india/psp/2024-01-21_NLDC_PSP.xls",
+        "url": "https://webcdn.grid-india.in/files/grdw/uploads/daily-reports/psp-reports/2023-2024/21.01.24_NLDC_PSP.xls",
+        "sha256": "6fc809a2deb85e0c1596268f093091e696ed80b275a3cff4845a9644c8e91f36"
+      },
+      {
+        "date": "2024-01-22",
+        "file": "data/raw/india/grid-india/psp/2024-01-22_NLDC_PSP.xls",
+        "url": "https://webcdn.grid-india.in/files/grdw/uploads/daily-reports/psp-reports/2023-2024/22.01.24_NLDC_PSP.xls",
+        "sha256": "7c8c3617253dd25532c259701b3553b70d3cce5899d0d8d13d112bbe5ef50f2a"
+      },
+      {
+        "date": "2024-01-23",
+        "file": "data/raw/india/grid-india/psp/2024-01-23_NLDC_PSP.xls",
+        "url": "https://webcdn.grid-india.in/files/grdw/uploads/daily-reports/psp-reports/2023-2024/23.01.24_NLDC_PSP.xls",
+        "sha256": "d759124db8e8da78d9f10cba23de69801af826609dd33eb06875088ca93cbabe"
+      },
+      {
+        "date": "2024-01-24",
+        "file": "data/raw/india/grid-india/psp/2024-01-24_NLDC_PSP.xls",
+        "url": "https://webcdn.grid-india.in/files/grdw/uploads/daily-reports/psp-reports/2023-2024/24.01.24_NLDC_PSP.xls",
+        "sha256": "f398741517ff0c389ea275bf2a5f3eb1ac7e2c588069c288e191e46a48d3ece8"
+      },
+      {
+        "date": "2024-01-25",
+        "file": "data/raw/india/grid-india/psp/2024-01-25_NLDC_PSP.xls",
+        "url": "https://webcdn.grid-india.in/files/grdw/uploads/daily-reports/psp-reports/2023-2024/25.01.24_NLDC_PSP.xls",
+        "sha256": "a1b5ccfc75ff65a7df6540e43fc1f6988b7c39c488b99b9dc35a9a368cdb728f"
+      },
+      {
+        "date": "2024-01-26",
+        "file": "data/raw/india/grid-india/psp/2024-01-26_NLDC_PSP.xls",
+        "url": "https://webcdn.grid-india.in/files/grdw/uploads/daily-reports/psp-reports/2023-2024/26.01.24_NLDC_PSP.xls",
+        "sha256": "dc97e5d4434f4b31210c0dea7578f8671260135a8cbe4ce12857d37d7f0604ab"
+      },
+      {
+        "date": "2024-01-27",
+        "file": "data/raw/india/grid-india/psp/2024-01-27_NLDC_PSP.xls",
+        "url": "https://webcdn.grid-india.in/files/grdw/uploads/daily-reports/psp-reports/2023-2024/27.01.24_NLDC_PSP.xls",
+        "sha256": "6ce9850b72359115ab87432c9ed6594aeb45d0f0cd0ad26f64d83750066febed"
+      },
+      {
+        "date": "2024-01-28",
+        "file": "data/raw/india/grid-india/psp/2024-01-28_NLDC_PSP.xls",
+        "url": "https://webcdn.grid-india.in/files/grdw/uploads/daily-reports/psp-reports/2023-2024/28.01.24_NLDC_PSP.xls",
+        "sha256": "0da0f99d16e621538070c209493ef82bd00741ea4d1225f7fb9137677178079d"
+      },
+      {
+        "date": "2024-01-29",
+        "file": "data/raw/india/grid-india/psp/2024-01-29_NLDC_PSP.xls",
+        "url": "https://webcdn.grid-india.in/files/grdw/uploads/daily-reports/psp-reports/2023-2024/29.01.24_NLDC_PSP.xls",
+        "sha256": "d0afb91020e0b680248ec68ce25c95237349e655eaa016d74c2ff141058b311d"
+      },
+      {
+        "date": "2024-01-30",
+        "file": "data/raw/india/grid-india/psp/2024-01-30_NLDC_PSP.xls",
+        "url": "https://webcdn.grid-india.in/files/grdw/uploads/daily-reports/psp-reports/2023-2024/30.01.24_NLDC_PSP.xls",
+        "sha256": "864304085d54f9e31807951adcca460d48d946af8227d4ee5fdfb0a7ad8a0659"
+      },
+      {
+        "date": "2024-01-31",
+        "file": "data/raw/india/grid-india/psp/2024-01-31_NLDC_PSP.xls",
+        "url": "https://webcdn.grid-india.in/files/grdw/uploads/daily-reports/psp-reports/2023-2024/31.01.24_NLDC_PSP.xls",
+        "sha256": "da1447cbb7661f9d0f54874593da7ffdf55bfa1857834c02cf2d7fd2dacd72d3"
+      },
+      {
+        "date": "2024-02-01",
+        "file": "data/raw/india/grid-india/psp/2024-02-01_NLDC_PSP.xls",
+        "url": "https://webcdn.grid-india.in/files/grdw/uploads/daily-reports/psp-reports/2023-2024/01.02.24_NLDC_PSP.xls",
+        "sha256": "bd06a7b26bd7c73752f0874a04553d35dc285910ac720cab6766d9dedb93c29d"
+      },
+      {
+        "date": "2024-02-02",
+        "file": "data/raw/india/grid-india/psp/2024-02-02_NLDC_PSP.xls",
+        "url": "https://webcdn.grid-india.in/files/grdw/uploads/daily-reports/psp-reports/2023-2024/02.02.24_NLDC_PSP.xls",
+        "sha256": "b726ce326c5f800965b1f9dba7e22351105a084b19ae64a92a34db552a699945"
+      },
+      {
+        "date": "2024-02-03",
+        "file": "data/raw/india/grid-india/psp/2024-02-03_NLDC_PSP.xls",
+        "url": "https://webcdn.grid-india.in/files/grdw/uploads/daily-reports/psp-reports/2023-2024/03.02.24_NLDC_PSP.xls",
+        "sha256": "39bc2b36a62137562cc6b44bd782f75a062b255f0f979f596fb1ad07c11860a7"
+      },
+      {
+        "date": "2024-02-04",
+        "file": "data/raw/india/grid-india/psp/2024-02-04_NLDC_PSP.xls",
+        "url": "https://webcdn.grid-india.in/files/grdw/uploads/daily-reports/psp-reports/2023-2024/04.02.24_NLDC_PSP.xls",
+        "sha256": "41dbb5954222492b8b9c67813ae4010027f76b88ec7ddc827c37260e6023fd6c"
+      },
+      {
+        "date": "2024-02-05",
+        "file": "data/raw/india/grid-india/psp/2024-02-05_NLDC_PSP.xls",
+        "url": "https://webcdn.grid-india.in/files/grdw/uploads/daily-reports/psp-reports/2023-2024/05.02.24_NLDC_PSP.xls",
+        "sha256": "67b0f4fb24ef24fe12b0e21e1169ac0c1e51e314bb85188969009ac3d94b7964"
+      },
+      {
+        "date": "2024-02-06",
+        "file": "data/raw/india/grid-india/psp/2024-02-06_NLDC_PSP.xls",
+        "url": "https://webcdn.grid-india.in/files/grdw/uploads/daily-reports/psp-reports/2023-2024/06.02.24_NLDC_PSP.xls",
+        "sha256": "c1b310d613d086769862c6c60a12d7b4e9155c9bbb2f2f3ec7b8c1bf69d5f864"
+      },
+      {
+        "date": "2024-02-07",
+        "file": "data/raw/india/grid-india/psp/2024-02-07_NLDC_PSP.xls",
+        "url": "https://webcdn.grid-india.in/files/grdw/uploads/daily-reports/psp-reports/2023-2024/07.02.24_NLDC_PSP.xls",
+        "sha256": "ac29ab910e92c7473bcf8fd3a1378ac3a13b898f9358c6d489ec19147e7cdb25"
+      },
+      {
+        "date": "2024-02-08",
+        "file": "data/raw/india/grid-india/psp/2024-02-08_NLDC_PSP.xls",
+        "url": "https://webcdn.grid-india.in/files/grdw/uploads/daily-reports/psp-reports/2023-2024/08.02.24_NLDC_PSP.xls",
+        "sha256": "ce4cf8e067fa7a733951258d062e8c920e9782e6093b178e3ad322fa1ab4890e"
+      }
+    ]
+  },
+  "mendeley": {
+    "source": "Grid-India NLDC SCADA via Mendeley Data",
+    "doi": "10.17632/y58jknpgs8.2",
+    "licence": "CC BY 4.0",
+    "files": [
+      {
+        "file": "data/raw/india/mendeley/April 2023.xlsx",
+        "url": "https://data.mendeley.com/public-files/datasets/y58jknpgs8/files/abfbc727-40f0-4280-8db4-f05fe0e3ccf4/file_downloaded",
+        "sha256": "06eb38015936e7909bacacf3d7eea5b9e914817bda1fbe5bf22bbd5d46d491af"
+      },
+      {
+        "file": "data/raw/india/mendeley/August 2023.xlsx",
+        "url": "https://data.mendeley.com/public-files/datasets/y58jknpgs8/files/947432df-c9cd-4a0a-8e05-3e8115f485e6/file_downloaded",
+        "sha256": "df5f8189d939fd728976867bb7513dbcd5015cb5cfa5e134c26f788a54cd7637"
+      },
+      {
+        "file": "data/raw/india/mendeley/December 2023.xlsx",
+        "url": "https://data.mendeley.com/public-files/datasets/y58jknpgs8/files/43f9331f-e64e-4577-a0bd-0d154c8d88da/file_downloaded",
+        "sha256": "127a97f4758a73f756a652dc9bfd76fe6ae9767705e476de9319fbb0c46825dc"
+      },
+      {
+        "file": "data/raw/india/mendeley/January 2024- June 2025.xlsx",
+        "url": "https://data.mendeley.com/public-files/datasets/y58jknpgs8/files/c67cbcfa-f33b-49c0-925d-d6e1cda3a9c1/file_downloaded",
+        "sha256": "482dad0c4d47a4e6ed284e41a3b1f5005c397ca149ea5bba121b111e7ed79467"
+      },
+      {
+        "file": "data/raw/india/mendeley/July 2023.xlsx",
+        "url": "https://data.mendeley.com/public-files/datasets/y58jknpgs8/files/b4e670e1-e913-4407-9408-061c752e8f6e/file_downloaded",
+        "sha256": "2625bbaebdb00a979d1c1b18bf2dff4679eb47416c93815852253ac6b008c453"
+      },
+      {
+        "file": "data/raw/india/mendeley/June 2023.xlsx",
+        "url": "https://data.mendeley.com/public-files/datasets/y58jknpgs8/files/d97a5e58-e077-4973-81ac-66e927a4e4c4/file_downloaded",
+        "sha256": "4cd7d68454b2ff67fe86e489fd94e06a5251304634b74d303f9c376ae2bf437b"
+      },
+      {
+        "file": "data/raw/india/mendeley/March 2023.xlsx",
+        "url": "https://data.mendeley.com/public-files/datasets/y58jknpgs8/files/fb932972-0e23-4092-820f-6f1ac88bf83d/file_downloaded",
+        "sha256": "ad6b86a8fb50f65de578f8324dcbde031942c88d43bee657575dd0194a93e12c"
+      },
+      {
+        "file": "data/raw/india/mendeley/May 2023.xlsx",
+        "url": "https://data.mendeley.com/public-files/datasets/y58jknpgs8/files/045e933b-cec9-4ba7-b268-b61a3073e5a2/file_downloaded",
+        "sha256": "7ea82489d1582c931ebfc38a980f2c2eec121cd11b0a4a8ec1ee7dd8a546d47f"
+      },
+      {
+        "file": "data/raw/india/mendeley/Novemeber 2023.xlsx",
+        "url": "https://data.mendeley.com/public-files/datasets/y58jknpgs8/files/11a49f5f-2577-4aca-a827-5783c47a9fba/file_downloaded",
+        "sha256": "c80133776e9db8d977e60031ebec5dc2310e0a06251d33fde9ef3c37aba6cfa0"
+      },
+      {
+        "file": "data/raw/india/mendeley/October 2023.xlsx",
+        "url": "https://data.mendeley.com/public-files/datasets/y58jknpgs8/files/34583787-b43c-4fca-a65e-349d829d9da3/file_downloaded",
+        "sha256": "86d19deeb87d41f064161bbb21605605320ebbb97877e0477d36040109061941"
+      },
+      {
+        "file": "data/raw/india/mendeley/September 2023.xlsx",
+        "url": "https://data.mendeley.com/public-files/datasets/y58jknpgs8/files/d588a408-d55e-4eab-8e03-0aa366fb2f6e/file_downloaded",
+        "sha256": "9180fd72e542f30309953320d5f50bd2dd7b44c2f80b5fb362ac697b3955207c"
+      }
+    ]
+  }
+}

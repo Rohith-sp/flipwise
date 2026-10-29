@@ -5,12 +5,16 @@
 emission_factors:
   # Operational CO2 per fuel, gCO2/kWh net generation: generation-weighted average over the
   # CEA CO2 Baseline Database stations of each fuel. Hydro, nuclear, solar and wind are 0.
-  cea_database_version: null      # e.g. "v20.0 (FY 2023-24)"
+  # CEA CO2 Baseline Database User Guide v19.0 (Dec 2023), Table 6 "Weighted average specific
+  # emissions for fossil fuel-fired stations in FY 2022-23": coal 0.978, lignite 1.286,
+  # gas 0.478 t CO2/MWh; diesel not published. v20.0 (FY 2023-24) would match the carbon period
+  # better but no public copy was found (29 Oct 2026). Grid-India reports "Gas, Naptha & Diesel"
+  # as one figure, so it takes the gas-only factor: a slight underestimate for that small share.
+  cea_database_version: "v19.0 (FY 2022-23), User Guide Table 6"
   g_per_kwh:
-    coal: null
-    lignite: null
-    gas: null
-    diesel: null
+    coal: 978.0
+    lignite: 1286.0
+    gas: 478.0
     biomass: 0.0                  # [Open] PRD §6.2.2: 0 by default
     other: 0.0                    # [Open] PRD §6.2.2: 0 by default
 
