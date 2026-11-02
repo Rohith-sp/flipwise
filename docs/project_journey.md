@@ -138,7 +138,22 @@ This was the main remaining blocker: without Indian carbon numbers the simulator
 
 **What the numbers mean for the research:** there is a real difference *between* regions (Mumbai is about 170 g/kWh dirtier than Delhi or Chennai on average) and a strong difference *across the day* (about 200 g/kWh lower at noon in Delhi and Chennai). Both spatial and temporal shifting therefore have room to help, which is what hypothesis H3 tests.
 
-## 8. Tools used along the way
+## 8. Design review of phases 5–7 (2 Nov, PRD v0.8)
+
+Before coding the baselines and decision-flip, a teammate wrote a design for build phases 5–7 and tested the method on the first validation week. Two parts of the method as written in v0.7 would not have worked on real data:
+
+| Problem found | Why it mattered | Change in v0.8 |
+|---|---|---|
+| The Stage-1 screen passed 100 % of checks | It searched for the cleanest window up to 8 days ahead, ignoring the deadline, so the screen saved no work and H1 would fail | The bound now searches only start times a feasible plan can have; 18.3 % of checks pass, against a floor of 9.7 % |
+| θ had almost no effect | The noise width counted each option's full runtime spread, so it was "too wide" 98.7 % of the time and θ was switched off | Paired width: runtime counts only through the *difference* between the two options, since a long job costs more at either site; θ grid lowered to 0–0.5 |
+| FCFS always broke ties towards Delhi (dc0) | The carbon-blind baseline was accidentally carbon-aware, which made carbon-aware placement look worse | FCFS ties rotate over the datacentres |
+| Place-once tripled deadline misses (2.25 % → 7.30 %) | Carbon gains bought with late jobs | To investigate in phase 5, before decision-flip |
+| Rescue could loop or cost a queued job its place every 30 min; v0.7 contradicted itself on missing carbon | Unstable runs | Rescue limited; missing carbon keeps the current plan |
+| Trace day 21 is not a Monday | The weekday alignment with IST (6.3) was off | Slices start on trace Mondays (days 25, 32, …, 67), found from the weekend dips in submissions |
+
+All the measurements came from validation data, so the test period is untouched. The cluster totals from `pai_machine_spec` (156,576 cores, 948,224 GB, 6,742 GPUs) and the placeholder powers for the Phase 2 review (0.3 kW per GPU, 0.01 kW per core, results labelled relative) were also fixed. Only the plan changed; the code follows in phase 5.
+
+## 9. Tools used along the way
 
 | Tool | Used for |
 |---|---|
@@ -152,19 +167,19 @@ This was the main remaining blocker: without Indian carbon numbers the simulator
 | docx (JavaScript) + Microsoft Word | Building and checking the Word guide |
 | Claude Code | Drafting docs, research, code and checks, guided by `CLAUDE.md` |
 
-## 9. Where things stand and what's next
+## 10. Where things stand and what's next
 
 **Done:**
-- Spec (PRD v0.7) and docs.
+- Spec (PRD v0.8) and docs.
 - Build phases 1, 2, 3 and 4. Phase 2 is complete, with real Indian data, and `validate` passes.
 - Local-split steps 1–3.
 
 **Next:**
-1. Build phase 5 (baselines), then 6 (decision-flip).
+1. Build phase 5 (baselines, with the v0.8 changes and a look at deadline misses), then 6 (decision-flip with the new screen and width).
 2. Deployment step 4 (`dcservice.py`), then the scripted driver and `local_cluster.sh`.
 3. Install Docker Desktop for step 8.
 
 **Still open:**
-- **B1:** the mentor confirms the scope.
+- **B1:** the mentor confirms the scope, now including the v0.8 changes to the screen and θ.
 - **B2:** NESO redistribution terms.
 - **B3:** GPU and CPU power values (until resolved, kgCO2 is reported as relative).

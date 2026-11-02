@@ -4,9 +4,9 @@
 
 | Field | Value |
 |---|---|
-| Document status | Implementation-ready draft. Supersedes v0.6, v0.5.1 and v0.5 (29 Oct 2026), v0.4 (28 Oct 2026), v0.3 (24 Oct 2026), v0.2 (24 Oct 2026) and v0.1 (23 Oct 2026). Changes are listed in the changelog below. |
-| Version | 0.7 |
-| Revised | 29 October 2026 |
+| Document status | Implementation-ready draft. Supersedes v0.7 (29 Oct 2026), v0.6, v0.5.1 and v0.5 (29 Oct 2026), v0.4 (28 Oct 2026), v0.3 (24 Oct 2026), v0.2 (24 Oct 2026) and v0.1 (23 Oct 2026). Changes are listed in the changelog below. |
+| Version | 0.8 |
+| Revised | 2 November 2026 |
 | Project name | **Flipwise** (Python package and CLI `flipwise`) [Decision]: it re-evaluates decision flips wisely. Renamed from FlipSim on 25 Oct 2026. Availability of the name on GitHub and PyPI is [Open], not yet checked. |
 | Project context | RV College of Engineering, Experiential Learning, V Semester, AY 2026–27; SDG 9 |
 | Deliverable | Offline, command-line research simulator and reproducible evaluation pipeline, plus a static, self-contained HTML results dashboard generated from result CSVs. Not a production scheduler. No web app in the MVP. From v0.4, a **deployment track** (Section 13.5) runs the same simulation with each virtual datacentre as a separate service: first as local processes, then in Docker, then on AWS. Research results always come from the in-process mode; the deployment modes must reproduce them exactly. |
@@ -17,6 +17,7 @@
 
 | Version | Date | Changes |
 |---|---|---|
+| 0.8 | 2 Nov 2026 | Design review of phases 5–7 against the first validation week (evidence in 10.11). Stage-1 screen replaced: the v0.7 bound searched 8 days past the deferral horizon and passed 100 % of checks; the new bound searches only start times a feasible candidate can have (10.3, 10.4, R-TRIG-1). Noise width `w_ab` made paired: runtime uncertainty, which shifts both options together, enters only through the difference of the two scores (10.5); θ grid moved down to {0, 0.05, 0.1, 0.25, 0.5} (10.10). Rescue limited to `DEADLINE_RISK` and `NO_START`, resolving the 10.2 / 10.7 contradiction on missing carbon in favour of keeping the incumbent; rescue may not repeat on a job already on a fallback placement, and runs at most once per release (10.2). A queued job's incumbent is exempt from the Range check (9.5). Moves within one update applied one at a time (10.6, R-TRIG-8). FCFS tie-break rotates over datacentres instead of always preferring dc0 (11). Trace slices re-anchored to trace Mondays, identified from the weekly submission pattern: days 25, 32, …, 67 (14.2, 14.3). Cluster totals from `pai_machine_spec` recorded (8.1). Placeholder powers 0.3 kW per GPU and 0.01 kW per core allowed for the Phase 2 review, results labelled relative (7.2). Findings to watch: FCFS's earlier dc0 bias and place-once's tripled deadline misses (17.1). |
 | 0.7 | 29 Oct 2026 | Resolved B4 with source option 3 (6.2.2): regional daily generation by fuel from Grid-India NLDC daily PSP reports, shaped within each IST day by Grid-India NLDC all-India SCADA generation by fuel (10-second data, Mendeley Data, CC BY 4.0). Electricity Maps was checked first: its free CSV datasets were discontinued in March 2026 (academic access only, by application). CEA factors filled from User Guide v19.0 Table 6 (FY 2022-23): coal 978, lignite 1286, gas 478 g/kWh (7.5). New scripts `download_india.py`, `build_india_generation.py`; optional extra `india-data` (openpyxl, xlrd) for reading the reports (12.1, 13.4). |
 | 0.6 | 29 Oct 2026 | Moved deployment stage DT2 (Docker) into EL Phase 2 as a stretch goal after DT1, and set the DT1 build order: `datacentre.py` first, then the `DatacentreClient` interface, the HTTP service, a scripted driver that tests local split before the simulator exists, then `local_cluster.sh` (18). Added R-DEP-7 (client conformance). |
 | 0.5.1 | 29 Oct 2026 | Build phases 1, 3 and 4 implemented; phase 2 partly (Indian truth waits for B4). Findings from the real data: tasks-per-job mean is 1.21 over Terminated jobs (1.19 was over all jobs) (6.1). `A_gb` rule made precise: the value at the last capture whose window covers the slot; `pt24h` windows reach back exactly 24 h, so a literal `capture ≥ k + 24 h` almost never matches, while the measured lag of the last covering capture is p50 24 h, p05 23 h (6.2.3). GB truth matches the NESO Data Portal regional series in 98–99 % of slots (MAE < 0.6 g/kWh). GB source-region means: London 156, South Wales 276, East Midlands 257 g/kWh; IDs 13, 7, 9 confirmed in the archive (O3). Archive coverage reported (B2): no forward captures on 2023-03-20, 2023-03-31 – 04-02, 2023-10-21 and from 2024-02-04, so the run tail to 8 Feb 2024 cannot be met for carbon starts after about 19 Jan 2024. `capture_coverage.csv` keeps `window_first_utc, window_last_utc, source` (forward captures only); `gb_truth.csv` added for `s_r` (6.7). Carbon Mondays fixed in `configs/base.yaml` to avoid the gaps (14.2). Layout gains `errors`, `trace`, `scenario`, `validate`, `smoke` modules and `configs/energy.yaml` holds CEA factors (13.1). Linux supported alongside Windows 11. |
@@ -354,6 +355,8 @@ Units: kW × h = kWh; kWh × gCO2/kWh = gCO2; ÷ 1000 = kgCO2. The scheduler's e
 | `pue` | 1.0 | [Decision] IT-only. X5 adds per-site values. |
 | Low/base/high multipliers | 0.5 / 1.0 / 1.5 on both powers | [Synthetic] sensitivity |
 
+[Decision, v0.8] Until B3 is resolved, the Phase 2 review uses placeholders `p_gpu_kw = 0.3` and `p_cpu_kw = 0.01`, and every kgCO2 figure is labelled relative (percent change against `place_once` or `fcfs`). By 7.3 this does not change rankings. The fleet is mostly P100 (about 250 W) and T4 (70 W) machines, so 0.3 kW is on the high side; that matters only for the GPU-versus-CPU share in fleet totals.
+
 ### 7.3 Why the power parameters matter less than they appear
 
 With homogeneous hardware and equal PUE across datacentres, `P_j` multiplies every candidate's score for job `j` equally. Candidate rankings, relative emission changes between policies, and relative-gate decisions are therefore invariant to `p_gpu_kw` and `p_cpu_kw`, except through (a) the absolute gate `g_abs` and (b) the relative weight of GPU-heavy versus CPU-only jobs in fleet totals. The low/base/high sweep checks (b). This invariance is a test (R-EN-3).
@@ -397,7 +400,7 @@ Capacity is pooled per datacentre (no machines) [Decision]; fractional GPU reque
 
 `ρ = Σ_j gpu_req_j × runtime_actual_j / (N_dc × cap_gpu × W)`, so `cap_gpu = Σ_j gpu_req_j × runtime_actual_j / (N_dc × ρ × W)`
 
-with `W` the slice length in seconds. CPU and memory capacity scale in the same ratio as in `pai_machine_spec` (cluster totals), so the GPU dimension is normally binding. Capacity is computed once per scenario from the evaluator's data, which is legitimate scenario construction and identical for every policy. Defaults: `N_dc = 3`, equal capacities, `ρ = 0.7`; sweep `ρ ∈ {0.4, 0.7, 0.9}`. Jobs that fit no datacentre are excluded at scenario build and counted.
+with `W` the slice length in seconds. CPU and memory capacity scale in the same ratio as in `pai_machine_spec` (cluster totals), so the GPU dimension is normally binding. [Confirmed v0.8] Totals over its 1,897 rows (the file has no header; columns machine, gpu_type, cap_cpu, cap_mem, cap_gpu): 156,576 CPU cores, 948,224 GB memory, 6,742 GPUs, i.e. about 23.2 cores and 140.6 GB per GPU. They are to be stored in `configs/base.yaml` (`cluster_totals`) in build phase 5, so the raw file is needed only to re-check them. Capacity is computed once per scenario from the evaluator's data, which is legitimate scenario construction and identical for every policy. Defaults: `N_dc = 3`, equal capacities, `ρ = 0.7`; sweep `ρ ∈ {0.4, 0.7, 0.9}`. Jobs that fit no datacentre are excluded at scenario build and counted.
 
 ### 8.2 Job lifecycle
 
@@ -510,7 +513,7 @@ Candidate `c = (d, s)` is feasible iff all hold, otherwise it carries one `rejec
 | Check | Rule | Reason code |
 |---|---|---|
 | Fit | requests ≤ capacity of `d` in every dimension | `NO_FIT` |
-| Range | `slot0 ≤ s ≤ latest_release` | `OUT_OF_RANGE` |
+| Range | `slot0 ≤ s ≤ latest_release`; not applied to the incumbent of a `QUEUED` job, whose release is already in the past [v0.8] | `OUT_OF_RANGE` |
 | Profile | projected start exists within profile horizon | `NO_START` |
 | Deadline | `s + w_hi + r_q90 ≤ deadline_j` | `DEADLINE_RISK` |
 | Carbon | every slot needed by the point estimate is known or extrapolated (6.2) | `NO_CARBON` |
@@ -532,7 +535,10 @@ Deadline feasibility uses q90 runtime and the upper wait for every policy [Decis
 ### 10.2 When the trigger runs
 
 1. Every `CARBON_UPDATE` (every captured half hour): for all pending jobs, in tie order (8.4).
-2. **Rescue**: checked at every `CARBON_UPDATE` (the Stage-1 incumbent re-score) and at the job's `JOB_RELEASE`. If the incumbent is infeasible (`DEADLINE_RISK`, `NO_START` or `NO_CARBON`), the job is re-planned with the acceptance rule bypassed and the event is counted as `rescue`, not as a trigger fire. Rescue applies identically to every policy except FCFS, so it does not distinguish them.
+2. **Rescue**: checked at every `CARBON_UPDATE` (the Stage-1 incumbent re-score) and at the job's `JOB_RELEASE`. If the incumbent is infeasible (`DEADLINE_RISK` or `NO_START`), the job is re-planned with the acceptance rule bypassed and the event is counted as `rescue`, not as a trigger fire. Rescue applies identically to every policy except FCFS, so it does not distinguish them. [v0.8] Three limits:
+   - Missing carbon for the incumbent's slots is not a rescue reason: the incumbent is kept and `NO_CARBON_INCUMBENT` is logged (10.7). This resolves a contradiction in v0.7.
+   - A job already on a fallback placement (`deadline_risk = 1`) is not rescued again, and a `QUEUED` job is rescued only if a feasible alternative exists. Otherwise an at-risk job would lose its queue position at every update.
+   - At most one rescue per job per `JOB_RELEASE`; if the rescue plan's `release_slot ≤ t`, the job joins the queue directly without a second release-time check.
 
 Queue and capacity changes are not separate triggers; their effect enters through the exact incumbent re-score in Stage 1 at the next update (at most 30 minutes later). This keeps trigger work proportional to updates, not to completions.
 
@@ -543,17 +549,24 @@ For pending job `j` with incumbent `a` at time `t`:
 - `Ŝ_a, L_a, U_a`: current incumbent score and interval (recomputed; one candidate).
 - `g_min(j) = max(g_abs, g_rel × Ŝ_a) + κ_switch + κ_queue × [state = QUEUED] + λ_ovh`
   - `g_abs` kgCO2 (default 0), `g_rel` fraction (default 0.05), `κ_switch` kgCO2 hysteresis per move (default 0), `κ_queue` extra hysteresis for leaving a queue (default 0), `λ_ovh` kgCO2-equivalent charge per re-scoring (default 0; Section 5 D13).
-- `θ ≥ 0`: noise-margin weight (default 0.5; sweep 0, 0.25, 0.5, 1).
-- `n_j = max(0, floor(r_q50 / 1800) − 1)`: an execution interval of length `r_q50` starting at any second fully covers at least `n_j` consecutive slots. `p = 2^floor(log2 n_j)` (0 if `n_j = 0`), `ρ_j = n_j − p`.
-- For each region `r` and vintage `v`, precomputed once per update over slots `[slot0, slot0 + H_defer + 8 days]` (extrapolated slots included, all values clipped at ≥ 0): `m_1(r)` = minimum slot value; `m_p(r)` = minimum mean over `p` consecutive slots, for `p ∈ {2, 4, …, 512}` (cumulative sums, O(slots) per `p`).
+- `θ ≥ 0`: noise-margin weight (v0.8 default 0.1; sweep in 10.10).
+- `C(r, x, ρ) = Σ_k τ_k(x, ρ) × F(r, k, v)`: forecast carbon of running for `ρ` seconds from time `x` in region `r`. For each region and vintage, prefix sums over slots (extrapolated slots included, values clipped at ≥ 0) make one evaluation O(1).
 
 ### 10.4 Stage 1: necessary-condition screen (cheap)
 
-Lower bound on the point score of every candidate, alternatives included:
+Lower bound on the point score of every **feasible** alternative [v0.8]. Every feasible candidate `(d, s)` has its point-estimate start `x = s + w_mid` in the window
 
-`LB_j = min over eligible d of  K_j,d × 1800 × ( p × m_p(r_d) + ρ_j × m_1(r_d) )`
+`X_j = [slot0, x_max]`, with `x_max = deadline_j − r_q90`
 
-Why it is valid: `Ŝ_c` sums non-negative terms; dropping partial slots leaves at least `n_j` consecutive full slots of 1,800 s; those split into one `p`-slot window (mean ≥ `m_p`) and `ρ_j` single slots (each ≥ `m_1`). Deadlines, waits and the restricted release range only remove candidates, so they cannot lower the minimum. Unit test R-TRIG-1 checks `LB_j ≤ min_c Ŝ_c` on randomised inputs.
+because `w_mid ≥ 0` and the Deadline check (9.5) requires `s + w_hi + r_q90 ≤ deadline_j` with `w_mid ≤ w_hi`. So, taking queues as empty,
+
+`LB_j = min over eligible d of  K_j,d × min over x ∈ X_j of C(r_d, x, r_q50)`
+
+and `LB_j = +∞` if `x_max < slot0` (no feasible alternative can exist). `C(r, x, ρ)` is piecewise linear in `x`, so its minimum lies where `x` or `x + ρ` is on a slot boundary, or at an end of `X_j`. Evaluating those points costs O(slots in `X_j`) per region, with no wait profiles, against up to 147 wait-profile evaluations in Stage 2.
+
+Why it is valid: every feasible candidate's `Ŝ_c` equals `K_j,d × C(r_d, x, r_q50)` for some `x ∈ X_j`, so it cannot be below the minimum over `X_j`. Waits only move `x` within `X_j`. Unit test R-TRIG-1 checks `LB_j ≤ min over feasible c of Ŝ_c` on randomised inputs, and runs also assert it on every Stage-2 call in debug mode.
+
+Why the v0.7 bound was replaced: it took the cleanest window anywhere in `[slot0, slot0 + H_defer + 8 days]`, in any region, ignoring the deadline. A 24-hour plan almost always looks beatable against that, so 100 % of checks passed on real data (10.11) and the screen saved nothing.
 
 Screen passes iff `Ŝ_a − LB_j ≥ g_min(j)`.
 
@@ -565,20 +578,27 @@ Cooldown: a job that passed Stage 2 without moving is not re-scored again until 
 
 Call the planner: `b = argmin_{c ≠ a, feasible} Ŝ_c` (tie order 9.1).
 
-Noise width of the comparison: `w_ab = ½[(U_a − L_a) + (U_b − L_b)]`.
+Noise width of the comparison, paired [v0.8]:
+
+`w_ab = ½[(U'_a − L'_a) + (U'_b − L'_b)] + ½ |Δ(r_q95) − Δ(r_q05)|`
+
+- `L'_c, U'_c` are the 9.4 interval with runtime held at `r_q50`: `L'_c` uses `w_lo` and `e05`, `U'_c` uses `w_hi` and `e95`. They carry forecast and wait uncertainty, which differ between sites.
+- `Δ(r) = Ŝ_a(r) − Ŝ_b(r)` is the point-score difference with the same runtime `r` for both options. Runtime enters only here.
+
+Why: a long run costs more at either site, so runtime spread moves `Ŝ_a` and `Ŝ_b` together and says little about which is better. The v0.7 width `½[(U_a − L_a) + (U_b − L_b)]` added the full runtime spread of each option. On real data it exceeded `w_max × Ŝ_a` on 98.7 % of comparisons, so the `INTERVAL_TOO_WIDE` fallback set θ to 0 and θ had almost no effect (10.11). The paired form keeps the part of runtime uncertainty that does differ, such as a longer run crossing into dirtier hours at one site only, at the cost of two extra point evaluations per comparison.
 
 **Decision flip:** switch to `b` iff
 
 `Ŝ_a − Ŝ_b ≥ g_min(j) + θ × w_ab`
 
-At θ = 0 this is the fixed-savings gate. At θ > 0, a move must beat the gate by a multiple of the combined forecast and runtime uncertainty, which suppresses moves driven by changes smaller than typical forecast error.
+At θ = 0 this is the fixed-savings gate. At θ > 0, a move must beat the gate by a multiple of the uncertainty in the comparison, which suppresses moves driven by changes smaller than typical forecast error.
 
 ### 10.6 Applying a move safely
 
 1. If `j` is `QUEUED`, remove it from `queue` (it loses its position).
 2. Set `dc_id, release_slot` to `b`; `placed_at_s = t`; `plan_capture_utc = v`; `plan_score = Ŝ_b`; `n_moves += 1`; `job.version += 1`.
 3. Push a new `JOB_RELEASE` at `release_slot` (or release immediately if `release_slot ≤ t`; the job then joins the end of `b`'s queue).
-4. Invalidate wait profiles of the old and new datacentres, so later jobs in the same update see the new congestion. Jobs in one update are processed sequentially in tie order, which limits simultaneous moves into one cheap site (the "stampede" risk).
+4. Invalidate wait profiles of the old and new datacentres, so later jobs in the same update see the new congestion. Jobs in one update are processed sequentially in tie order, which limits simultaneous moves into one cheap site (the "stampede" risk). [v0.8] Each move is applied, and the profiles rebuilt, before the next job is re-scored; collecting moves and applying them at the end of the update is not allowed, because every job would then pick the same cheap slot (R-TRIG-8).
 5. Log `MOVE` with `a, b, Ŝ_a, Ŝ_b, w_ab, g_min, reason`.
 
 Capacity cannot be violated because nothing is allocated before dispatch.
@@ -600,7 +620,7 @@ The fraction of comparisons that used each fallback is reported per run; a run w
 ```text
 on CARBON_UPDATE(v) at time t:
     view.advance_to(v)
-    precompute m_1(r), m_p(r) for all regions                # O(R × slots × log)
+    precompute prefix sums of F for all regions              # O(R × slots)
     for j in pending_jobs sorted by (deadline, arrival, job_id):
         inc = planner.rescore(j, j.placement, view)          # exact, 1 candidate
         if not inc.feasible:
@@ -617,8 +637,8 @@ on CARBON_UPDATE(v) at time t:
         j.last_rescore = t
         if b is None:
             log(j, "NO_ALTERNATIVE"); continue
-        theta_eff = theta if intervals_ok(inc, b) else 0
-        w = 0.5 * ((inc.U - inc.L) + (b.U - b.L))
+        w = paired_width(inc, b)                             # 10.5
+        theta_eff = theta if intervals_ok(inc, b, w) else 0
         if inc.S - b.S >= g + theta_eff * w:
             apply_move(j, b, t, v)                           # 10.6
         else:
@@ -638,13 +658,40 @@ on CARBON_UPDATE(v) at time t:
 |---|---|---|
 | `g_rel` | 0.05 | 0.01, 0.05, 0.10, 0.20 |
 | `g_abs` (kg) | 0 | 0, and a value equal to the base-scenario median `0.05 × Ŝ` (computed on validation) |
-| `θ` | 0.5 | 0, 0.25, 0.5, 1.0 |
+| `θ` | 0.1 (v0.8; final value chosen on validation) | 0, 0.05, 0.1, 0.25, 0.5 |
 | `κ_switch`, `κ_queue` | 0 | 0, and `0.02 × median Ŝ` |
 | `cooldown_s` | 1,800 | 1,800, 7,200 |
 | `max_moves` | 3 | 1, 3, 10 |
 | `H_defer` | 24 h | 6 h, 24 h |
 
 Thresholds are chosen on the validation period only (Section 14.5).
+
+### 10.11 Evidence behind the v0.8 changes [Measured, 2 Nov 2026]
+
+From a design review against the first validation week (trace days 21–27, carbon Monday 3 Jul 2023, under the v0.7 calendar). The screen and θ figures come from a simplified run of 1,800 jobs that ignores queues; the policy figures are the existing simulator on all 6,976 jobs, with placeholder powers (7.2), so emissions are relative. All are from validation data, so using them to set the design does not touch the test period (14.3).
+
+| Screen bound | Checks passing to Stage 2 |
+|---|---|
+| v0.7 bound (10.4, replaced) | 100 % |
+| v0.8 bound (feasible start window, empty queues) | 18.3 % |
+| Floor: checks where a move really clears the gate | 9.7 % |
+
+The v0.8 bound never exceeded the true best score in 12,966 checks. With 18.3 % passing, about 80 % of full re-scorings are skipped, so H1 is testable.
+
+| θ | Fixed-savings moves kept, v0.7 width | Moves kept, width without runtime spread |
+|---|---|---|
+| 0.05 | (not in v0.7 grid) | 49 % |
+| 0.25 | 98.7 % | 12 % |
+| 0.5 | 98.6 % | 6 % |
+
+The second column is the forecast-and-wait part of the paired width; the paired term adds back runtime effects that differ between options, so measured values will sit somewhat above it. Hence the lower θ grid.
+
+| Policy | Mean carbon intensity (g/kWh) | Deadline misses |
+|---|---|---|
+| `fcfs` | 665.6 | 2.25 % |
+| `place_once` | 644.9 | 7.30 % |
+
+See 17.1 for what these two lines mean for the experiment.
 
 ---
 
@@ -654,7 +701,7 @@ Every policy uses the same scenario object (jobs, capacities, carbon views, trut
 
 | Policy | Initial placement | When re-scoring runs | Acceptance | Purpose |
 |---|---|---|---|---|
-| `fcfs` | `(d, slot0)` with earliest `s + w_mid`; carbon ignored | never (no deferral, so no rescue) | n/a | Non-carbon-aware reference |
+| `fcfs` | `(d, slot0)` with earliest `s + w_mid`; carbon ignored. Ties go to datacentres in rotated order starting at `n mod N_dc`, `n` the job's arrival index [v0.8] | never (no deferral, so no rescue) | n/a | Non-carbon-aware reference |
 | `place_once` | best `Ŝ` among feasible | rescue only | n/a | Value of any re-planning |
 | `periodic(T)` | best `Ŝ` | every `T ∈ {30 min, 2 h, 6 h}` for all pending jobs | `Ŝ_a − Ŝ_b > ε_tie` | Timer re-optimisation. Published precedent: GREEN's fixed 30-min rescheduling quantum (ref 17). |
 | `pred_error(ε)` | best `Ŝ` | at `CARBON_UPDATE` when the incumbent window's mean forecast changed by `> ε` relative to the value at last plan, or `w_mid` of the incumbent changed by `> ε × (s_hat − t)`; `ε ∈ {0.05, 0.10, 0.20}` | `Ŝ_a − Ŝ_b > ε_tie` | Reacts to input error, not ranking. Published precedent: CarbonScaler re-plans when deviation exceeds a threshold, 5 % in its forecast-error experiment (ref 16). This is the key comparison for the contribution: error-magnitude trigger vs decision-relevance trigger. |
@@ -663,6 +710,8 @@ Every policy uses the same scenario object (jobs, capacities, carbon views, trut
 | `pig` (reference) | best *true* emissions using `runtime_actual_s`, truth `A`, and wait profiles built from actual runtimes | rescue only | n/a | Context for attainable benefit under the same greedy, arrival-order structure. Not deployable and not a lower bound. |
 
 Throttling (`cooldown_s`, `max_moves`) applies identically to `periodic`, `pred_error`, `fixed_savings` and `decision_flip`.
+
+Why FCFS rotates its tie-break [v0.8]: with the global tie order (`dc_id` first), every tie on an idle system went to dc0, Delhi NCR, one of the two cleanest grids. That made the carbon-blind reference partly carbon-aware: on the first validation week FCFS reached 665.6 g/kWh, close to Delhi's 657 mean, and understated what carbon-aware placement adds. Rotation spreads ties evenly and stays deterministic. The rotation applies to FCFS only; the carbon-aware policies keep the 9.1 tie order, where ties are rare.
 
 Note on `pig`: its wait profile uses actual runtimes of committed jobs, so its wait estimate is exact only if no later arrival changes the queue ahead of it. It still places jobs greedily in arrival order, which is why it is a reference and not an optimum.
 
@@ -948,7 +997,7 @@ Rule: an emissions reduction is reported only together with completion, miss rat
 
 A replicate is `(trace slice i, carbon start C0, missing_gpu_policy, phase_shift)`. Each `compare` runs every policy on the same replicates. Inputs are built once per replicate into a scenario object, hashed (`scenario_hash`), and passed read-only to each policy run. The only randomness in the MVP is job sub-sampling (deterministic hash of `job_id` with a seed) and synthetic forecast-error scenarios; seeds are recorded.
 
-Trace slices: trace days `[21, 28), [28, 35), …, [63, 69)` (7 slices; the last is 6 days). Carbon starts: Mondays in the relevant period. Validation uses the 3 slices in trace days 21–41 and test the 4 slices in days 42–69, each crossed with 4 carbon-start Mondays from its own period: 12 validation and 16 test replicates per policy.
+Trace slices [v0.8]: trace days `[25, 32), [32, 39), …, [67, 74)` (7 slices of 7 days). Each starts on a trace Monday, as 6.3 requires. The trace has no calendar, so Mondays are identified from the weekly submission pattern: arrivals per trace day drop on days 16–17, 23–24, 30–31, …, 65–66 (weekends), so days 25, 32, …, 67 are Mondays. The v0.7 slices started on day 21, a Thursday by this pattern. Days 21–24 are left unused, between calibration and validation. Validation uses the 3 slices in trace days 25–45 and test the 4 slices in days 46–73, each crossed with 4 carbon-start Mondays from its own period: 12 validation and 16 test replicates per policy. `configs/base.yaml` (`splits`, `dev`) must be updated to match in build phase 5.
 
 ### 14.3 Chronological separation
 
@@ -956,8 +1005,8 @@ Trace slices: trace days `[21, 28), [28, 35), …, [63, 69)` (7 slices; the last
 |---|---|---|
 | Fit runtime quantiles | 0–20 | n/a |
 | Fit carbon residual quantiles | n/a | 13 Mar – 30 Jun 2023 (Indian vintages, 6.2.4) |
-| Validation (choose thresholds, check calibration) | 21–41 | 1 Jul – 31 Aug 2023 |
-| Test (final results; run once after freezing configs) | 42–69 | 1 Sep 2023 – 31 Jan 2024 |
+| Validation (choose thresholds, check calibration) | 25–45 (v0.7: 21–41) | 1 Jul – 31 Aug 2023 |
+| Test (final results; run once after freezing configs) | 46–73 (v0.7: 42–69) | 1 Sep 2023 – 31 Jan 2024 |
 
 Validation and test replicates draw carbon starts only from their own periods; `validate` refuses overlapping windows. Exact boundaries move only if the coverage audit finds gaps, and the change is recorded in `configs/base.yaml` with a reason.
 
@@ -1030,13 +1079,14 @@ For each metric and policy pair, report the mean over replicates, the paired dif
 | R-EN-4 | MUST | Static-factor scenario: carbon-aware policies equal intensity `c` per kWh | Constant series; check `M/E = c` | R-EN-1 |
 | R-PLAN-1 | MUST | Feasibility rejects each case in 9.5 with the right reason code | One toy candidate per reason | — |
 | R-PLAN-2 | MUST | No-feasible fallback picks earliest conservative finish and flags it | Toy with impossible deadline | R-PLAN-1 |
-| R-TRIG-1 | MUST | `LB_j ≤ min_c Ŝ_c` | 2,000 random forecast series and jobs | R-PLAN-1 |
+| R-TRIG-1 | MUST | `LB_j ≤ min over feasible c of Ŝ_c` (v0.8 bound, 10.4) | 2,000 random forecast series, jobs and queue states; plus a debug-mode assertion on every Stage-2 call | R-PLAN-1 |
 | R-TRIG-2 | MUST | P1: decision-flip (θ = 0) and fixed-savings decisions identical | Toy + one dev-mode real replicate | R-TRIG-1 |
 | R-TRIG-3 | MUST | Fires and moves when an injected forecast change makes another dc clearly better | Toy case "flip" in `expected.yaml` | R-TRIG-1 |
 | R-TRIG-4 | MUST | Does not move when forecasts change but ranking is unchanged (uniform shift across regions) | Toy case "no-flip" | R-TRIG-1 |
 | R-TRIG-5 | MUST | Does not move when the gain is below `g_min + θ w_ab` | Toy case "small gain" | R-TRIG-1 |
 | R-TRIG-6 | MUST | Fallbacks in 10.7 trigger on malformed, too-wide and missing intervals | Unit tests per row | R-TRIG-1 |
-| R-TRIG-7 | MUST | Rescue when the incumbent becomes infeasible | Toy: capacity at incumbent saturates, deadline at risk | R-PLAN-1 |
+| R-TRIG-7 | MUST | Rescue when the incumbent becomes infeasible; no repeat rescue of a fallback placement; at most one rescue per release; missing carbon keeps the incumbent (10.2) | Toy: capacity at incumbent saturates, deadline at risk; plus one case per limit | R-PLAN-1 |
+| R-TRIG-8 | MUST | Moves in one update are applied one at a time, so two jobs cannot both take capacity only one fits (10.6) | Toy: two pending jobs, one free cheap slot that fits one; exactly one moves | R-TRIG-1 |
 | R-POL-1 | MUST | All seven policies run on the toy and dev scenarios | `smoke`; dev `compare` completes | all above |
 | R-FAIR-1 | MUST | `compare` uses one scenario hash for all policies | `reporting` refuses mismatched hashes; test with tampered run | R-SIM-1 |
 | R-REP-1 | MUST | Each run saves config, config hash, data manifests and checksums, policy, seed, git commit, package versions, host info | Inspect `manifest.json` schema test | — |
@@ -1097,7 +1147,9 @@ Raw data are not committed. `README.md` gives the download commands for the v202
 
 | Risk | Effect | Mitigation |
 |---|---|---|
-| Stage-1 bound too loose (pass rate ≈ 1) | No overhead saving; H1 fails | Report honestly; optional tighter bound restricted to each job's own release range and deadline (later work) |
+| Stage-1 bound too loose (pass rate ≈ 1) | No overhead saving; H1 fails | [Occurred, v0.8] The v0.7 bound passed 100 % of checks; replaced by the feasible-window bound (10.4), 18.3 % on validation data. Report the v0.7 result as a finding |
+| Small gain from carbon-aware placement [v0.8] | Re-planning has little to improve; H1–H3 effects small | On the first validation week `place_once` cut mean intensity only 3 % below `fcfs` (10.11), partly because FCFS's dc0 tie-break favoured Delhi (fixed in 11). Re-measure with the rotated tie-break; a small gain is a valid result and is reported as such |
+| Place-once deadline misses (2.25 % → 7.30 %) [v0.8] | Carbon gains bought with missed deadlines; re-planning results inherit this | Investigate before build phase 6: check `w_hi` coverage and the deadline-slack formula (6.6) on validation; rescue (10.2) should recover part. Report misses next to every emissions number |
 | Indian truth is modelled from generation by fuel, not metered intensity, and ignores inter-regional flows | Absolute regional values may be off; regions may look more different than consumers experience | Label results; report the source used; compare annual means with CEA grid factors |
 | No Indian generation data at ≤ 1 h resolution (B4) | Truth must fall back to a constructed profile | Source preference order in 6.2.2; the fallback is labelled [Synthetic] |
 | Borrowed GB error paths do not reflect Indian weather | Forecast-error effects (H2, H4) may differ in reality | α sweep and permuted mapping; stated as a limitation in every report |
@@ -1107,7 +1159,8 @@ Raw data are not committed. `README.md` gives the download commands for the v202
 | Gang model of multi-task jobs | Over-states resource-time | Same for all policies; X3 |
 | 19.8 % zero-GPU assumption | Shifts job mix | `missing_gpu_policy` sensitivity |
 | Synthetic deadlines and capacity | Results depend on scenario settings | Sweeps; state as scenario results |
-| Power parameters unsourced | Absolute kgCO2 meaningless until set | Block real-trace reporting until `energy.yaml` has citations (relative results unaffected, 7.3) |
+| Power parameters unsourced | Absolute kgCO2 meaningless until set | Block absolute real-trace reporting until `energy.yaml` has citations; the Phase 2 review shows relative results with placeholders (7.2, v0.8) |
+| Data folders outside `data/raw/` and `data/processed/` are not git-ignored [v0.8] | A teammate who unzips data into another folder can commit ~250 MB with `git add .` | Processed files go in `data/processed/` only; widen `.gitignore` to ignore all of `data/` except `README.md` and `manifests/` |
 | Threshold tuning on test data | Inflated results | 14.3 split; `validate` enforces |
 | Python speed at full sampling | Long sweeps | Dev sampling 0.1; measure (R-PERF-1) before deciding |
 | Scope creep (DRO, live dashboards) | Delays core result | DRO is X1; only the static `dashboard.html` is in scope; a live viewer is X9 (Phase 3, optional) |
@@ -1155,8 +1208,8 @@ Configurable or non-blocking:
 | 2. Canonical data | `ingest alibaba`, `ingest india`, `ingest carbon`, `build-forecasts`, manifests, `validate` | R-ING-1…6 | Processed CSVs and ingest/coverage reports exist; B2 and B4 answered |
 | 3. Deterministic core | `models`, `simulator` (events, states), `datacentre` (queue, dispatch) behind `DatacentreClient`, toy fixture, `fcfs` | R-SIM-1…5 | Toy FCFS outputs equal `expected.yaml` |
 | 4. Energy and place-once | `energy`, `carbon` views, `planner` (candidates, feasibility, scores), `place_once` | R-EN-1, 2, 4; R-PLAN-1, 2; R-LEAK-2 | Toy emissions exact; static-factor test passes |
-| 5. Baselines | `estimates` (runtime, wait), `periodic`, `pred_error`, `fixed_savings`, rescue, throttling | R-LEAK-1, R-TRIG-7, R-POL-1 (partial) | All baselines run on toy; decision logs readable |
-| 6. Decision-flip | Lower bound, screen, noise margin, fallbacks | R-TRIG-1…6, P1 | Toy flip/no-flip/small-gain cases pass; P1 holds on toy |
+| 5. Baselines | `estimates` (runtime, wait), real-trace scenario builder, `periodic`, `pred_error`, `fixed_savings`, rescue (with the v0.8 limits), throttling, queued-incumbent Range exemption, FCFS rotated tie-break; `configs/base.yaml` gains `cluster_totals` and the v0.8 slices; check place-once deadline misses (17.1) | R-LEAK-1, R-TRIG-7, R-TRIG-8, R-POL-1 (partial) | All baselines run on toy; decision logs readable; miss rate on the dev replicate explained |
+| 6. Decision-flip | v0.8 feasible-window lower bound, screen, paired noise width, fallbacks | R-TRIG-1…6, P1 | Toy flip/no-flip/small-gain cases pass; P1 holds on toy |
 | 7. Experiment runner | `compare`, `sweep`, `report`, metrics, plots, manifests | R-FAIR-1, R-REP-1, 2, R-MET-1 | `compare` on toy and on one dev replicate produces `summary.csv` and figures |
 | 8. Real-trace evaluation | Residual fit, runtime fit, validation sweeps, threshold freeze, test run, sensitivity and ablations | R-PERF-1, P1 on a real replicate, interval coverage reports | Frozen configs committed; test results and worse-regime table produced |
 | 9. Analysis and package | Report figures, limitations, reproducibility README; update EL report to match what was built | R-REP-2 from a clean clone | A new machine reproduces the summary tables from raw downloads |
