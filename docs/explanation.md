@@ -5,7 +5,7 @@
 **SDG theme:** SDG 9 — Industry, Innovation and Infrastructure  
 **Document purpose:** Explain the project, its motivation, research direction, data, proposed simulation, evaluation plan, current decisions, and unresolved questions in one place.  
 **Project name:** Flipwise (Python package and CLI `flipwise`): it re-evaluates decision flips wisely  
-**Status:** Working explanation based on the submitted EL report, the team's subsequent discussion, and the implementation PRD (`prd.md`). Updated to match PRD v0.7 (India-only simulated world; Indian data from Grid-India; Docker in Phase 2 as a stretch). For the history of decisions, see `project_journey.md`. Where the two disagree, the PRD is authoritative.  
+**Status:** Working explanation based on the submitted EL report, the team's subsequent discussion, and the implementation PRD (`prd.md`). Updated to match PRD v0.8.5 (India-only simulated world; Indian data from Grid-India; the decision-flip screen and noise width as built, in Section 10.8; results always reported with and without long-running jobs, in Section 15). For the history of decisions, see `project_journey.md`. Where the two disagree, the PRD is authoritative.  
 **Last updated:** 28 October 2026
 
 ---
@@ -442,7 +442,7 @@ The submitted report explicitly states that running jobs will not be migrated as
 
 ## 10. How the decision-flip trigger is intended to work
 
-This is the project's central mechanism. The exact mathematics and threshold values are implementation decisions to validate, not facts already established.
+This is the project's central mechanism. Sections 10.1 to 10.7 explain the idea; Section 10.8 says what was built. Threshold values are still chosen on validation data.
 
 ### 10.1 Placement candidates
 
@@ -494,7 +494,7 @@ Conceptually, the trigger asks:
 3. Is the uncertainty large enough that the current candidate's ranking could change relative to the alternative?
 4. Is this possibility material rather than a tiny numerical change or pure tie-breaking noise?
 
-One possible implementation is interval/rank analysis: if candidate-score intervals overlap in a way that permits a different candidate to rank first, a decision flip is possible. More sophisticated implementations could sample plausible inputs and estimate the probability that the best candidate changes. These are alternative designs; they should not be mixed without a documented choice.
+The project chose a two-step check rather than sampling: a cheap screen, then a full comparison that allows for forecast noise. Section 10.8 describes it. Estimating a flip probability by sampling stays a possible extension.
 
 ### 10.5 Net-benefit gate
 
@@ -522,6 +522,26 @@ Separating them makes experiments interpretable. It also allows the same planner
 - Apply a cooldown or hysteresis rule if repeated near-identical updates would cause oscillation; report the rule and test its impact.
 - Ensure every trigger is evaluated only for jobs that remain pending.
 - A trigger that fires must be recorded even if the planner retains the original placement.
+
+### 10.8 What was built (PRD v0.8 to v0.8.5)
+
+Every 30 minutes, each job that has not started is asked: should you still run where and when you planned?
+
+| Step | Question | Cost |
+|---|---|---|
+| Re-score the current plan | What does it cost now, and can it still meet its deadline? | One lookup |
+| Screen | Even with empty queues, could any option save enough? | Cheap |
+| Full re-score and flip test | Is the best real option better by more than forecast noise? | Up to 147 options |
+
+**The screen only saves work.** It works out the lowest score any feasible option could possibly reach. If even that isn't enough of a saving, a full re-score can't change the answer, so it's skipped. At noise margin θ = 0, decision-flip therefore makes exactly the same decisions as fixed-savings with fewer re-scores. This is the project's core claim (P1), and it holds on the first validation week: identical logs, with 66 % fewer full re-scores.
+
+**The noise margin is what can change decisions.** A move must beat the savings gate by θ times how uncertain the comparison is. Runtime uncertainty only counts where it differs between the two options, because a long run costs more at either site. When the uncertainty is too wide to be useful, θ is switched off for that comparison. That happened on 30 % of comparisons on the first validation week, more than the 10 % the PRD flags, so it is being looked at on validation data.
+
+**A job keeps its own place when its plan is scored.** Otherwise it competes with itself: it would look as if staying put meant going behind every other job, its plan would look slower than it is, and it would be moved or "rescued" for no reason. A job thinking of moving does join the back of the new queue, because that's what moving costs.
+
+**A move needs a real saving.** One job has zero power, so moving it saves nothing, and "saving 0 is at least gate 0" would otherwise move it at every update.
+
+**Rescue is separate from all of this.** If a plan can no longer meet its deadline, the job is re-planned whatever the trigger says, the same way for every policy except FCFS. There are limits, so a job at risk doesn't lose its place over and over: missing carbon data is not a reason to rescue, a job already on a best-effort plan is left alone, and a queued job moves only if something better actually exists.
 
 ---
 
@@ -797,7 +817,7 @@ A baseline such as `q90` runtime placement chooses capacity/window decisions usi
 
 ### 14.8 Oracle reference
 
-An oracle can use future information to estimate a theoretical best-case result. It is not an implementable scheduler and must never be presented as a deployable baseline. State exactly which future information it can see. Use it as a lower-bound/reference for possible emissions or an upper-bound for a clearly defined benefit, not as an equivalent competitor.
+An oracle can use future information to estimate a theoretical best-case result. It is not an implementable scheduler and must never be presented as a deployable baseline. State exactly which future information it can see. The project's version (`pig`) sees true carbon and actual runtimes, but still places jobs one at a time as they arrive, so it is a reference and not a bound: better schedules may exist. On the first validation week it is the cleanest policy on jobs within their runtime estimate, but not on all jobs, because a job known to run for days has no plan that meets its deadline and is placed by earliest finish.
 
 ### 14.9 Deterministic and DRO planner variants
 
@@ -812,6 +832,7 @@ Every result should be reported with its definition, unit, aggregation method, a
 | Metric | Suggested definition | Typical interpretation |
 |---|---|---|
 | **Total modelled emissions** | Sum job emissions over completed/executed work, with the treatment of unfinished jobs stated | Lower is better only when work completed and deadline performance are comparable |
+| **Estimable-job emissions and intensity** | The same totals over only the jobs that ran within their 90th-percentile runtime estimate; always shown beside the all-jobs value | Shows scheduling on jobs the scheduler could actually estimate. On the first validation week, 35 of 6,975 jobs used half the energy, mostly running for days against estimates under an hour, so where they landed decided the all-jobs total. The rule is fixed and not tuned, and it never affects decisions |
 | **Emissions per completed job** | Total emissions divided by the number of completed jobs | Helps control for differing completion counts |
 | **Deadline-miss rate** | Jobs completing after the deadline divided by jobs with deadlines, plus a declared rule for uncompleted jobs | Lower is better |
 | **Queue delay** | Start time minus arrival/eligible-release time | Lower is generally better; define whether it is mean, median, p95, etc. |
@@ -827,7 +848,7 @@ Every result should be reported with its definition, unit, aggregation method, a
 
 ### Important comparison rule
 
-Emissions alone are not sufficient. A policy could lower total emissions simply because it completes fewer jobs or delays work beyond the evaluation horizon. Always report emissions alongside completed work, deadline misses, queue delay, and workload completion. When feasible, show both absolute emissions and normalised values such as emissions per completed job.
+Emissions alone are not sufficient. A policy could lower total emissions simply because it completes fewer jobs or delays work beyond the evaluation horizon. Always report emissions alongside completed work, deadline misses, queue delay, and workload completion. When feasible, show both absolute emissions and normalised values such as emissions per completed job. Never draw a conclusion from a single week: results are read across replicates.
 
 ### Overhead accounting
 
