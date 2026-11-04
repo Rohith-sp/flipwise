@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import math
 from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
@@ -19,6 +20,9 @@ NO_START = "NO_START"
 DEADLINE_RISK = "DEADLINE_RISK"
 NO_CARBON = "NO_CARBON"
 QUANTILES = ("q05", "q50", "q95")
+INTERVAL_MALFORMED = "INTERVAL_MALFORMED"
+INTERVAL_TOO_WIDE = "INTERVAL_TOO_WIDE"
+LB_ROUNDING_GUARD = 1 - 1e-12
 
 
 @dataclass(frozen=True)
@@ -156,7 +160,7 @@ def best_candidate(cands: list[Candidate]) -> Candidate | None:
 
 def rescore(view: SchedulerView, job: JobInfo) -> Candidate:
     """The job's current plan, scored now (PRD §10.3). One candidate."""
-    return evaluate(view, job, job.dc_id, job.release_slot, incumbent=True)  # type: ignore[arg-type]
+    return evaluate(view, job, job.dc_id, job.release_slot, incumbent=True, intervals=False)  # type: ignore[arg-type]
 
 
 def alternatives(view: SchedulerView, job: JobInfo) -> list[Candidate]:
@@ -187,6 +191,88 @@ def window_mean_forecast(view: SchedulerView, job: JobInfo, c: Candidate) -> flo
         c.release_slot + c.w_mid, job.r_q50_s
     )
     return None if p is None else p[0] / max(job.r_q50_s, 1)
+
+
+def lower_bound(view: SchedulerView, job: JobInfo) -> float:
+    """`LB_j` (PRD §10.4): no feasible alternative can score lower, whatever the queues do.
+
+    Waits only move a feasible candidate's start inside `[slot0, deadline − r_q90]`, so taking the
+    cheapest start in that window at every eligible datacentre gives a sound bound. The factor
+    keeps floating-point rounding from turning a tie into a false screen failure (P1).
+    """
+    if view.forecast is None:
+        return math.inf
+    slot0 = ceil_to_slot(view.now_s)
+    finish_s = job.r_q50_s if view.params.feasibility == "point" else job.r_q90_s
+    x_max = job.deadline_s - finish_s
+    if x_max < slot0:
+        return math.inf
+    best = math.inf
+    for dc_id in sorted(view.dcs):
+        dc = view.dcs[dc_id]
+        if not job.request.fits_in(dc.cap):
+            continue
+        cost = view.carbon_table(dc.region_id).min_window(slot0, x_max, job.r_q50_s)
+        if cost is not None:
+            best = min(best, dc.pue * job.power_kw / 3600 / 1000 * cost)
+    return best * LB_ROUNDING_GUARD
+
+
+def paired_width(
+    view: SchedulerView, job: JobInfo, a: Candidate, b: Candidate, width: str = "full"
+) -> float | None:
+    """`w_ab` (PRD §10.5): forecast and wait spread of each option with runtime held at `r_q50`,
+    plus the runtime term in the difference of the two. None if a needed slot is unknown.
+
+    `width` selects the ablations of §14.6: `no_wait` (A3) holds waits at `w_mid`; `carbon_only`
+    (A4) also drops the runtime term.
+    """
+    total = 0.0
+    for c in (a, b):
+        dc = view.dcs[c.dc_id]
+        table = view.carbon_table(dc.region_id)
+        k_kg = dc.pue * job.power_kw / 3600 / 1000
+        w_lo, w_hi = (c.w_mid, c.w_mid) if width != "full" else (c.w_lo, c.w_hi)
+        lo = table.integrate(c.release_slot + w_lo, job.r_q50_s)
+        hi = table.integrate(c.release_slot + w_hi, job.r_q50_s)
+        if lo is None or hi is None:
+            return None
+        total += k_kg * (hi[2] - lo[1])
+    width_s = total / 2
+    if width == "carbon_only":
+        return width_s
+    d95, d05 = _score_difference(view, job, a, b, "q95"), _score_difference(view, job, a, b, "q05")
+    if d95 is None or d05 is None:
+        return None
+    return width_s + abs(d95 - d05) / 2
+
+
+def _score_difference(
+    view: SchedulerView, job: JobInfo, a: Candidate, b: Candidate, q: str
+) -> float | None:
+    """`Δ(r) = Ŝ_a(r) − Ŝ_b(r)`: the point scores with the same runtime `r` at both options."""
+    scores = []
+    for c in (a, b):
+        dc = view.dcs[c.dc_id]
+        p = view.carbon_table(dc.region_id).point(c.release_slot + c.w_mid, job.r_q(q))
+        if p is None:
+            return None
+        scores.append(dc.pue * job.power_kw / 3600 / 1000 * p[0])
+    return scores[0] - scores[1]
+
+
+def interval_problem(a: Candidate, b: Candidate, width: float | None, w_max: float) -> str:
+    """Which §10.7 fallback, if any, applies to this comparison; empty when none does."""
+    for c in (a, b):
+        if c.lower is None or c.upper is None:
+            return INTERVAL_MALFORMED
+        if not (math.isfinite(c.lower) and math.isfinite(c.upper)):
+            return INTERVAL_MALFORMED
+        if c.lower > c.s_hat or c.upper < c.s_hat:  # type: ignore[operator]
+            return INTERVAL_MALFORMED
+    if width is None or not math.isfinite(width):
+        return INTERVAL_MALFORMED
+    return INTERVAL_TOO_WIDE if width > w_max * a.s_hat else ""  # type: ignore[operator]
 
 
 def fallback(cands: list[Candidate], job: JobInfo, params: PlannerParams) -> Candidate | None:

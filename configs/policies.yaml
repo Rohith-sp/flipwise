@@ -13,4 +13,16 @@ fixed_savings:
   lambda_ovh: 0.0
   cooldown_s: 1800
   max_moves: 3
+decision_flip:
+  theta: 0.1
+  w_max: 2.0
+  screen: true
+  width: full
+  g_rel: 0.05
+  g_abs: 0.0
+  kappa_switch: 0.0
+  kappa_queue: 0.0
+  lambda_ovh: 0.0
+  cooldown_s: 1800
+  max_moves: 3
 pig: {}

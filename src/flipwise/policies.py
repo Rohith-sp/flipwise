@@ -5,11 +5,11 @@ from __future__ import annotations
 
 import time
 from collections.abc import Iterable, Iterator
-from dataclasses import asdict, dataclass
+from dataclasses import asdict, dataclass, field
 from typing import TYPE_CHECKING
 
 from flipwise import planner
-from flipwise.errors import ConfigError
+from flipwise.errors import ConfigError, SimulationInvariantError
 from flipwise.models import Candidate, JobState, Placement
 
 if TYPE_CHECKING:
@@ -42,6 +42,8 @@ class PolicyStats:
 
     stage2_calls: int = 0
     screened: int = 0
+    comparisons: int = 0  # Stage-2 comparisons that used a noise margin
+    fallbacks: dict[str, int] = field(default_factory=dict)  # by §10.7 code
     rescues: int = 0
     arrival_s: float = 0.0
     screen_s: float = 0.0
@@ -340,21 +342,93 @@ class FixedSavings(Replanner):
         queued = self.kappa_queue if job.state == JobState.QUEUED else 0.0
         return max(self.g_abs, self.g_rel * s_a) + self.kappa_switch + queued + self.lambda_ovh
 
+    def margin(
+        self, view: SchedulerView, job: JobInfo, inc: Candidate, b: Candidate
+    ) -> tuple[float, float | None, str]:
+        """`(θ_eff, w_ab, fallback code)`. A plain gate has no noise margin."""
+        return 0.0, None, ""
+
+    def screen_fails(
+        self, view: SchedulerView, job: JobInfo, inc: Candidate, g: float
+    ) -> tuple[bool, float | None]:
+        """`(no alternative can clear the gate, LB)`. A plain gate has no screen."""
+        return False, None
+
     def replan(self, view: SchedulerView, job: JobInfo, inc: Candidate) -> Iterator[Decision]:
         if self._throttled(view, job):
             yield Decision(job.job_id, "THROTTLED", s_a=inc.s_hat)
             return
         g = self.gate(job, inc.s_hat)
+        fails, lb = self.screen_fails(view, job, inc, g)
+        if fails:
+            yield Decision(job.job_id, "SCREEN_FAIL", s_a=inc.s_hat, lb=lb, g_min=g)
+            return
         b = self._best_for_replan(view, job)
         if b is None:
-            yield Decision(job.job_id, "NO_ALTERNATIVE", s_a=inc.s_hat, g_min=g)
+            yield Decision(job.job_id, "NO_ALTERNATIVE", s_a=inc.s_hat, lb=lb, g_min=g)
             return
+        if view.debug and lb is not None and b.s_hat < lb:
+            raise SimulationInvariantError(
+                f"lower bound {lb} above feasible score {b.s_hat} for {job.job_id} (R-TRIG-1)"
+            )
+        theta, w, code = self.margin(view, job, inc, b)
         gain = inc.s_hat - b.s_hat
+        scores = {"s_a": inc.s_hat, "lb": lb, "g_min": g, "w_ab": w, "theta_eff": theta}
         # C7: `gain > 0` matters when the gate is 0, as for a zero-power job (PRD §10.5).
-        if gain >= g and gain > 0:
-            yield _to_candidate(job.job_id, "MOVE", b, s_a=inc.s_hat, g_min=g)
+        if gain >= g + theta * (w or 0.0) and gain > 0:
+            yield _to_candidate(job.job_id, "MOVE", b, reason=code, **scores)
         else:
-            yield Decision(job.job_id, "KEEP", s_a=inc.s_hat, s_b=b.s_hat, g_min=g)
+            yield Decision(job.job_id, "KEEP", s_b=b.s_hat, reason=code, **scores)
+
+
+class DecisionFlip(FixedSavings):
+    """The proposed policy (PRD §10): the same gate behind a cheap screen, plus a noise margin.
+
+    A subclass on purpose: at θ = 0 only `screen_fails` differs from `fixed_savings`, and it can
+    only skip re-scorings that could not have moved the job. That is what P1 tests.
+    """
+
+    name = "decision_flip"
+
+    def __init__(
+        self,
+        theta: float = 0.1,
+        w_max: float = 2.0,
+        screen: bool = True,
+        width: str = "full",
+        **gate_params,
+    ) -> None:
+        super().__init__(**gate_params)
+        if width not in ("full", "no_wait", "carbon_only"):
+            raise ConfigError(f"decision_flip.width: unknown {width!r}")
+        self.theta, self.w_max = float(theta), float(w_max)
+        self.screen, self.width = bool(screen), width  # False and non-full: ablations A2 to A4
+
+    def screen_fails(
+        self, view: SchedulerView, job: JobInfo, inc: Candidate, g: float
+    ) -> tuple[bool, float | None]:
+        if not self.screen:
+            return False, None
+        self.stats.screened += 1
+        t0 = time.perf_counter()
+        lb = planner.lower_bound(view, job)
+        self.stats.screen_s += time.perf_counter() - t0
+        return inc.s_hat - lb < g, lb
+
+    def margin(
+        self, view: SchedulerView, job: JobInfo, inc: Candidate, b: Candidate
+    ) -> tuple[float, float | None, str]:
+        if self.theta == 0:
+            return 0.0, None, ""
+        self.stats.comparisons += 1
+        planner.add_interval(view, job, inc)
+        planner.add_interval(view, job, b)
+        w = planner.paired_width(view, job, inc, b, self.width)
+        code = planner.interval_problem(inc, b, w, self.w_max)
+        if code:
+            self.stats.fallbacks[code] = self.stats.fallbacks.get(code, 0) + 1
+            return 0.0, w, code
+        return self.theta, w, ""
 
 
 POLICIES: dict[str, type[Policy]] = {
@@ -363,6 +437,7 @@ POLICIES: dict[str, type[Policy]] = {
     "periodic": Periodic,
     "pred_error": PredError,
     "fixed_savings": FixedSavings,
+    "decision_flip": DecisionFlip,
     "pig": Pig,
 }
 

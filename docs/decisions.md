@@ -64,8 +64,8 @@ Every design decision, grouped by the phase it was made in. For how the project 
 
 | ID | Date | Decision | Why | Status | PRD | Code |
 |---|---|---|---|---|---|---|
-| D26 | 2 Nov | Stage-1 screen uses a feasible-window, empty-queue bound; replaces the `m_p` multi-scale bound | F1 | active | §10.4 | — |
-| D27 | 2 Nov | Noise width is paired: runtime counts only through the difference between options. θ grid becomes 0, 0.05, 0.1, 0.25, 0.5 | F2 | active | §10.5 | — |
+| D26 | 2 Nov | Stage-1 screen uses a feasible-window, empty-queue bound; replaces the `m_p` multi-scale bound | F1 | active | §10.4 | planner, carbon |
+| D27 | 2 Nov | Noise width is paired: runtime counts only through the difference between options. θ grid becomes 0, 0.05, 0.1, 0.25, 0.5 | F2 | active | §10.5 | planner, policies |
 | D28 | 2 Nov | Rescue limits: missing carbon keeps the incumbent, no repeat rescue on a fallback placement, a queued job needs a feasible alternative, one rescue per release | Prevents queue-loss spirals and a release loop; resolves a §10.2 and §10.7 contradiction | active | §10.2 | simulator, policies |
 | D29 | 2 Nov | A queued job's incumbent is exempt from the Range check | Its release is already in the past, so it would always look infeasible | active | §9.5 | planner |
 | D30 | 2 Nov | Moves in one update apply one at a time | Otherwise every job picks the same cheap slot | active | §10.6 | simulator, policies |
@@ -105,3 +105,4 @@ Every design decision, grouped by the phase it was made in. For how the project 
 | F5 | 4 Nov | `place_once` misses 7.34 % of deadlines against 2.44 % for `fcfs`; 81 % of its misses are jobs that outran `r_q90` | Check before build phase 6 (PRD §17.1); see F7 | PRD §10.11, §17.1 |
 | F6 | 4 Nov | With C3 as worded in v0.8.1, placed jobs still competed with themselves: 3,532 `place_once` rescues across 6,975 jobs, undoing its carbon gain (668.6 g/kWh on jobs within `r_q90`). With every pending incumbent keeping its place: 939 rescues, 638.3 g/kWh | D44 | PRD §10.11; one validation week, relative emissions |
 | F7 | 4 Nov | Place-once misses are explained: 87 % are jobs that outran `r_q90`. Deferral (mean 3.2 h) uses up slack they turn out to need: 39.8 % of them miss against 16.6 % under `fcfs`. Rescue lowers the rate from 7.34 % to 6.24 %; it cannot help a job already running | Closes phase 5's exit criterion; slack stays a sweep parameter | PRD §17.1; one validation week |
+| F8 | 4 Nov | P1 holds on the first validation week: identical `jobs.csv` and `events.log`, and all 11,956 state-changing decisions match. The screen skips 66 % of full re-scorings (43,097 to 14,568), a pass rate of 33.8 % against 18.3 % in the queue-free estimate | The core claim of EL Phase 2 (R-TRIG-2, P2) | PRD §10.11; `scripts/check_p1.py` |

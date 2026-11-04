@@ -187,7 +187,11 @@ Phase 5 added rescue, throttling and the other baselines. The first real run loo
 
 The deadline misses are now explained too. 87 % are jobs that outran their 90th-percentile estimate: deferring them spends slack they turn out to need. Rescue lowers misses from 7.34 % to 6.24 %, but nothing can rescue a job that has already started.
 
-## 12. Tools used along the way
+## 12. The core claim holds (4 Nov)
+
+Decision-flip went in as a subclass of fixed-savings, so at θ = 0 the only difference is a cheap check that skips re-scorings which could not have moved the job. On the real week the two policies produced byte-identical job and event logs, with 66 % fewer full re-scorings. The pass rate is 33.8 %, not the 18.3 % estimated without queues, but well inside what the screen needs.
+
+## 13. Tools used along the way
 
 | Tool | Used for |
 |---|---|
@@ -201,16 +205,16 @@ The deadline misses are now explained too. 87 % are jobs that outran their 90th-
 | docx (JavaScript) + Microsoft Word | Building and checking the Word guide |
 | Claude Code | Drafting docs, research, code and checks, guided by `CLAUDE.md` |
 
-## 13. Where things stand and what's next
+## 14. Where things stand and what's next
 
 **Done:**
 - Spec (PRD v0.8.3) and docs.
 - Build phases 1, 2, 3 and 4. Phase 2 is complete, with real Indian data, and `validate` passes.
 - Local-split steps 1–3.
-- Build phase 5: the baselines, rescue and throttling, with the deadline misses explained.
+- Build phases 5 and 6: the baselines, rescue, throttling and decision-flip, with P1 proved on real data.
 
 **Next:**
-1. Build phase 6 (decision-flip with the new screen and width), then 7 (experiment runner).
+1. Build phase 7 (experiment runner).
 2. Deployment step 4 (`dcservice.py`), then the scripted driver and `local_cluster.sh`.
 3. Install Docker Desktop for step 8.
 

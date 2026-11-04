@@ -17,13 +17,12 @@ To explore the code, use `graphify query "<question>"` if the graph is built.
 
 ## Where we are
 
-- **Done:** build phases 1–5. `fcfs`, `place_once`, `periodic`, `pred_error`, `fixed_savings` and `pig` run on the toy (hand-checked in `expected.yaml`). C3, C7, rescue and throttling are in.
-- **Not built yet:** decision-flip, metrics, `compare`, `sweep`, `report`, dashboard, and deployment steps 4 onward.
+- **Done:** build phases 1–6. All seven policies run on the toy (hand-checked in `expected.yaml`). C3, C7, rescue, throttling, the screen and the noise margin are in. P1 holds on the real dev week (F8).
+- **Not built yet:** metrics, `compare`, `sweep`, `report`, dashboard, and deployment steps 4 onward.
 
 ## Next steps
 
-1. Phase 6: lower bound, screen, paired width, fallbacks. Prove P1 on the toy and on the dev replicate.
-2. Phase 7: metrics, run layout, `compare`, `sweep`, `report`, dashboard.
+1. Phase 7: metrics, run layout, `compare`, `sweep`, `report`, dashboard.
 
 ## Waiting on a decision
 

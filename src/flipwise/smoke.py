@@ -39,6 +39,11 @@ def check(result: RunResult, expected: dict, t0: int) -> list[str]:
             ok = math.isclose(got[k], v, abs_tol=TOL_KG) if k == "kg_co2" else got[k] == v
             if not ok:
                 errs.append(f"{result.policy} {job_id}.{k}: got {got[k]}, expected {v}")
+    if "stage2_calls" in expected and result.stats["stage2_calls"] != expected["stage2_calls"]:
+        errs.append(
+            f"{result.policy} stage2_calls: got {result.stats['stage2_calls']}, "
+            f"expected {expected['stage2_calls']}"
+        )
     total = sum(r["kg_co2"] or 0.0 for r in rows.values())
     if not math.isclose(total, expected["total_kg_co2"], abs_tol=TOL_KG):
         errs.append(

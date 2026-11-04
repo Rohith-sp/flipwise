@@ -12,7 +12,7 @@ from flipwise.simulator import JobInfo, SchedulerView, Simulator
 
 T0 = 1688342400
 # `pig` is the one policy allowed to see these (PRD §8.7).
-NON_ORACLE = ["fcfs", "place_once", "periodic", "pred_error", "fixed_savings"]
+NON_ORACLE = ["fcfs", "place_once", "periodic", "pred_error", "fixed_savings", "decision_flip"]
 
 
 def _decisions_until(res, t):

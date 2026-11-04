@@ -11,7 +11,7 @@ import numpy as np
 import pandas as pd
 
 from flipwise.errors import CarbonDataError
-from flipwise.models import SLOT_S, floor_to_slot
+from flipwise.models import SLOT_S, ceil_to_slot, floor_to_slot
 
 MAX_PERSIST_SLOTS = 2  # PRD §6.2 missing-slot rule
 LEAD_BUCKETS_S = (6 * 3600, 12 * 3600, 24 * 3600)  # [0,6h) [6,12h) [12,24h) [24h,∞)
@@ -110,6 +110,7 @@ class CarbonTable:
             lo.append(0.0 if sv is None else max(0.0, sv.g_per_kwh + e05[b]))
             hi.append(0.0 if sv is None else sv.g_per_kwh + e95[b])
         self._series = (f, lo, hi)
+        self._arrays: tuple[np.ndarray, np.ndarray, np.ndarray] | None = None
         self._prefix = tuple(list(accumulate(s, initial=0.0)) for s in self._series)
         self._unknown = list(accumulate(unknown, initial=0))
         tail = vintage.get(region_id, self.stop_s)
@@ -145,6 +146,45 @@ class CarbonTable:
         if i1 > i0 and self._unknown[i1] != self._unknown[i0]:
             return None
         return self._cumulative(0, end_s) - self._cumulative(0, start_s), extrapolated
+
+    def min_window(self, lo_s: int, hi_s: int, dur_s: int) -> float | None:
+        """Least `Σ τ·F` over every start in `[lo_s, hi_s]`; None if every window has an unknown
+        slot (PRD §10.4). The cost is piecewise linear in the start, with corners only where the
+        start or the end is on a slot boundary, so those points and the two ends are enough.
+        """
+        if self._arrays is None:
+            self._arrays = (
+                np.array(self._prefix[0]),
+                np.array([*self._series[0], 0.0]),
+                np.array(self._unknown),
+            )
+        prefix, series, unknown = self._arrays
+        starts = np.concatenate(
+            (
+                (lo_s, hi_s),
+                np.arange(ceil_to_slot(lo_s), floor_to_slot(hi_s) + 1, SLOT_S),
+                np.arange(ceil_to_slot(lo_s + dur_s), floor_to_slot(hi_s + dur_s) + 1, SLOT_S)
+                - dur_s,
+            ),
+            dtype=np.int64,
+        )
+        tail = 0.0 if self._tail is None else self._tail[0]
+
+        def cumulative(x: np.ndarray) -> np.ndarray:
+            i, rem = np.divmod(x - self.first_s, SLOT_S)
+            inside = i < self.n
+            j = np.minimum(i, self.n)
+            return prefix[j] * SLOT_S + np.where(inside, rem * series[j], (x - self.stop_s) * tail)
+
+        ends = starts + dur_s
+        i0 = np.minimum((starts - self.first_s) // SLOT_S, self.n)
+        i1 = np.minimum(-(-(ends - self.first_s) // SLOT_S), self.n)
+        bad = (i1 > i0) & (unknown[i1] != unknown[i0])
+        if self._tail is None:
+            bad |= ends > self.stop_s
+        if bad.all():
+            return None
+        return float((cumulative(ends) - cumulative(starts))[~bad].min())
 
     def integrate(self, start_s: int, dur_s: int) -> tuple[float, float, float, bool] | None:
         """`(Σ τ·F, Σ τ·L, Σ τ·U, extrapolated)` over `[start, start + dur)`; None if unknown."""
@@ -249,6 +289,9 @@ class Truth:
         except KeyError:
             raise CarbonDataError(f"no truth for region {region_id} slot {slot_utc}") from None
 
+    def has(self, region_id: int, slot_utc: int) -> bool:
+        return (region_id, slot_utc) in self._v
+
     def as_vintage(self, first_slot_utc: int) -> ForecastVintage:
         """Truth in the shape of a forecast, for the `pig` reference's `OracleView` only."""
         values: dict[int, dict[int, float]] = {}
@@ -289,14 +332,20 @@ def fit_residuals(
 
     buckets = range(WIDEST_BUCKET + 1)
     counts = {r: [len(by_bucket[(r, b)]) for b in buckets] for r in store.region_ids}
-    if not all(all(counts[r]) for r in store.region_ids):
-        raise CarbonDataError(f"no residuals in some lead bucket: {counts}")
+    pooled = {b: [x for r in store.region_ids for x in by_bucket[(r, b)]] for b in buckets}
+    if not pooled[WIDEST_BUCKET]:
+        raise CarbonDataError(f"no residuals in the widest lead bucket: {counts}")
+    # A bucket with no residuals borrows the widest bucket's quantiles (RESIDUAL_FALLBACK, §10.7).
+    fallback_buckets = [b for b in buckets if not pooled[b]]
 
     def quantiles(values_of) -> tuple[tuple[float, ...], tuple[float, ...]]:
-        q = [np.quantile(values_of(b), [0.05, 0.95], method="linear") for b in buckets]
+        q = [
+            np.quantile(values_of(b) or values_of(WIDEST_BUCKET), [0.05, 0.95], method="linear")
+            for b in buckets
+        ]
         return tuple(float(x[0]) for x in q), tuple(float(x[1]) for x in q)
 
-    e05, e95 = quantiles(lambda b: np.concatenate([by_bucket[(r, b)] for r in store.region_ids]))
+    e05, e95 = quantiles(lambda b: pooled[b])
     per_region = all(
         n >= MIN_RESIDUALS_PER_REGION_BUCKET for r in store.region_ids for n in counts[r]
     )
@@ -305,7 +354,11 @@ def fit_residuals(
         if per_region
         else None
     )
-    report = {"mode": "per_region" if per_region else "pooled", "counts": counts}
+    report = {
+        "mode": "per_region" if per_region else "pooled",
+        "counts": counts,
+        "residual_fallback_buckets": fallback_buckets,
+    }
     return Residuals(e05, e95, by_region), report
 
 

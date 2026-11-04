@@ -75,6 +75,16 @@
 policies:
   fcfs:
     total_kg_co2: 1.904
+    # kWh: J1 2, J2 2, J3 2.02, J4 0.5, J5 1, J6 1.5 = 9.02. J5 ends 5400 against 2000 (3400 s late).
+    metrics:
+      kg_co2: 1.904
+      energy_kwh: 9.02
+      intensity_g_per_kwh: 211.08647450110865   # 1904 / 9.02
+      kg_co2_estimable: 1.904                   # runtimes equal their estimates: J_e is every job
+      miss_rate: 0.16666666666666666            # J5 of 6 jobs
+      tardiness_mean_h: 0.1574074074074074      # 3400 / 6 / 3600
+      moves: 0
+      stage2_calls: 0
     jobs:
       J1: {dc_id: 0, release: 0,    start: 0,    end: 3600, kg_co2: 0.2,   deadline_missed: 0}
       J2: {dc_id: 1, release: 0,    start: 0,    end: 3600, kg_co2: 0.6,   deadline_missed: 0}
@@ -84,6 +94,12 @@ policies:
       J6: {dc_id: 2, release: 1800, start: 1800, end: 3600, kg_co2: 0.3,   deadline_missed: 0}
   place_once:
     total_kg_co2: 2.308
+    metrics:
+      kg_co2: 2.308
+      energy_kwh: 9.02
+      intensity_g_per_kwh: 255.8758314855876    # 2308 / 9.02
+      miss_rate: 0.16666666666666666
+      moves: 0
     jobs:
       J1: {dc_id: 0, release: 0,    start: 0,    end: 3600, kg_co2: 0.2,   deadline_missed: 0}
       J2: {dc_id: 0, release: 0,    start: 0,    end: 3600, kg_co2: 0.2,   deadline_missed: 0}
@@ -94,6 +110,7 @@ policies:
       J6: {dc_id: 0, release: 1800, start: 3600, end: 5400, kg_co2: 0.6,   deadline_missed: 0}
   fixed_savings: &replanned
     total_kg_co2: 1.504
+    stage2_calls: 3
     jobs:
       J1: {dc_id: 0, release: 0,    start: 0,    end: 3600, kg_co2: 0.2,   deadline_missed: 0}
       J2: {dc_id: 0, release: 0,    start: 0,    end: 3600, kg_co2: 0.2,   deadline_missed: 0}
@@ -103,6 +120,9 @@ policies:
            deadline_risk: 1}
       J6: {dc_id: 2, release: 3600, start: 5400, end: 7200, kg_co2: 0.3,   deadline_missed: 0}
   pred_error: *replanned
+  # Residuals are 0 on this toy, so w_ab = 0 and θ changes nothing. All three pending jobs pass the
+  # screen at t=3600: J3 0.808 - LB 0.404, J4 0.2 - 0.1, J6 0.6 - 0.3, each above the 5 % gate.
+  decision_flip: *replanned
   periodic:
     total_kg_co2: 1.904
     jobs:
