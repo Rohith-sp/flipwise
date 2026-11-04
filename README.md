@@ -6,7 +6,7 @@ An offline research simulator that tests *when* a carbon-aware scheduler should 
 
 RV College of Engineering · Experiential Learning, V Semester, AY 2026–27 · UN SDG 9 (Industry, Innovation and Infrastructure)
 
-> Status: **EL Phase 1 (pitch) complete. Now on EL Phase 2 (partial results).** Build phases 1–7 are implemented: all seven policies run on real Indian grid data, and at θ = 0 decision-flip makes the same decisions as fixed-savings with 66 % fewer full re-scorings (P1). The spec is [docs/prd.md](docs/prd.md) (v0.8.4). How we got here: [docs/project_journey.md](docs/project_journey.md). Joining or resuming: start at [docs/HANDOFF.md](docs/HANDOFF.md); decisions and why are in [docs/decisions.md](docs/decisions.md).
+> Status: **EL Phase 1 (pitch) complete. Now on EL Phase 2 (partial results).** Build phases 1–7 are implemented: all seven policies run on real Indian grid data, and at θ = 0 decision-flip makes the same decisions as fixed-savings with 66 % fewer full re-scorings (P1). The spec is [docs/prd.md](docs/prd.md) (v0.8.5). How we got here: [docs/project_journey.md](docs/project_journey.md). Joining or resuming: start at [docs/HANDOFF.md](docs/HANDOFF.md); decisions and why are in [docs/decisions.md](docs/decisions.md).
 
 ---
 

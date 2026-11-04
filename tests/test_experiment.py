@@ -103,7 +103,7 @@ def test_report_refuses_missing_logs(toy_compare, tmp_path):
 
 def test_existing_runs_are_reused(tmp_path):
     compare({"policies": {}}, ["fcfs"], out=tmp_path, scenario_dir=TOY_DIR)
-    run_dir = next(p for p in tmp_path.iterdir() if not p.name.startswith("compare_"))
+    run_dir = next(p.parent for p in tmp_path.glob("*/manifest.json"))
     stamp = (run_dir / "manifest.json").read_text()
     (run_dir / "manifest.json").write_text(stamp + " ")
     compare({"policies": {}}, ["fcfs"], out=tmp_path, scenario_dir=TOY_DIR)
@@ -112,7 +112,7 @@ def test_existing_runs_are_reused(tmp_path):
 
 def test_unfinished_run_is_not_reused(tmp_path):
     compare({"policies": {}}, ["fcfs"], out=tmp_path, scenario_dir=TOY_DIR)
-    run_dir = next(p for p in tmp_path.iterdir() if not p.name.startswith("compare_"))
+    run_dir = next(p.parent for p in tmp_path.glob("*/manifest.json"))
     (run_dir / "metrics.json").unlink()
     compare({"policies": {}}, ["fcfs"], out=tmp_path, scenario_dir=TOY_DIR)
     assert (run_dir / "metrics.json").exists()
@@ -207,3 +207,33 @@ def test_cli_compare_report_dashboard(tmp_path, capsys):
     assert main(["dashboard", "--runs", str(cmp_dir), "--out", str(out)]) == 0
     assert out.exists()
     assert main(["run", *args, "--policy", "decision_flip"]) == 0
+
+
+def _select_module():
+    import importlib.util
+    from pathlib import Path
+
+    path = Path(__file__).parent.parent / "scripts" / "select_thresholds.py"
+    spec = importlib.util.spec_from_file_location("select_thresholds", path)
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+def test_threshold_rule_prd_14_5():
+    """Cleanest cell within place_once's miss rate + 1 pp; a tie goes to fewer re-scores."""
+    base = {
+        "kg_co2": 10.0,
+        "intensity_g_per_kwh_estimable": 1.0,
+        "moves": 0,
+    }
+    rows = [
+        {**base, "policy": "place_once", "t": 0.1, "miss_rate": 0.05, "stage2_calls": 0},
+        {**base, "policy": "p", "t": 0.1, "miss_rate": 0.09, "kg_co2": 1.0, "stage2_calls": 9},
+        {**base, "policy": "p", "t": 0.2, "miss_rate": 0.06, "kg_co2": 5.0, "stage2_calls": 9},
+        {**base, "policy": "p", "t": 0.3, "miss_rate": 0.05, "kg_co2": 5.0, "stage2_calls": 3},
+    ]
+    data = pd.DataFrame(rows).rename(columns={"t": "policies.p.t"})
+    table = _select_module().select([data], "p")
+    assert list(table["params"]) == ["t=0.3", "t=0.2", "t=0.1"]
+    assert list(table["allowed"]) == [True, True, False]

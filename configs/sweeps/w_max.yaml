@@ -1,0 +1,4 @@
+# How wide a noise interval may be before θ is switched off (PRD §10.7, F9). Validation only.
+grid:
+  policies.decision_flip.theta: [0.1, 0.25]
+  policies.decision_flip.w_max: [3.0, 5.0]

@@ -1,0 +1,3 @@
+# Drift threshold of pred_error (PRD §11). Validation only.
+grid:
+  policies.pred_error.epsilon: [0.05, 0.1, 0.2]

@@ -2,7 +2,7 @@
 
 Every design decision, grouped by the phase it was made in. For how the project got here as a story, see `project_journey.md`; for where work stands today, see `HANDOFF.md`.
 
-**PRD version: 0.8.4**
+**PRD version: 0.8.5**
 
 ## Rules
 
@@ -85,13 +85,19 @@ Every design decision, grouped by the phase it was made in. For how the project 
 |---|---|---|---|---|---|---|
 | D42 | 4 Nov | A job with no feasible alternative moves to the fallback only if that finishes strictly earlier; otherwise `RESCUE_NOOP` | A rescue that finishes no earlier gains nothing. From the design notes (§3.4); the PRD's limits did not cover it | active | §10.2 | policies |
 | D43 | 4 Nov | `pred_error` measures drift from the last time the plan was examined, even if the job was kept | Otherwise one past drift fires that job at every later update, turning the trigger into a timer | active | §11 | policies |
-| D44 | 4 Nov | C3 covers every pending incumbent, not only queued ones: a placed job also keeps its place in the projected order | F6. Extends D37, as the original design note had it. Reads a shared profile, so it also removes three profile rebuilds per check | active | §9.3 | planner, simulator |
+| D44 | 4 Nov | C3 covers every pending incumbent, not only queued ones: a placed job also keeps its place in the projected order | F6. Extends D37, as the original design note had it. Reads a shared profile, so it also removes three profile rebuilds per check. Approved by the team on 4 Nov | active | §9.3 | planner, simulator |
 
 ## Build phase 7: experiment runner, PRD v0.8.4 (4 Nov 2026)
 
 | ID | Date | Decision | Why | Status | PRD | Code |
 |---|---|---|---|---|---|---|
 | D45 | 4 Nov | `run_id` hashes only the run's own policy parameters | A θ sweep would otherwise repeat every baseline in every cell, about 25 extra real runs on one replicate | active | §16.1 | experiment |
+
+## Build phase 8: validation, PRD v0.8.5 (4 Nov 2026)
+
+| ID | Date | Decision | Why | Status | PRD | Code |
+|---|---|---|---|---|---|---|
+| D46 | 4 Nov | Validation and test replicates use sampling 0.1, as dev does, until 1.0 is shown to be affordable | Full sampling is about 10× the jobs. One sampled week already takes up to 8 minutes per policy, and this laptop has about 3 GB of disk free | active | §14.4 | experiment |
 
 ## Project tooling: PRD v0.8.2 (4 Nov 2026)
 

@@ -2,7 +2,7 @@
 
 Current state of the work, for a teammate or a new Claude Code session. Keep it short and overwrite it as things change; history belongs in `decisions.md` and `project_journey.md`.
 
-**Last updated:** 4 Nov 2026 · **PRD version: 0.8.4**
+**Last updated:** 4 Nov 2026 · **PRD version: 0.8.5**
 
 **First-time setup (optional, for the graph):** `uv tool install graphifyy`, then `uv tool run --from graphifyy python scripts/build_graph.py`. Open `graphify-out/graph.html` in a browser to explore. The output is generated and not committed. The project's Claude Code hooks call `graphify`, so install it if you use Claude Code here.
 
@@ -23,7 +23,7 @@ To explore the code, use `graphify query "<question>"` if the graph is built.
 
 ## Next steps
 
-1. Roadmap phase 8: `uv run flipwise compare --config configs/base.yaml --split validation --jobs 8` (12 replicates. Set `splits.validation.sampling` first: it defaults to 1.0, about 10× the dev week's jobs). Then the sweeps, then freeze thresholds.
+1. Roadmap phase 8: `uv run flipwise compare --config configs/base.yaml --split validation --jobs 5` (12 replicates at sampling 0.1, D46), then the sweeps in `configs/sweeps/`, then `scripts/select_thresholds.py` (PRD §14.5).
 2. Look at F9 across those replicates before touching `w_max`.
 3. Deployment step 4 (`dcservice.py`), then the scripted driver and `local_cluster.sh`.
 
@@ -33,7 +33,6 @@ To rebuild the review outputs: `uv run flipwise compare --config configs/base.ya
 
 | Item | Question | Who |
 |---|---|---|
-| D44 | C3 was extended to placed jobs in v0.8.3, on evidence (F6). Does the team agree? | Team |
 | F9 | `INTERVAL_TOO_WIDE` is above its 10 % flag. Is `w_max` worth revisiting on validation? | Team |
 | B1 | Does the mentor confirm the scope, including the v0.8 method changes? | Mentor |
 | B3 | Cited power values; until then kgCO2 is relative | Team |

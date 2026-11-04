@@ -186,6 +186,22 @@ def execute_run(spec: RunSpec) -> dict:
     return record
 
 
+def _replicate_tables(spec: RunSpec) -> tuple[pd.DataFrame, pd.DataFrame]:
+    """Coverage and timeline depend only on the replicate, so sweep cells share one saved copy."""
+    scenario = scenario_for(spec)
+    folder = spec.out / f"replicate_{scenario.scenario_hash[:12]}"
+    cov_path, line_path = folder / "carbon_coverage.csv", folder / "carbon_timeline.csv"
+    if not (cov_path.exists() and line_path.exists()):
+        folder.mkdir(parents=True, exist_ok=True)
+        for rows, path in (
+            (carbon_coverage(scenario), cov_path),
+            (carbon_timeline(scenario), line_path),
+        ):
+            data = pd.DataFrame(rows).assign(replicate=scenario.name)
+            data.to_csv(path, index=False, lineterminator="\n")
+    return pd.read_csv(cov_path), pd.read_csv(line_path)
+
+
 def compare(
     cfg: dict,
     policies: list[str],
@@ -224,11 +240,12 @@ def compare(
 
     coverage, timeline = [], []
     for r in replicates:
-        scenario = scenario_for(RunSpec(cfg, policies[0], seed, out, r, scenario_dir))
-        coverage += [{"replicate": scenario.name, **row} for row in carbon_coverage(scenario)]
-        timeline += [{"replicate": scenario.name, **row} for row in carbon_timeline(scenario)]
-    pd.DataFrame(coverage).to_csv(cmp_dir / "carbon_coverage.csv", index=False, lineterminator="\n")
-    pd.DataFrame(timeline).to_csv(cmp_dir / "carbon_timeline.csv", index=False, lineterminator="\n")
+        spec = RunSpec(cfg, policies[0], seed, out, r, scenario_dir)
+        cov, line = _replicate_tables(spec)
+        coverage.append(cov)
+        timeline.append(line)
+    pd.concat(coverage).to_csv(cmp_dir / "carbon_coverage.csv", index=False, lineterminator="\n")
+    pd.concat(timeline).to_csv(cmp_dir / "carbon_timeline.csv", index=False, lineterminator="\n")
     build_report(cmp_dir, runs_root=out)
     return cmp_dir
 

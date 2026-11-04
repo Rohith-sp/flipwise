@@ -1,6 +1,6 @@
 # Design: build phases 5, 6 and 7 (baselines, decision-flip, experiment runner)
 
-Status: **design notes, 2 Nov 2026; updated 4 Nov.** `docs/prd.md` v0.8.4 is authoritative and differs from this proposal in these ways:
+Status: **design notes, 2 Nov 2026; updated 4 Nov.** `docs/prd.md` v0.8.5 is authoritative and differs from this proposal in these ways:
 
 - **C2:** the PRD's `w_ab` adds a paired runtime term, `½ |Δ(r_q95) − Δ(r_q05)|`, instead of leaving runtime out. Default θ is 0.1.
 - **C3 and C7 are in the PRD since v0.8.1.** C7 is written as a gain strictly above 0, not above `ε_tie`, in every policy with an acceptance rule. C3 covers every pending incumbent since v0.8.3 (D44), as §2 here proposed.

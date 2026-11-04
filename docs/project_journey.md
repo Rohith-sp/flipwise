@@ -212,7 +212,7 @@ Metrics, `compare`, `sweep`, `report` and the dashboard went in, so one command 
 ## 15. Where things stand and what's next
 
 **Done:**
-- Spec (PRD v0.8.4) and docs.
+- Spec (PRD v0.8.5) and docs.
 - Build phases 1, 2, 3 and 4. Phase 2 is complete, with real Indian data, and `validate` passes.
 - Local-split steps 1–3.
 - Build phases 5, 6 and 7: every policy, P1 proved on real data, and the experiment runner.

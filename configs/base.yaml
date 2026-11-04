@@ -43,11 +43,15 @@ splits:
   residual_fit_carbon: ["2023-03-13", "2023-06-30"]
   validation:
     trace_days: [25, 46]
+    # Same as dev, not the final 1.0 (PRD §14.4): full sampling is about 10x the jobs, and profile
+    # work grows faster than that, so the set would not finish on a laptop. See D46.
+    sampling: 0.1
     carbon_period: ["2023-07-01", "2023-08-31"]
     # Each 15-day horizon must end inside the period.
     carbon_mondays: ["2023-07-03", "2023-07-17", "2023-07-31", "2023-08-14"]
   test:
     trace_days: [46, 74]
+    sampling: 0.1
     carbon_period: ["2023-09-01", "2024-01-31"]
     # Avoid archive gaps (data/manifests/carbon_archive.json): no forward captures on
     # 2023-10-21, and GB truth (hence error paths) is missing 2023-10-20/22 and around

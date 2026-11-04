@@ -4,8 +4,8 @@
 
 | Field | Value |
 |---|---|
-| Document status | Implementation-ready draft. Supersedes v0.8.3 (4 Nov 2026), v0.8.2 (4 Nov 2026), v0.8.1 (4 Nov 2026), v0.8 (2 Nov 2026), v0.7 (29 Oct 2026), v0.6, v0.5.1 and v0.5 (29 Oct 2026), v0.4 (28 Oct 2026), v0.3 (24 Oct 2026), v0.2 (24 Oct 2026) and v0.1 (23 Oct 2026). Changes are listed in the changelog below. |
-| Version | 0.8.4 |
+| Document status | Implementation-ready draft. Supersedes v0.8.4 (4 Nov 2026), v0.8.3 (4 Nov 2026), v0.8.2 (4 Nov 2026), v0.8.1 (4 Nov 2026), v0.8 (2 Nov 2026), v0.7 (29 Oct 2026), v0.6, v0.5.1 and v0.5 (29 Oct 2026), v0.4 (28 Oct 2026), v0.3 (24 Oct 2026), v0.2 (24 Oct 2026) and v0.1 (23 Oct 2026). Changes are listed in the changelog below. |
+| Version | 0.8.5 |
 | Revised | 4 November 2026 |
 | Project name | **Flipwise** (Python package and CLI `flipwise`) [Decision]: it re-evaluates decision flips wisely. Renamed from FlipSim on 25 Oct 2026. Availability of the name on GitHub and PyPI is [Open], not yet checked. |
 | Project context | RV College of Engineering, Experiential Learning, V Semester, AY 2026–27; SDG 9 |
@@ -17,6 +17,7 @@
 
 | Version | Date | Changes |
 |---|---|---|
+| 0.8.5 | 4 Nov 2026 | Validation and test replicates set to sampling 0.1 until 1.0 is shown to be affordable (14.4). Team approved C3 for all pending incumbents, the fallback rule and the `pred_error` reference of v0.8.3. |
 | 0.8.4 | 4 Nov 2026 | Experiment runner built (roadmap phase 7). `run_id` hashes only the parameters of the run's own policy, so a sweep reuses other policies' runs (16.1). Modules `experiment.py` and `figures.py` added to the layout (13.1, 13.3). `policy_stats.json` added to the run files (16.1). First seven-policy table and θ sweep recorded (10.11). Interval fallback rate above its 10 % flag recorded as a finding (17.1). |
 | 0.8.3 | 4 Nov 2026 | C3 extended from `QUEUED` to all pending incumbents after the phase 5 build (9.3, 9.5): under the v0.8.1 wording a `PLACED` job was scored behind every other plan at its datacentre, including plans that release after it. On the first validation week that gave 3,532 `place_once` rescues and 668.6 g/kWh on jobs within `r_q90`; with the extension, 939 and 638.3 (10.11). Rescue to a fallback only if it finishes strictly earlier (10.2). `pred_error` measures drift from the last time the plan was examined (11). Place-once deadline misses explained (17.1). P1 measured on the first validation week: it holds, and the screen skips 66 % of full re-scorings (10.11). |
 | 0.8.2 | 4 Nov 2026 | Trace day origin stated: day 0 is 1970-01-01 00:00 UTC+8 (14.2). First baseline runs on the v0.8 calendar recorded (10.11). Correction to v0.8: rotating FCFS's tie-break lowered its intensity, so the dc0 bias does not explain the small `place_once` gain; a few long jobs do (11, 17.1). Residual fit limited to slots inside the calibration period (6.8). Added `docs/decisions.md` (decisions by phase, D21–D41, findings) and `docs/HANDOFF.md` (current state). Added graphify as an optional navigation tool outside the project's dependencies (12.1). |
@@ -723,7 +724,7 @@ See 17.1 for what these two lines mean for the experiment.
 | Full re-scorings (`stage2_calls`) | 43,097 | 14,568 (pass rate 33.8 %) |
 | Re-scoring time (s) | 326 | 94 |
 
-The pass rate is higher than the 18.3 % of the queue-free estimate above, because real queues raise incumbent scores' distance from the empty-queue bound. It is well under the 0.9 limit of P2.
+The pass rate is higher than the 18.3 % of the queue-free estimate above, which ignored queues, and well under the 0.9 limit of P2.
 
 [Measured, 4 Nov 2026, v0.8.4] All seven policies on the same week (`flipwise compare`, one replicate, relative kgCO2). `J_e` is jobs within `r_q90` (14.1). `periodic` at T = 30 min; `decision_flip` at θ = 0.1. One week only: per 14.2, this says the runner works and no policy ranking follows from it.
 
@@ -749,7 +750,7 @@ The pass rate is higher than the 18.3 % of the queue-free estimate above, becaus
 | 0.25 | 18,043 | 619.1 | 6.08 % | 18,341 | 1,889 |
 | 0.5 | 18,030 | 639.9 | 5.72 % | 17,843 | 1,795 |
 
-θ now acts as a dial on moves, unlike under the v0.7 width. Full re-scorings rise with θ because a job that moves less often stays pending, and so screened, for longer. `fcfs` has lower all-jobs emissions and fewer misses than every cell (`dflip_worse_than`, 14.8), which is the single-week noise of F4 and a result to re-test across replicates.
+θ now acts as a dial on moves, unlike under the v0.7 width. Full re-scorings rise with θ; the cause is not yet measured. `fcfs` has lower all-jobs emissions and fewer misses than every cell (`dflip_worse_than`, 14.8), which is the single-week noise of F4 and a result to re-test across replicates.
 
 Energy is extremely concentrated: 35 jobs use 50 % of it and the top 10 use 34 %. Those 10 ran between 0.3 and 6.4 days against an `r_q50` of 0.5–0.8 h, and jobs that outran `r_q90` (13.7 % of jobs) used 72.5 % of the energy. The scheduler cannot see these jobs coming, and where they land outweighs any policy effect in a single replicate.
 
@@ -1082,7 +1083,7 @@ Validation and test replicates draw carbon starts only from their own periods; `
 | Dimension | Base | Sweep values |
 |---|---|---|
 | Offered load `ρ` | 0.7 | 0.4, 0.9 |
-| Job sampling fraction | 0.1 (dev), 1.0 (final if runtime allows) | — |
+| Job sampling fraction | 0.1 (dev and, for now, validation and test [v0.8.5]), 1.0 (final if runtime allows) | — |
 | Carbon spread across regions | {NR, WR, SR} as built | Spread scaling `σ ∈ {0.5, 2}`: `A'(r, k) = Ā(k) + σ(A(r, k) − Ā(k))` with `Ā` the cross-region mean, forecasts transformed identically; and region set {WR, SR, ER} (coal-heavy Eastern grid, expected high spread; to confirm from data) |
 | Forecast error scaling `α` (6.2.4; residuals refit per `α`) | 1 | 0.5, 2; plus a permuted error-source mapping `g(r)` |
 | Interval scaling (multiply `e05, e95` by `s`) | 1 | 0.5, 2 (miscalibration test, H4) |
