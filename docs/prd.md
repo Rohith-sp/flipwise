@@ -4,8 +4,8 @@
 
 | Field | Value |
 |---|---|
-| Document status | Implementation-ready draft. Supersedes v0.8.2 (4 Nov 2026), v0.8.1 (4 Nov 2026), v0.8 (2 Nov 2026), v0.7 (29 Oct 2026), v0.6, v0.5.1 and v0.5 (29 Oct 2026), v0.4 (28 Oct 2026), v0.3 (24 Oct 2026), v0.2 (24 Oct 2026) and v0.1 (23 Oct 2026). Changes are listed in the changelog below. |
-| Version | 0.8.3 |
+| Document status | Implementation-ready draft. Supersedes v0.8.3 (4 Nov 2026), v0.8.2 (4 Nov 2026), v0.8.1 (4 Nov 2026), v0.8 (2 Nov 2026), v0.7 (29 Oct 2026), v0.6, v0.5.1 and v0.5 (29 Oct 2026), v0.4 (28 Oct 2026), v0.3 (24 Oct 2026), v0.2 (24 Oct 2026) and v0.1 (23 Oct 2026). Changes are listed in the changelog below. |
+| Version | 0.8.4 |
 | Revised | 4 November 2026 |
 | Project name | **Flipwise** (Python package and CLI `flipwise`) [Decision]: it re-evaluates decision flips wisely. Renamed from FlipSim on 25 Oct 2026. Availability of the name on GitHub and PyPI is [Open], not yet checked. |
 | Project context | RV College of Engineering, Experiential Learning, V Semester, AY 2026–27; SDG 9 |
@@ -17,6 +17,7 @@
 
 | Version | Date | Changes |
 |---|---|---|
+| 0.8.4 | 4 Nov 2026 | Experiment runner built (roadmap phase 7). `run_id` hashes only the parameters of the run's own policy, so a sweep reuses other policies' runs (16.1). Modules `experiment.py` and `figures.py` added to the layout (13.1, 13.3). `policy_stats.json` added to the run files (16.1). First seven-policy table and θ sweep recorded (10.11). Interval fallback rate above its 10 % flag recorded as a finding (17.1). |
 | 0.8.3 | 4 Nov 2026 | C3 extended from `QUEUED` to all pending incumbents after the phase 5 build (9.3, 9.5): under the v0.8.1 wording a `PLACED` job was scored behind every other plan at its datacentre, including plans that release after it. On the first validation week that gave 3,532 `place_once` rescues and 668.6 g/kWh on jobs within `r_q90`; with the extension, 939 and 638.3 (10.11). Rescue to a fallback only if it finishes strictly earlier (10.2). `pred_error` measures drift from the last time the plan was examined (11). Place-once deadline misses explained (17.1). P1 measured on the first validation week: it holds, and the screen skips 66 % of full re-scorings (10.11). |
 | 0.8.2 | 4 Nov 2026 | Trace day origin stated: day 0 is 1970-01-01 00:00 UTC+8 (14.2). First baseline runs on the v0.8 calendar recorded (10.11). Correction to v0.8: rotating FCFS's tie-break lowered its intensity, so the dc0 bias does not explain the small `place_once` gain; a few long jobs do (11, 17.1). Residual fit limited to slots inside the calibration period (6.8). Added `docs/decisions.md` (decisions by phase, D21–D41, findings) and `docs/HANDOFF.md` (current state). Added graphify as an optional navigation tool outside the project's dependencies (12.1). |
 | 0.8.1 | 4 Nov 2026 | Two fixes approved after the first phase 5 build, plus a reporting rule. C3: a `QUEUED` job's incumbent is scored with the job at its own queue position, and every candidate of job `j` is scored on wait profiles that exclude `j` itself (9.3); before this, a queued job's own plan looked slower than it is, causing spurious moves and false rescues. C7: a move needs a strictly positive gain as well as the gate, in every policy with an acceptance rule (10.5, 11); before this, a zero-power job with `g_min = 0` moved at every update. Long-running jobs: on the first validation week 35 of 6,975 jobs used half the energy, most running for days against estimates under an hour, so emissions and intensity are also reported over jobs with `runtime_actual_s ≤ r_q90` (fixed rule, 14.1), and no conclusion rests on one replicate (14.2). |
@@ -724,6 +725,32 @@ See 17.1 for what these two lines mean for the experiment.
 
 The pass rate is higher than the 18.3 % of the queue-free estimate above, because real queues raise incumbent scores' distance from the empty-queue bound. It is well under the 0.9 limit of P2.
 
+[Measured, 4 Nov 2026, v0.8.4] All seven policies on the same week (`flipwise compare`, one replicate, relative kgCO2). `J_e` is jobs within `r_q90` (14.1). `periodic` at T = 30 min; `decision_flip` at θ = 0.1. One week only: per 14.2, this says the runner works and no policy ranking follows from it.
+
+| Policy | kgCO2 | kgCO2, `J_e` | g/kWh | g/kWh, `J_e` | Deadline misses | `stage2_calls` | Moves | Rescues |
+|---|---|---|---|---|---|---|---|---|
+| `fcfs` | 18,026 | 5,077 | 639.0 | 654.8 | 2.44 % | 0 | 0 | 0 |
+| `place_once` | 18,094 | 4,949 | 641.4 | 638.3 | 6.24 % | 0 | 0 | 939 |
+| `periodic` | 18,099 | 5,049 | 641.6 | 651.3 | 6.59 % | 41,307 | 6,733 | 1,024 |
+| `pred_error` | 18,060 | 5,079 | 640.2 | 655.1 | 6.08 % | 13,367 | 3,632 | 1,069 |
+| `fixed_savings` | 18,523 | 4,729 | 656.6 | 609.9 | 5.38 % | 43,097 | 3,834 | 1,147 |
+| `decision_flip` | 18,274 | 4,831 | 647.8 | 623.1 | 5.49 % | 16,634 | 2,532 | 1,176 |
+| `pig` | 18,449 | 4,188 | 654.0 | 540.2 | 2.88 % | 0 | 0 | 768 |
+
+`pig` is cleanest on `J_e` by far but not on all jobs: knowing a job runs for days, it finds no feasible plan before the deadline, so the no-feasible fallback places the job by earliest finish and ignores carbon. Its 174 at-risk jobs hold 48.5 % of energy at 739.5 g/kWh. Carbon interval coverage per lead bucket is 91.4, 89.9, 86.8 and 88.6 % against the nominal 90 %.
+
+`decision_flip` on the same week by θ (`configs/sweeps/theta.yaml`):
+
+| θ | kgCO2 | g/kWh, `J_e` | Deadline misses | `stage2_calls` | Moves |
+|---|---|---|---|---|---|
+| 0 | 18,523 | 609.9 | 5.38 % | 14,568 | 3,834 |
+| 0.05 | 18,229 | 645.5 | 5.46 % | 17,278 | 3,028 |
+| 0.1 | 18,274 | 623.1 | 5.49 % | 16,634 | 2,532 |
+| 0.25 | 18,043 | 619.1 | 6.08 % | 18,341 | 1,889 |
+| 0.5 | 18,030 | 639.9 | 5.72 % | 17,843 | 1,795 |
+
+θ now acts as a dial on moves, unlike under the v0.7 width. Full re-scorings rise with θ because a job that moves less often stays pending, and so screened, for longer. `fcfs` has lower all-jobs emissions and fewer misses than every cell (`dflip_worse_than`, 14.8), which is the single-week noise of F4 and a result to re-test across replicates.
+
 Energy is extremely concentrated: 35 jobs use 50 % of it and the top 10 use 34 %. Those 10 ran between 0.3 and 6.4 days against an `r_q50` of 0.5–0.8 h, and jobs that outran `r_q90` (13.7 % of jobs) used 72.5 % of the energy. The scheduler cannot see these jobs coming, and where they land outweighs any policy effect in a single replicate.
 
 ---
@@ -870,7 +897,9 @@ flipwise/
 │   ├── planner.py         # candidates, feasibility, scoring, best_candidate, lower_bound
 │   ├── policies.py        # the seven policies
 │   ├── metrics.py         # per-run metrics from job and decision logs
-│   ├── reporting.py       # CSV/JSON writers, comparison tables, plots
+│   ├── experiment.py      # run layout, compare, sweep [v0.8.4]
+│   ├── reporting.py       # CSV/JSON writers, comparison tables
+│   ├── figures.py         # Matplotlib figures for report and dashboard [v0.8.4]
 │   └── dashboard.py       # builds static dashboard.html from result CSVs (plotly optional)
 ├── tests/
 │   ├── fixtures/toy/      # hand-built scenario + expected.yaml
@@ -925,6 +954,7 @@ Truth (`T`) reaches the simulator's evaluator and `pig`'s `OracleView` only.
 | `dcservice` | HTTP JSON requests (13.5) | HTTP JSON responses | Serves one `datacentre` over HTTP (`flipwise dc-serve`); `HttpDatacentre` implements `DatacentreClient` for the coordinator | Any transport error or timeout aborts the run with `DeploymentError`; there are no silent retries | `datacentre`, stdlib `http.server`, `urllib` |
 | `metrics` | logs, truth | `metrics.json` | Section 14.1 definitions | Asserts denominators > 0 or reports `null` | pandas |
 | `reporting` | runs | `summary.csv`, figures | Paired comparisons, plots | Refuses to compare runs whose scenario hashes differ | pandas, matplotlib |
+| `experiment` | config or scenario dir, policies, split, seed | `results/<run_id>/`, `results/compare_<hash>/runs.json`, `results/sweep_<hash>/summary.csv` | Builds replicates (14.2), reuses finished runs, runs in parallel with results independent of completion order | Unknown policy or parameter → `ConfigError` before any run starts | `simulator`, `metrics`, `reporting` |
 | `dashboard` | result CSVs (`jobs.csv`, `decisions.csv`, `summary.csv`, sweep outputs) and the forecast CSV | one self-contained `dashboard.html` | Tabs in 4.1 item 9; reads saved files only, never runs a simulation or opens a network connection | Missing input for a tab → that tab shows "no data"; other tabs still render | pandas, matplotlib; plotly if installed |
 
 ### 13.4 CLI
@@ -1159,7 +1189,7 @@ Three datacentres (capacity 4 GPUs each) in regions with hand-set intensities; 1
 
 ### 16.1 Per run: `results/<run_id>/`
 
-`run_id = sha256(canonical_config_json + scenario_hash + policy + seed)[:12]`
+`run_id = sha256(canonical_config_json + scenario_hash + policy + seed)[:12]`, where the config holds only this run's own policy parameters [v0.8.4], so changing another policy's parameters in a sweep does not repeat this run.
 
 | File | Content |
 |---|---|
@@ -1167,7 +1197,8 @@ Three datacentres (capacity 4 GPUs each) in regions with hand-set intensities; 1
 | `jobs.csv` | one row per job: ids, requests, arrival, deadline, estimates, final placement, release, start, end, wait, runtime, energy kWh, kgCO2, `deadline_missed`, `n_moves`, `rescued`, `deadline_risk`, `incomplete` |
 | `decisions.csv` | one row per policy action or check: `time_s, job_id, kind (PLACE/SCREEN_FAIL/THROTTLED/KEEP/MOVE/RESCUE/FALLBACK...), from, to, S_a, S_b, LB, w_ab, g_min, theta_eff, reason` |
 | `events.log` | one line per processed event (`time, priority, seq, kind, job_id`) |
-| `metrics.json` | Section 14.1 metrics |
+| `metrics.json` | Section 14.1 metrics. Written last, so its presence marks a run as complete and reusable [v0.8.4] |
+| `policy_stats.json` | Work counters and timings behind the metrics; not part of the byte-identity check [v0.8.4] |
 
 ### 16.2 Per comparison: `results/compare_<hash>/`
 
@@ -1188,6 +1219,7 @@ Raw data are not committed. `README.md` gives the download commands for the v202
 | Stage-1 bound too loose (pass rate ≈ 1) | No overhead saving; H1 fails | [Occurred, v0.8] The v0.7 bound passed 100 % of checks; replaced by the feasible-window bound (10.4), 18.3 % on validation data. Report the v0.7 result as a finding |
 | Small gain from carbon-aware placement [v0.8] | Re-planning has little to improve; H1–H3 effects small | [Updated, v0.8.2] With the rotated tie-break, `place_once` and `fcfs` have equal mean intensity on the first validation week (638.9 and 639.0 g/kWh), though `place_once` is 3 % cleaner on jobs within `r_q90` (10.11). A few long, underestimated jobs dominate energy, so single-replicate totals are noisy: compare policies across replicates, and report intensity with and without those jobs. A small gain is a valid result and is reported as such |
 | Place-once deadline misses (2.25 % → 7.30 %) [v0.8] | Carbon gains bought with missed deadlines; re-planning results inherit this | [Explained, v0.8.3] With rescue the rate is 6.24 %. 87 % of misses are jobs that outran `r_q90` (13.7 % of jobs): 39.8 % of those miss under `place_once` against 16.6 % under `fcfs`, because a mean deferral of 3.2 h uses up slack they turn out to need. Jobs within `r_q90` miss at 0.91 % (`fcfs` 0.18 %). Wait coverage is 87 %, and 12.7 % of jobs waited longer than `w_hi`, so waits are a smaller part. The slack formula (6.6) is unchanged: it is a scenario parameter with its own sweep, and no scheduler can rescue a job after it has started. Report misses next to every emissions number |
+| Noise-width fallback above its flag [v0.8.4] | θ has no effect on the comparisons where it fires | On the first validation week `INTERVAL_TOO_WIDE` set θ to 0 on 30.0 % of comparisons, above the 10 % flag of 10.7, with median `w_ab / Ŝ_a` of 1.35 and 67 % of `decision_flip`'s moves made with θ off. Much better than the 98.7 % of v0.7, but not the "rare" that v0.8 expected. `w_max` is a validation-period choice (14.5): measure across the validation replicates before changing it |
 | Indian truth is modelled from generation by fuel, not metered intensity, and ignores inter-regional flows | Absolute regional values may be off; regions may look more different than consumers experience | Label results; report the source used; compare annual means with CEA grid factors |
 | No Indian generation data at ≤ 1 h resolution (B4) | Truth must fall back to a constructed profile | Source preference order in 6.2.2; the fallback is labelled [Synthetic] |
 | Borrowed GB error paths do not reflect Indian weather | Forecast-error effects (H2, H4) may differ in reality | α sweep and permuted mapping; stated as a limitation in every report |

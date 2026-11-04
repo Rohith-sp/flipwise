@@ -6,7 +6,7 @@ An offline research simulator that tests *when* a carbon-aware scheduler should 
 
 RV College of Engineering · Experiential Learning, V Semester, AY 2026–27 · UN SDG 9 (Industry, Innovation and Infrastructure)
 
-> Status: **EL Phase 1 (pitch) complete. Now on EL Phase 2 (partial results).** Build phases 1–4 are implemented; the full data pipeline now runs on real Indian grid data from Grid-India (blocker B4 resolved; `flipwise validate` passes). The spec is [docs/prd.md](docs/prd.md) (v0.8.3). How we got here: [docs/project_journey.md](docs/project_journey.md). Joining or resuming: start at [docs/HANDOFF.md](docs/HANDOFF.md); decisions and why are in [docs/decisions.md](docs/decisions.md).
+> Status: **EL Phase 1 (pitch) complete. Now on EL Phase 2 (partial results).** Build phases 1–7 are implemented: all seven policies run on real Indian grid data, and at θ = 0 decision-flip makes the same decisions as fixed-savings with 66 % fewer full re-scorings (P1). The spec is [docs/prd.md](docs/prd.md) (v0.8.4). How we got here: [docs/project_journey.md](docs/project_journey.md). Joining or resuming: start at [docs/HANDOFF.md](docs/HANDOFF.md); decisions and why are in [docs/decisions.md](docs/decisions.md).
 
 ---
 
@@ -84,7 +84,7 @@ uv run python scripts/audit_v2020.py       # reproduce the PRD §6.1 trace audit
 
 Stack: pandas, numpy, PyYAML and matplotlib. Optional: plotly, via `uv sync --extra dashboard`. Dev tools: pytest and ruff. The event engine is a custom `heapq` loop, not SimPy (see PRD §5, D3).
 
-### Planned CLI
+### CLI
 
 | Command | Purpose |
 |---|---|
@@ -93,7 +93,7 @@ Stack: pandas, numpy, PyYAML and matplotlib. Optional: plotly, via `uv sync --ex
 | `flipwise ingest carbon --archive <clone> --start 2023-03-13 --end 2024-01-31 --regions 1,13,7 --out data/processed` | Build forecast, truth and coverage CSVs |
 | `flipwise validate --config configs/base.yaml` | Check config, data, coverage and that calibration/test windows don't overlap |
 | `flipwise run --config configs/base.yaml --policy decision_flip` | One run → `results/<run_id>/` |
-| `flipwise compare` / `sweep` / `report` | All policies on identical inputs; parameter grids; rebuild tables from saved logs |
+| `flipwise compare --config configs/base.yaml --jobs 7` / `sweep` / `report` | All policies on identical inputs; parameter grids; rebuild tables from saved logs. One dev week takes about 8 minutes with 7 parallel runs on an 8-core laptop (R-PERF-1) |
 | `flipwise dashboard --runs results/compare_<hash>` | Write a static, offline `dashboard.html` from saved CSVs |
 | `flipwise dc-serve --dc-id 0 --port 8101` | Run one datacentre as an HTTP service (deployment track) |
 | `bash scripts/local_cluster.sh --config configs/base.yaml --policy decision_flip` | DT1: start three local datacentre services, run with `--mode remote`, stop them on exit |
@@ -101,18 +101,18 @@ Stack: pandas, numpy, PyYAML and matplotlib. Optional: plotly, via `uv sync --ex
 
 ## 5. Repository layout
 
-Current (build phases 1–4):
+Current (build phases 1–7):
 
 ```text
 flipwise/
 ├── pyproject.toml, uv.lock, .python-version, .gitignore, README.md, CLAUDE.md
-├── configs/base.yaml          # data paths, regions, train/validation/test splits
+├── configs/                   # base.yaml, energy.yaml, policies.yaml, sweeps/*.yaml
 ├── data/README.md, manifests/ # raw/ and processed/ are git-ignored
 ├── docs/                      # prd.md, explanation.md, helpfullinks.md
 ├── scripts/                   # download_data.sh / .ps1, audit_v2020.py
 ├── src/flipwise/              # cli, config, validate, trace, ingest, carbon, energy, estimates,
 │                              # models, datacentre, simulator, planner, policies, scenario,
-│                              # reporting, smoke, errors
+│                              # metrics, experiment, reporting, figures, dashboard, smoke, errors
 └── tests/                     # fixtures/toy/ (+ expected.yaml) and test_*.py
 ```
 
@@ -155,9 +155,9 @@ Work on a small slice: **one validation week** of the Alibaba trace (dev samplin
 | 2 ✅ | Canonical data | `ingest alibaba`, `ingest india` (truth), `ingest carbon` (error paths), `build-forecasts`, manifests, `validate` | Processed CSVs plus ingest/coverage reports; B2 and B4 answered |
 | 3 ✅ | Deterministic core | `models`, `simulator` (events, job states), `datacentre` (queue, dispatch) behind a `DatacentreClient` interface, toy fixture, `fcfs` | Toy FCFS output equals `expected.yaml` |
 | 4 ✅ | Energy and place-once | `energy`, `carbon` views, `planner` (candidates, feasibility, scoring), `place_once` | Toy emissions exact; static-factor test passes |
-| 5 | Baselines (partial) | `estimates` (runtime quantiles, wait profiles), `periodic(T)`, `fixed_savings(g)`, rescue, throttling | Baselines run on the toy scenario |
-| 6 | Decision-flip | Lower-bound screen, noise margin, interval fallbacks | Toy flip / no-flip / small-gain cases pass; P1 holds |
-| 7 (min) | Runner | `run`, metrics, `dashboard` only | One table and `dashboard.html` |
+| 5 ✅ | Baselines (partial) | `estimates` (runtime quantiles, wait profiles), `periodic(T)`, `fixed_savings(g)`, rescue, throttling | Baselines run on the toy scenario |
+| 6 ✅ | Decision-flip | Lower-bound screen, noise margin, interval fallbacks | Toy flip / no-flip / small-gain cases pass; P1 holds |
+| 7 ✅ | Runner | `run`, metrics, `dashboard` only | One table and `dashboard.html` |
 
 Policies in Phase 2: `fcfs`, `place_once`, `periodic(T)`, `fixed_savings(g)`, `decision_flip(g, θ)`.
 
@@ -172,6 +172,8 @@ Policies in Phase 2: `fcfs`, `place_once`, `periodic(T)`, `fixed_savings(g)`, `d
 Items 5–6 never hold back items 1–4.
 
 kgCO2 stays labelled **relative** until power parameters are cited (blocker B3).
+
+**Where items 1–4 stand:** done. Run `flipwise smoke`, `scripts/check_p1.py`, `flipwise compare`, `flipwise dashboard`; first results are in PRD §10.11. Items 5–6 (deployment) are still open.
 
 #### Deployment track in Phase 2: local split, then Docker
 

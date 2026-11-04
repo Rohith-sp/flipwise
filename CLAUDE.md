@@ -4,7 +4,7 @@ Flipwise: an offline, deterministic discrete-event simulator that tests **when**
 
 ## Source of truth
 
-- `docs/prd.md` (v0.8.3) is authoritative: formulas, data rules, requirement IDs (R-*), decisions (D*), open items (B*/O*). If code and PRD disagree, flag it; don't silently pick one.
+- `docs/prd.md` (v0.8.4) is authoritative: formulas, data rules, requirement IDs (R-*), decisions (D*), open items (B*/O*). If code and PRD disagree, flag it; don't silently pick one.
 - `docs/explanation.md` is the plain-language version; `docs/project_journey.md` records how and why the project got to its current state (update it after major decisions). `README.md` is the short overview and roadmap.
 - A design change means editing the PRD (and its changelog) and `docs/decisions.md` in the same change.
 - `docs/HANDOFF.md` is the current state and next steps: read it first in a new session, and update it before ending one. `docs/decisions.md` lists every decision and finding by phase, with why; check it before reopening a settled choice.
@@ -38,6 +38,9 @@ uv run ruff check . && uv run ruff format --check .
 uv run pytest -q                          # all tests; toy scenario only, no real data needed
 uv run flipwise smoke                     # toy scenario, all policies, compare to expected.yaml
 uv run flipwise run --config configs/base.yaml --policy decision_flip
+uv run flipwise compare --config configs/base.yaml --jobs 7   # all policies, dev week
+uv run flipwise dashboard --runs results/compare_<hash>
+uv run python scripts/check_p1.py                         # P1 on real data
 bash scripts/local_cluster.sh --config configs/base.yaml --policy fcfs   # DT1 (Linux bash / Git Bash)
 docker compose up --build --abort-on-container-exit                      # DT2
 ```
@@ -73,7 +76,7 @@ Before finishing any code change: ruff check, ruff format, and the relevant test
 
 ## Current status
 
-EL Phase 1 done; Phase 2 in progress. Build phases 1–6 done, including the full data pipeline on real Indian data (`validate: OK` on 29 Oct). Indian generation constructed from Grid-India data, B4 resolved: `scripts/download_india.py` → `scripts/build_india_generation.py` (needs `uv sync --extra india-data`) → `ingest india`). Toy `smoke` matches `expected.yaml`. Build phases 5–6 done: real-trace scenario builder, rescue, throttling, every policy including `decision_flip`; P1 holds on the dev week (`scripts/check_p1.py`). Next: 7 (experiment runner). Design notes: `docs/design_phases_5_7.md`. In parallel, DT1 local split and DT2 Docker (stretch) in the order of PRD §18 "Deployment track": `DatacentreClient` → `dcservice.py` → scripted driver → `local_cluster.sh` → `--mode remote` → Docker (`datacentre.py` already exists). Open blockers: B1 (mentor confirms scope), B2 (NESO redistribution terms; coverage answered), B3 (power values; until resolved, report kgCO2 as relative). Update this section when a phase completes.
+EL Phase 1 done; Phase 2 in progress. Build phases 1–7 done, including the full data pipeline on real Indian data (`validate: OK` on 29 Oct). Indian generation constructed from Grid-India data, B4 resolved: `scripts/download_india.py` → `scripts/build_india_generation.py` (needs `uv sync --extra india-data`) → `ingest india`). Toy `smoke` matches `expected.yaml`. Build phases 5–7 done: every policy, P1 on the dev week (`scripts/check_p1.py`), `compare`, `sweep`, `report`, `dashboard`. Next: 8 (validation replicates, threshold freeze). Design notes: `docs/design_phases_5_7.md`. In parallel, DT1 local split and DT2 Docker (stretch) in the order of PRD §18 "Deployment track": `DatacentreClient` → `dcservice.py` → scripted driver → `local_cluster.sh` → `--mode remote` → Docker (`datacentre.py` already exists). Open blockers: B1 (mentor confirms scope), B2 (NESO redistribution terms; coverage answered), B3 (power values; until resolved, report kgCO2 as relative). Update this section when a phase completes.
 
 ## graphify
 

@@ -23,3 +23,7 @@ class DeploymentError(Exception):
 
 class ChecksumError(Exception):
     """A raw archive does not match its published SHA-256."""
+
+
+class ReportError(Exception):
+    """Saved runs are incomplete or cannot be compared (R-FAIR-1)."""

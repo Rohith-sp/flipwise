@@ -121,41 +121,104 @@ def _cmd_smoke(args: argparse.Namespace) -> int:
     return 1 if errs else 0
 
 
-def _cmd_run(args: argparse.Namespace) -> int:
-    import hashlib
+def _experiment_config(args: argparse.Namespace) -> dict:
+    """The config for an experiment command. A toy scenario needs none, only policy parameters."""
+    from flipwise.config import apply_overrides, load_config
+    from flipwise.errors import ConfigError
 
-    from flipwise.config import (
-        apply_overrides,
-        canonical_json,
-        config_hash,
-        load_config,
-        policy_params,
-    )
-    from flipwise.policies import make_policy
-    from flipwise.reporting import write_run
-    from flipwise.scenario import build_replicate, dev_replicate, load_scenario
-    from flipwise.simulator import Simulator
-
-    if args.scenario is not None:
-        sc = load_scenario(args.scenario)
-        out, manifest = args.out / f"{sc.name}_{args.policy}", None
-        debug, params = True, {}
+    if args.config is None and args.scenario is None:
+        raise ConfigError("give --config, --scenario, or both")
+    if args.config is not None:
+        cfg = load_config(args.config)
+        if args.scenario is not None:
+            cfg = {"policies": cfg.get("policies", {})}
     else:
-        cfg = apply_overrides(load_config(args.config), args.set)
-        sc = build_replicate(cfg, dev_replicate(cfg), args.seed)
-        key = canonical_json(cfg) + sc.scenario_hash + args.policy + str(args.seed)
-        run_id = hashlib.sha256(key.encode()).hexdigest()[:12]  # PRD §16.1
-        out = args.out / run_id
-        manifest = {"run_id": run_id, "seed": args.seed, "config": cfg,
-                    "config_hash": config_hash(cfg), "build": sc.build_report}  # fmt: skip
-        debug = False  # per-event invariant checks are for the toy and the tests
-        params = policy_params(cfg, args.policy)
-    res = Simulator(sc, make_policy(args.policy, **params), debug=debug).run()
-    hashes = write_run(res, out, manifest)
-    print(f"wrote {out}")
-    for name, h in hashes.items():
-        print(f"  {name}  {h[:16]}")
+        cfg = {"policies": {}}
+    return apply_overrides(cfg, args.set)
+
+
+def _policy_list(text: str) -> list[str]:
+    from flipwise.experiment import ALL_POLICIES
+
+    return list(ALL_POLICIES) if text == "all" else [p for p in text.split(",") if p]
+
+
+def _cmd_run(args: argparse.Namespace) -> int:
+    from flipwise.experiment import RunSpec, execute_run, replicates_for
+
+    cfg = _experiment_config(args)
+    # Per-event invariant checks are for the toy and the tests; real runs are long.
+    spec = RunSpec(
+        cfg,
+        args.policy,
+        args.seed,
+        args.out,
+        replicate=None if args.scenario is not None else replicates_for(cfg, "dev")[0],
+        scenario_dir=args.scenario,
+        debug=args.scenario is not None,
+    )
+    record = execute_run(spec)
+    print(f"wrote {args.out / record['run_id']}")
     return 0
+
+
+def _cmd_compare(args: argparse.Namespace) -> int:
+    from flipwise.experiment import compare
+
+    out = compare(
+        _experiment_config(args),
+        _policy_list(args.policies),
+        args.split,
+        args.seed,
+        args.out,
+        args.scenario,
+        args.jobs,
+        debug=args.scenario is not None,
+    )
+    print(f"wrote {out}")
+    return 0
+
+
+def _cmd_sweep(args: argparse.Namespace) -> int:
+    from flipwise.experiment import sweep
+
+    out = sweep(
+        _experiment_config(args),
+        args.sweep,
+        _policy_list(args.policies),
+        args.split,
+        args.seed,
+        args.out,
+        args.scenario,
+        args.jobs,
+    )
+    print(f"wrote {out}")
+    return 0
+
+
+def _cmd_report(args: argparse.Namespace) -> int:
+    from flipwise.reporting import build_report
+
+    build_report(args.runs, args.results)
+    print(f"rebuilt {args.runs}")
+    return 0
+
+
+def _cmd_dashboard(args: argparse.Namespace) -> int:
+    from flipwise.dashboard import build_dashboard
+
+    print(f"wrote {build_dashboard(args.runs, args.sweep, args.out, args.results)}")
+    return 0
+
+
+def _experiment_args(parser: argparse.ArgumentParser) -> None:
+    source = parser.add_argument_group("source")
+    source.add_argument("--config", type=Path, default=None, help="experiment config")
+    source.add_argument("--scenario", type=Path, default=None, help="scenario dir, e.g. the toy")
+    parser.add_argument("--seed", type=int, default=0)
+    parser.add_argument("--set", action="append", default=[], metavar="KEY=VALUE",
+                        help="override a config value, e.g. scenario.rho=0.4")  # fmt: skip
+    parser.add_argument("--out", type=Path, default=Path("results"))
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -206,16 +269,37 @@ def build_parser() -> argparse.ArgumentParser:
     sm.add_argument("--out", type=Path, default=Path("results/smoke"))
     sm.set_defaults(func=_cmd_smoke)
 
-    r = sub.add_parser("run", help="one policy on one scenario → results/<name>_<policy>/")
-    source = r.add_mutually_exclusive_group(required=True)
-    source.add_argument("--config", type=Path, help="experiment config; runs the dev replicate")
-    source.add_argument("--scenario", type=Path, help="scenario dir or scenario.yaml")
+    r = sub.add_parser("run", help="one policy on one scenario → results/<run_id>/")
+    _experiment_args(r)
     r.add_argument("--policy", required=True)
-    r.add_argument("--seed", type=int, default=0)
-    r.add_argument("--set", action="append", default=[], metavar="KEY=VALUE",
-                   help="override a config value, e.g. scenario.rho=0.4")  # fmt: skip
-    r.add_argument("--out", type=Path, default=Path("results"))
     r.set_defaults(func=_cmd_run)
+
+    cp = sub.add_parser("compare", help="all policies on identical replicates")
+    _experiment_args(cp)
+    cp.add_argument("--policies", default="all", help="comma-separated, or all")
+    cp.add_argument("--split", default="dev", choices=["dev", "validation", "test"])
+    cp.add_argument("--jobs", type=int, default=1, help="parallel runs")
+    cp.set_defaults(func=_cmd_compare)
+
+    sw = sub.add_parser("sweep", help="grid over parameters; each cell is a compare")
+    _experiment_args(sw)
+    sw.add_argument("--sweep", type=Path, required=True, help="configs/sweeps/*.yaml")
+    sw.add_argument("--policies", default="all", help="comma-separated, or all")
+    sw.add_argument("--split", default="dev", choices=["dev", "validation", "test"])
+    sw.add_argument("--jobs", type=int, default=1, help="parallel runs")
+    sw.set_defaults(func=_cmd_sweep)
+
+    rp = sub.add_parser("report", help="rebuild tables and figures from saved logs only")
+    rp.add_argument("--runs", type=Path, required=True, help="results/compare_<hash>")
+    rp.add_argument("--results", type=Path, default=None, help="folder of runs; default: parent")
+    rp.set_defaults(func=_cmd_report)
+
+    db = sub.add_parser("dashboard", help="static dashboard.html from saved results")
+    db.add_argument("--runs", type=Path, required=True, help="results/compare_<hash>")
+    db.add_argument("--sweep", type=Path, default=None, help="results/sweep_<hash>")
+    db.add_argument("--out", type=Path, default=Path("results/dashboard.html"))
+    db.add_argument("--results", type=Path, default=None, help="folder of runs; default: parent")
+    db.set_defaults(func=_cmd_dashboard)
     return p
 
 

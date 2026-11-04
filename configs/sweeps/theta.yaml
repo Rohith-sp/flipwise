@@ -1,0 +1,3 @@
+# θ grid (PRD §10.10). Thresholds are chosen on validation data only (PRD §14.5).
+grid:
+  policies.decision_flip.theta: [0, 0.05, 0.1, 0.25, 0.5]

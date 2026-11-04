@@ -191,7 +191,11 @@ The deadline misses are now explained too. 87 % are jobs that outran their 90th-
 
 Decision-flip went in as a subclass of fixed-savings, so at θ = 0 the only difference is a cheap check that skips re-scorings which could not have moved the job. On the real week the two policies produced byte-identical job and event logs, with 66 % fewer full re-scorings. The pass rate is 33.8 %, not the 18.3 % estimated without queues, but well inside what the screen needs.
 
-## 13. Tools used along the way
+## 13. The experiment runner and the first table (4 Nov, PRD v0.8.4)
+
+Metrics, `compare`, `sweep`, `report` and the dashboard went in, so one command now produces the table for the Phase 2 review. All seven policies ran on the real week. Two things stand out, and neither is a conclusion yet. FCFS has the lowest all-jobs emissions on this week, which is the long-job noise from section 9. And θ now really does turn down moves (3,834 to 1,795), which the v0.7 width could never do, though the width's fallback still fires on 30 % of comparisons, above its 10 % flag.
+
+## 14. Tools used along the way
 
 | Tool | Used for |
 |---|---|
@@ -205,16 +209,16 @@ Decision-flip went in as a subclass of fixed-savings, so at θ = 0 the only diff
 | docx (JavaScript) + Microsoft Word | Building and checking the Word guide |
 | Claude Code | Drafting docs, research, code and checks, guided by `CLAUDE.md` |
 
-## 14. Where things stand and what's next
+## 15. Where things stand and what's next
 
 **Done:**
-- Spec (PRD v0.8.3) and docs.
+- Spec (PRD v0.8.4) and docs.
 - Build phases 1, 2, 3 and 4. Phase 2 is complete, with real Indian data, and `validate` passes.
 - Local-split steps 1–3.
-- Build phases 5 and 6: the baselines, rescue, throttling and decision-flip, with P1 proved on real data.
+- Build phases 5, 6 and 7: every policy, P1 proved on real data, and the experiment runner.
 
 **Next:**
-1. Build phase 7 (experiment runner).
+1. Build phase 8: validation replicates, sweeps, threshold freeze.
 2. Deployment step 4 (`dcservice.py`), then the scripted driver and `local_cluster.sh`.
 3. Install Docker Desktop for step 8.
 

@@ -2,7 +2,7 @@
 
 Every design decision, grouped by the phase it was made in. For how the project got here as a story, see `project_journey.md`; for where work stands today, see `HANDOFF.md`.
 
-**PRD version: 0.8.3**
+**PRD version: 0.8.4**
 
 ## Rules
 
@@ -35,7 +35,7 @@ Every design decision, grouped by the phase it was made in. For how the project 
 | D14 | 24 Oct | One small package layout | Fewer modules for an MVP | active | §13.1 | — |
 | D15 | 24 Oct | Synthetic deadlines derived only from the frozen runtime estimate | Using actual runtime would leak it to the scheduler | active | §6.6 | scenario |
 | D16 | 24 Oct | Per-user runtime quantiles from early trace days, frozen | Leak-free and identical across policies | active | §6.5 | estimates, scenario |
-| D21 | 24 Oct | Results viewer is a static `dashboard.html`, separate from `run` | Long runs never block on a UI, and the demo cannot fail on a server | active | §4.1 | — |
+| D21 | 24 Oct | Results viewer is a static `dashboard.html`, separate from `run` | Long runs never block on a UI, and the demo cannot fail on a server | active | §4.1 | dashboard |
 | D22 | 25 Oct | Project named Flipwise (was FlipSim) | "It re-evaluates decision flips wisely" | active | header | — |
 
 ## Deployment track: PRD v0.4 and v0.6 (28–29 Oct 2026)
@@ -87,6 +87,12 @@ Every design decision, grouped by the phase it was made in. For how the project 
 | D43 | 4 Nov | `pred_error` measures drift from the last time the plan was examined, even if the job was kept | Otherwise one past drift fires that job at every later update, turning the trigger into a timer | active | §11 | policies |
 | D44 | 4 Nov | C3 covers every pending incumbent, not only queued ones: a placed job also keeps its place in the projected order | F6. Extends D37, as the original design note had it. Reads a shared profile, so it also removes three profile rebuilds per check | active | §9.3 | planner, simulator |
 
+## Build phase 7: experiment runner, PRD v0.8.4 (4 Nov 2026)
+
+| ID | Date | Decision | Why | Status | PRD | Code |
+|---|---|---|---|---|---|---|
+| D45 | 4 Nov | `run_id` hashes only the run's own policy parameters | A θ sweep would otherwise repeat every baseline in every cell, about 25 extra real runs on one replicate | active | §16.1 | experiment |
+
 ## Project tooling: PRD v0.8.2 (4 Nov 2026)
 
 | ID | Date | Decision | Why | Status | PRD | Code |
@@ -106,3 +112,6 @@ Every design decision, grouped by the phase it was made in. For how the project 
 | F6 | 4 Nov | With C3 as worded in v0.8.1, placed jobs still competed with themselves: 3,532 `place_once` rescues across 6,975 jobs, undoing its carbon gain (668.6 g/kWh on jobs within `r_q90`). With every pending incumbent keeping its place: 939 rescues, 638.3 g/kWh | D44 | PRD §10.11; one validation week, relative emissions |
 | F7 | 4 Nov | Place-once misses are explained: 87 % are jobs that outran `r_q90`. Deferral (mean 3.2 h) uses up slack they turn out to need: 39.8 % of them miss against 16.6 % under `fcfs`. Rescue lowers the rate from 7.34 % to 6.24 %; it cannot help a job already running | Closes phase 5's exit criterion; slack stays a sweep parameter | PRD §17.1; one validation week |
 | F8 | 4 Nov | P1 holds on the first validation week: identical `jobs.csv` and `events.log`, and all 11,956 state-changing decisions match. The screen skips 66 % of full re-scorings (43,097 to 14,568), a pass rate of 33.8 % against 18.3 % in the queue-free estimate | The core claim of EL Phase 2 (R-TRIG-2, P2) | PRD §10.11; `scripts/check_p1.py` |
+| F9 | 4 Nov | `INTERVAL_TOO_WIDE` turns θ off on 30.0 % of `decision_flip`'s comparisons on the first validation week, above the 10 % flag; median `w_ab / Ŝ_a` is 1.35. Far better than v0.7's 98.7 %, but not rare as v0.8 expected | Measure across validation replicates before changing `w_max` (PRD §14.5) | PRD §17.1 |
+| F10 | 4 Nov | `pig` is cleanest on jobs within `r_q90` (540.2 g/kWh) but not on all jobs (654.0): for jobs that run for days it finds no feasible plan, and the fallback ignores carbon. Its 174 at-risk jobs hold 48.5 % of energy | Read `pig` on `J_e`; the fallback rule stays shared by every policy (PRD §9.5) | PRD §10.11 |
+| F11 | 4 Nov | On one week `fcfs` has lower all-jobs emissions and fewer misses than `decision_flip` at every θ, and θ works as a dial on moves (3,834 down to 1,795) | Re-test across replicates before any conclusion (F4, D41) | PRD §10.11, `flipwise sweep` |
