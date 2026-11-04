@@ -42,7 +42,7 @@ Every design decision, grouped by the phase it was made in. For how the project 
 
 | ID | Date | Decision | Why | Status | PRD | Code |
 |---|---|---|---|---|---|---|
-| D23 | 28 Oct | Datacentres can run as separate services (local, Docker, AWS), but the coordinator owns a simulated clock and every mode must be byte-identical to in-process | Real-time services would make runs slow and unrepeatable | active | §13.5 | datacentre |
+| D23 | 28 Oct | Datacentres can run as separate services (local, Docker, AWS), but the coordinator owns a simulated clock and every mode must be byte-identical to in-process | Real-time services would make runs slow and unrepeatable | active | §13.5 | datacentre, dcservice |
 | D24 | 29 Oct | Docker moves into EL Phase 2 as a stretch; local split is built first, in an order where no step is throwaway | The team wanted to attempt Docker without risking the core results | active | §18 | — |
 
 ## India-only world: PRD v0.5 (29 Oct 2026)

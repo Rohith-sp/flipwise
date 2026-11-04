@@ -190,7 +190,7 @@ Build order (PRD §18), chosen so nothing is throwaway:
 | 7 | `flipwise run --mode remote` with the real simulator (needs build phase 3) | Toy simulation identical in-process and remote (R-DEP-1) |
 | 8 | **Stretch, DT2:** `Dockerfile` + `docker-compose.yml` (`dc-delhi`, `dc-mumbai`, `dc-chennai`, `coordinator`) | `docker compose up` from a clean clone gives the same outputs |
 
-**Status (29 Oct):** steps 1–3 are done (build phases 1 and 3: `datacentre.py` with `DatacentreClient` and `InProcDatacentre`, and the simulator talks to datacentres only through the interface). **Next: step 4, `dcservice.py`.**
+**Status (4 Nov):** step 4 is done (`dcservice.py`, `flipwise dc-serve`, `HttpDatacentre`; R-DEP-4 and R-DEP-7 pass). Steps 1–3 were done earlier (build phases 1 and 3: `datacentre.py` with `DatacentreClient` and `InProcDatacentre`, and the simulator talks to datacentres only through the interface). **Next: step 4, `dcservice.py`.**
 
 PRD §13.5 is the contract, so steps 4–8 can run in parallel with the simulator work. Steps 2–3 are shared. Docker needs Docker Desktop with WSL2 on every laptop.
 

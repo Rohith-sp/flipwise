@@ -211,6 +211,13 @@ def _cmd_dashboard(args: argparse.Namespace) -> int:
     return 0
 
 
+def _cmd_dc_serve(args: argparse.Namespace) -> int:
+    from flipwise.dcservice import serve
+
+    serve(args.dc_id, args.host, args.port)
+    return 0
+
+
 def _experiment_args(parser: argparse.ArgumentParser) -> None:
     source = parser.add_argument_group("source")
     source.add_argument("--config", type=Path, default=None, help="experiment config")
@@ -288,6 +295,12 @@ def build_parser() -> argparse.ArgumentParser:
     sw.add_argument("--split", default="dev", choices=["dev", "validation", "test"])
     sw.add_argument("--jobs", type=int, default=1, help="parallel runs")
     sw.set_defaults(func=_cmd_sweep)
+
+    ds = sub.add_parser("dc-serve", help="run one datacentre as an HTTP service (PRD §13.5)")
+    ds.add_argument("--dc-id", type=int, required=True)
+    ds.add_argument("--port", type=int, default=8101)
+    ds.add_argument("--host", default="127.0.0.1")
+    ds.set_defaults(func=_cmd_dc_serve)
 
     rp = sub.add_parser("report", help="rebuild tables and figures from saved logs only")
     rp.add_argument("--runs", type=Path, required=True, help="results/compare_<hash>")

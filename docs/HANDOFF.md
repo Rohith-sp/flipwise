@@ -19,13 +19,13 @@ To explore the code, use `graphify query "<question>"` if the graph is built.
 
 - **Done:** build phases 1–7. All seven policies run on the toy (hand-checked in `expected.yaml`) and on the real dev week. P1 holds on real data (F8). `compare`, `sweep`, `report` and `dashboard` work, and their exit criterion is met on both.
 - **First results:** PRD §10.11 has the seven-policy table and the θ sweep. They are one week, so no ranking follows from them.
-- **Not built yet:** deployment steps 4 onward. Plotly dashboard charts are also not built: the optional extra would add hover, and the Matplotlib default is in place.
+- **Not built yet:** deployment steps 5 onward, so there is no `--mode remote` or local-split demo yet. Plotly dashboard charts are also not built: the optional extra would add hover, and the Matplotlib default is in place.
 
 ## Next steps
 
 1. Roadmap phase 8: `uv run flipwise compare --config configs/base.yaml --split validation --jobs 5` (12 replicates at sampling 0.1, D46), then the sweeps in `configs/sweeps/`, then `scripts/select_thresholds.py` (PRD §14.5).
 2. Look at F9 across those replicates before touching `w_max`.
-3. Deployment step 4 (`dcservice.py`), then the scripted driver and `local_cluster.sh`.
+3. Deployment step 5 (scripted driver), then `local_cluster.sh` and `flipwise run --mode remote`. Step 4 is done: `flipwise dc-serve` and `HttpDatacentre` pass R-DEP-4 and R-DEP-7, and every policy on the toy is already byte-identical over HTTP with services in threads.
 
 To rebuild the review outputs: `uv run flipwise compare --config configs/base.yaml --jobs 7`, `uv run flipwise sweep --config configs/base.yaml --sweep configs/sweeps/theta.yaml --policies fcfs,place_once,fixed_savings,decision_flip --jobs 4`, then `uv run flipwise dashboard --runs results/compare_<hash> --sweep results/sweep_<hash>`. Finished runs are reused; a dev week takes about 8 minutes with 7 jobs.
 
