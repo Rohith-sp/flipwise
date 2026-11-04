@@ -6,7 +6,7 @@ An offline research simulator that tests *when* a carbon-aware scheduler should 
 
 RV College of Engineering · Experiential Learning, V Semester, AY 2026–27 · UN SDG 9 (Industry, Innovation and Infrastructure)
 
-> Status: **EL Phase 1 (pitch) complete. Now on EL Phase 2 (partial results).** Build phases 1–4 are implemented; the full data pipeline now runs on real Indian grid data from Grid-India (blocker B4 resolved; `flipwise validate` passes). The spec is [docs/prd.md](docs/prd.md) (v0.8). How we got here: [docs/project_journey.md](docs/project_journey.md).
+> Status: **EL Phase 1 (pitch) complete. Now on EL Phase 2 (partial results).** Build phases 1–4 are implemented; the full data pipeline now runs on real Indian grid data from Grid-India (blocker B4 resolved; `flipwise validate` passes). The spec is [docs/prd.md](docs/prd.md) (v0.8.1). How we got here: [docs/project_journey.md](docs/project_journey.md).
 
 ---
 

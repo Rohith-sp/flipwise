@@ -4,9 +4,9 @@
 
 | Field | Value |
 |---|---|
-| Document status | Implementation-ready draft. Supersedes v0.7 (29 Oct 2026), v0.6, v0.5.1 and v0.5 (29 Oct 2026), v0.4 (28 Oct 2026), v0.3 (24 Oct 2026), v0.2 (24 Oct 2026) and v0.1 (23 Oct 2026). Changes are listed in the changelog below. |
-| Version | 0.8 |
-| Revised | 2 November 2026 |
+| Document status | Implementation-ready draft. Supersedes v0.8 (2 Nov 2026), v0.7 (29 Oct 2026), v0.6, v0.5.1 and v0.5 (29 Oct 2026), v0.4 (28 Oct 2026), v0.3 (24 Oct 2026), v0.2 (24 Oct 2026) and v0.1 (23 Oct 2026). Changes are listed in the changelog below. |
+| Version | 0.8.1 |
+| Revised | 4 November 2026 |
 | Project name | **Flipwise** (Python package and CLI `flipwise`) [Decision]: it re-evaluates decision flips wisely. Renamed from FlipSim on 25 Oct 2026. Availability of the name on GitHub and PyPI is [Open], not yet checked. |
 | Project context | RV College of Engineering, Experiential Learning, V Semester, AY 2026–27; SDG 9 |
 | Deliverable | Offline, command-line research simulator and reproducible evaluation pipeline, plus a static, self-contained HTML results dashboard generated from result CSVs. Not a production scheduler. No web app in the MVP. From v0.4, a **deployment track** (Section 13.5) runs the same simulation with each virtual datacentre as a separate service: first as local processes, then in Docker, then on AWS. Research results always come from the in-process mode; the deployment modes must reproduce them exactly. |
@@ -17,6 +17,7 @@
 
 | Version | Date | Changes |
 |---|---|---|
+| 0.8.1 | 4 Nov 2026 | Two fixes approved after the first phase 5 build, plus a reporting rule. C3: a `QUEUED` job's incumbent is scored with the job at its own queue position, and every candidate of job `j` is scored on wait profiles that exclude `j` itself (9.3); before this, a queued job's own plan looked slower than it is, causing spurious moves and false rescues. C7: a move needs a strictly positive gain as well as the gate, in every policy with an acceptance rule (10.5, 11); before this, a zero-power job with `g_min = 0` moved at every update. Long-running jobs: on the first validation week 35 of 6,975 jobs used half the energy, most running for days against estimates under an hour, so emissions and intensity are also reported over jobs with `runtime_actual_s ≤ r_q90` (fixed rule, 14.1), and no conclusion rests on one replicate (14.2). |
 | 0.8 | 2 Nov 2026 | Design review of phases 5–7 against the first validation week (evidence in 10.11). Stage-1 screen replaced: the v0.7 bound searched 8 days past the deferral horizon and passed 100 % of checks; the new bound searches only start times a feasible candidate can have (10.3, 10.4, R-TRIG-1). Noise width `w_ab` made paired: runtime uncertainty, which shifts both options together, enters only through the difference of the two scores (10.5); θ grid moved down to {0, 0.05, 0.1, 0.25, 0.5} (10.10). Rescue limited to `DEADLINE_RISK` and `NO_START`, resolving the 10.2 / 10.7 contradiction on missing carbon in favour of keeping the incumbent; rescue may not repeat on a job already on a fallback placement, and runs at most once per release (10.2). A queued job's incumbent is exempt from the Range check (9.5). Moves within one update applied one at a time (10.6, R-TRIG-8). FCFS tie-break rotates over datacentres instead of always preferring dc0 (11). Trace slices re-anchored to trace Mondays, identified from the weekly submission pattern: days 25, 32, …, 67 (14.2, 14.3). Cluster totals from `pai_machine_spec` recorded (8.1). Placeholder powers 0.3 kW per GPU and 0.01 kW per core allowed for the Phase 2 review, results labelled relative (7.2). Findings to watch: FCFS's earlier dc0 bias and place-once's tripled deadline misses (17.1). |
 | 0.7 | 29 Oct 2026 | Resolved B4 with source option 3 (6.2.2): regional daily generation by fuel from Grid-India NLDC daily PSP reports, shaped within each IST day by Grid-India NLDC all-India SCADA generation by fuel (10-second data, Mendeley Data, CC BY 4.0). Electricity Maps was checked first: its free CSV datasets were discontinued in March 2026 (academic access only, by application). CEA factors filled from User Guide v19.0 Table 6 (FY 2022-23): coal 978, lignite 1286, gas 478 g/kWh (7.5). New scripts `download_india.py`, `build_india_generation.py`; optional extra `india-data` (openpyxl, xlrd) for reading the reports (12.1, 13.4). |
 | 0.6 | 29 Oct 2026 | Moved deployment stage DT2 (Docker) into EL Phase 2 as a stretch goal after DT1, and set the DT1 build order: `datacentre.py` first, then the `DatacentreClient` interface, the HTTP service, a scripted driver that tests local split before the simulator exists, then `local_cluster.sh` (18). Added R-DEP-7 (client conformance). |
@@ -492,7 +493,7 @@ For datacentre `d` at time `t`, build a projected usage profile with runtime qua
 2. Queued jobs, in queue order, then placed-but-unreleased jobs at `d` in `(release_slot, deadline, job_id)` order, are list-scheduled first-fit at the earliest time `≥ max(t, release)` where they fit for their whole duration `r_q`.
 3. The result is a step function of used capacity per dimension.
 
-For candidate `(d, s)` the projected start `s_q` is the earliest time `≥ s` at which `j` fits for `r_q(j)` on top of that profile (the candidate is treated as last in priority). Wait estimates: `w_lo = min(s_q05, s_q50, s_q95) − s`, `w_mid = s_q50 − s`, `w_hi = max(s_q05, s_q50, s_q95) − s` (taking the max protects against list-scheduling anomalies, where longer runtimes can produce earlier starts). Profiles are cached per `(d, q)` and invalidated by any start, completion, release or placement change at `d`. Profiles are truncated at `t + 9 days`; a job that does not fit within the truncated profile is infeasible at `d`.
+For candidate `(d, s)` the projected start `s_q` is the earliest time `≥ s` at which `j` fits for `r_q(j)` on top of that profile (the candidate is treated as last in priority). [v0.8.1, C3] Two exceptions keep a job from competing with itself: profiles used to score job `j` never contain `j`; and the incumbent of a `QUEUED` job is scored with `j` inserted at its own queue position, not at the end, since staying put keeps that position. Without this a queued job's current plan looked slower than it really is, which caused moves for no real gain and false `DEADLINE_RISK` rescues. Moving to another candidate still means joining that queue at the end (10.6). Wait estimates: `w_lo = min(s_q05, s_q50, s_q95) − s`, `w_mid = s_q50 − s`, `w_hi = max(s_q05, s_q50, s_q95) − s` (taking the max protects against list-scheduling anomalies, where longer runtimes can produce earlier starts). Profiles are cached per `(d, q)` and invalidated by any start, completion, release or placement change at `d`. Profiles are truncated at `t + 9 days`; a job that does not fit within the truncated profile is infeasible at `d`.
 
 This is a heuristic, not a bound. Its interval coverage is measured (`wait_coverage`, Section 14).
 
@@ -589,7 +590,9 @@ Why: a long run costs more at either site, so runtime spread moves `Ŝ_a` and `�
 
 **Decision flip:** switch to `b` iff
 
-`Ŝ_a − Ŝ_b ≥ g_min(j) + θ × w_ab`
+`Ŝ_a − Ŝ_b ≥ g_min(j) + θ × w_ab`  and  `Ŝ_a − Ŝ_b > 0`
+
+The second condition [v0.8.1, C7] matters only when the gate is 0, for example a job with zero power (`Ŝ = 0`, so `g_min = 0`): without it such a job "moves" at every update for no gain. It applies to every policy with an acceptance rule (11), so P1 still holds.
 
 At θ = 0 this is the fixed-savings gate. At θ > 0, a move must beat the gate by a multiple of the uncertainty in the comparison, which suppresses moves driven by changes smaller than typical forecast error.
 
@@ -639,7 +642,7 @@ on CARBON_UPDATE(v) at time t:
             log(j, "NO_ALTERNATIVE"); continue
         w = paired_width(inc, b)                             # 10.5
         theta_eff = theta if intervals_ok(inc, b, w) else 0
-        if inc.S - b.S >= g + theta_eff * w:
+        if inc.S - b.S >= g + theta_eff * w and inc.S - b.S > 0:
             apply_move(j, b, t, v)                           # 10.6
         else:
             log(j, "KEEP", gap=inc.S - b.S, need=g + theta_eff * w)
@@ -705,7 +708,7 @@ Every policy uses the same scenario object (jobs, capacities, carbon views, trut
 | `place_once` | best `Ŝ` among feasible | rescue only | n/a | Value of any re-planning |
 | `periodic(T)` | best `Ŝ` | every `T ∈ {30 min, 2 h, 6 h}` for all pending jobs | `Ŝ_a − Ŝ_b > ε_tie` | Timer re-optimisation. Published precedent: GREEN's fixed 30-min rescheduling quantum (ref 17). |
 | `pred_error(ε)` | best `Ŝ` | at `CARBON_UPDATE` when the incumbent window's mean forecast changed by `> ε` relative to the value at last plan, or `w_mid` of the incumbent changed by `> ε × (s_hat − t)`; `ε ∈ {0.05, 0.10, 0.20}` | `Ŝ_a − Ŝ_b > ε_tie` | Reacts to input error, not ranking. Published precedent: CarbonScaler re-plans when deviation exceeds a threshold, 5 % in its forecast-error experiment (ref 16). This is the key comparison for the contribution: error-magnitude trigger vs decision-relevance trigger. |
-| `fixed_savings(g)` | best `Ŝ` | every `CARBON_UPDATE`, all pending jobs (no screen) | `Ŝ_a − Ŝ_b ≥ g_min(j)` | Simple benefit gate |
+| `fixed_savings(g)` | best `Ŝ` | every `CARBON_UPDATE`, all pending jobs (no screen) | `Ŝ_a − Ŝ_b ≥ g_min(j)` and `> 0` (C7) | Simple benefit gate |
 | `decision_flip(g, θ)` | best `Ŝ` | Section 10 | Section 10.5 | Proposed |
 | `pig` (reference) | best *true* emissions using `runtime_actual_s`, truth `A`, and wait profiles built from actual runtimes | rescue only | n/a | Context for attainable benefit under the same greedy, arrival-order structure. Not deployable and not a lower bound. |
 
@@ -977,6 +980,7 @@ Let `J` be admitted jobs in the evaluation slice, `J_c ⊆ J` completed by the s
 | Total modelled emissions | `M = Σ_{j∈J_c} M_j` (kgCO2, IT energy, truth intensity) | **Primary** |
 | Emissions change vs baseline | `ΔM% = 100 × (M_policy − M_base) / M_base`; baseline is `place_once` (and `fcfs` reported too) | **Primary** (with absolute values alongside) |
 | Emissions intensity | `M / Σ_{j∈J_c} E_j` (gCO2/kWh) | Secondary; controls for completing different work |
+| Estimable-job emissions and intensity [v0.8.1] | the two rows above restricted to `J_e = {j ∈ J_c : runtime_actual_s ≤ r_q90_j}` | **Primary**, always shown next to the all-jobs value |
 | Deadline-miss rate | `|{j ∈ J : end_j > deadline_j or j ∉ J_c}| / |J|` | **Primary** |
 | Tardiness | mean and p95 of `max(0, end_j − deadline_j)` over `J_c` (h) | Secondary |
 | Queue wait | `start_j − release_j` and `start_j − arrival_j`: mean, median, p95 (h) | Secondary |
@@ -992,6 +996,8 @@ Let `J` be admitted jobs in the evaluation slice, `J_c ⊆ J` completed by the s
 | Carbon interval coverage | per lead bucket: fraction of `(r, k, v)` with `A` inside the interval; mean width | Secondary |
 
 Rule: an emissions reduction is reported only together with completion, miss rate and emissions intensity for the same runs.
+
+Why `J_e` [v0.8.1]: on the first validation week 35 of 6,975 jobs used half the energy; the top 10 ran 0.3–6.4 days against estimates of 0.5–0.8 h. No scheduler can plan around a job it believes is short, so where those few jobs happened to land decides the all-jobs total. `J_e` shows the effect of scheduling on the jobs the scheduler can estimate. The rule uses `runtime_actual_s`, which only the evaluator sees, so it changes reporting, never decisions. It is fixed here, before further runs, and is not tuned; both values are always reported, so no job is silently dropped. On that week `place_once` was about 3 % cleaner than `fcfs` on `J_e` and equal on all jobs, so results are read across replicates (14.2), never from one week.
 
 ### 14.2 Replicates and fairness
 
@@ -1086,6 +1092,7 @@ For each metric and policy pair, report the mean over replicates, the paired dif
 | R-TRIG-5 | MUST | Does not move when the gain is below `g_min + θ w_ab` | Toy case "small gain" | R-TRIG-1 |
 | R-TRIG-6 | MUST | Fallbacks in 10.7 trigger on malformed, too-wide and missing intervals | Unit tests per row | R-TRIG-1 |
 | R-TRIG-7 | MUST | Rescue when the incumbent becomes infeasible; no repeat rescue of a fallback placement; at most one rescue per release; missing carbon keeps the incumbent (10.2) | Toy: capacity at incumbent saturates, deadline at risk; plus one case per limit | R-PLAN-1 |
+| R-TRIG-9 | MUST | C3 and C7: a queued job left alone keeps its wait estimate (no self-competition); a zero-gain alternative is never accepted | Toy: queued job with an unchanged forecast is not moved or rescued; zero-power job never moves | R-TRIG-1 |
 | R-TRIG-8 | MUST | Moves in one update are applied one at a time, so two jobs cannot both take capacity only one fits (10.6) | Toy: two pending jobs, one free cheap slot that fits one; exactly one moves | R-TRIG-1 |
 | R-POL-1 | MUST | All seven policies run on the toy and dev scenarios | `smoke`; dev `compare` completes | all above |
 | R-FAIR-1 | MUST | `compare` uses one scenario hash for all policies | `reporting` refuses mismatched hashes; test with tampered run | R-SIM-1 |

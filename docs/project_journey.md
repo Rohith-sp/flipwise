@@ -153,6 +153,13 @@ Before coding the baselines and decision-flip, a teammate wrote a design for bui
 
 All the measurements came from validation data, so the test period is untouched. The cluster totals from `pai_machine_spec` (156,576 cores, 948,224 GB, 6,742 GPUs) and the placeholder powers for the Phase 2 review (0.3 kW per GPU, 0.01 kW per core, results labelled relative) were also fixed. Only the plan changed; the code follows in phase 5.
 
+**v0.8.1 (4 Nov).** The first phase 5 build on real data led to two more fixes and one reporting rule:
+
+- **C3:** a queued job was being compared against itself, as if staying put meant re-joining the back of its own queue. Its plan looked worse than it was, so it moved or was "rescued" for no reason. It now keeps its place when scored.
+- **C7:** a job with zero power saves nothing by moving, but "saving 0 ≥ gate 0" passed, so it moved every 30 minutes. A move now needs a saving above zero.
+- **Long jobs:** 35 of 6,975 jobs used half the energy, mostly jobs that ran for days when estimated at under an hour. Where they landed decided the week's total, hiding any scheduling effect. Results are now always reported twice: all jobs, and jobs that ran within their 90th-percentile estimate. The rule was fixed before further runs, and conclusions use several weeks, never one.
+- **FCFS correction:** v0.8 guessed that FCFS looked clean because ties went to Delhi. After the tie-break fix FCFS got cleaner, not dirtier, so that guess was wrong.
+
 ## 9. Tools used along the way
 
 | Tool | Used for |
@@ -170,7 +177,7 @@ All the measurements came from validation data, so the test period is untouched.
 ## 10. Where things stand and what's next
 
 **Done:**
-- Spec (PRD v0.8) and docs.
+- Spec (PRD v0.8.1) and docs.
 - Build phases 1, 2, 3 and 4. Phase 2 is complete, with real Indian data, and `validate` passes.
 - Local-split steps 1–3.
 
