@@ -160,7 +160,28 @@ All the measurements came from validation data, so the test period is untouched.
 - **Long jobs:** 35 of 6,975 jobs used half the energy, mostly jobs that ran for days when estimated at under an hour. Where they landed decided the week's total, hiding any scheduling effect. Results are now always reported twice: all jobs, and jobs that ran within their 90th-percentile estimate. The rule was fixed before further runs, and conclusions use several weeks, never one.
 - **FCFS correction:** v0.8 guessed that FCFS looked clean because ties went to Delhi. After the tie-break fix FCFS got cleaner, not dirtier, so that guess was wrong.
 
-## 9. Tools used along the way
+## 9. First baselines on the new calendar (4 Nov, PRD v0.8.2)
+
+The processed data moved to `data/processed/`, `.gitignore` now covers everything under `data/` except its README and manifests, and the plumbing for phase 5 went in: a real-trace scenario builder (`flipwise run --config`), runtime and residual fitting, prefix sums for scoring, and hooks for re-planning policies. Two runs on the first validation week gave a surprise:
+
+| Policy | Mean intensity (g/kWh) | Jobs within `r_q90` only | Deadline misses |
+|---|---|---|---|
+| `fcfs` | 639.0 | 654.8 | 2.44 % |
+| `place_once` | 638.9 | 635.1 | 7.34 % |
+
+Placement alone gained nothing in total, and v0.8's explanation was wrong: rotating FCFS's tie-break made FCFS cleaner, not dirtier. The real cause is that **35 of 6,975 jobs use half the energy**. They run for days against an estimate of under an hour, so the scheduler can't plan around them, and one week's total mostly records where they landed. Comparisons therefore need several replicates, and intensity should be reported with and without those jobs.
+
+## 10. Keeping decisions findable (4 Nov, PRD v0.8.2)
+
+Design had started changing quickly, and the reasons were spread across the PRD changelog, this file and chat. The team asked for graphify to track them and to make handing over context easier. Graphify maps the project as it is now, so it can't hold history or reasons by itself. Three pieces now work together:
+
+| Piece | Job |
+|---|---|
+| `docs/decisions.md` | The record: every decision and finding by phase, with why, status, PRD section and code module, checked by a test |
+| `docs/HANDOFF.md` | Current state and next steps, read first by a teammate or new session |
+| graphify, via `scripts/build_graph.py` | Navigation: a queryable graph linking code to decisions, parsed from the log, so it needs no LLM |
+
+## 11. Tools used along the way
 
 | Tool | Used for |
 |---|---|
@@ -174,12 +195,13 @@ All the measurements came from validation data, so the test period is untouched.
 | docx (JavaScript) + Microsoft Word | Building and checking the Word guide |
 | Claude Code | Drafting docs, research, code and checks, guided by `CLAUDE.md` |
 
-## 10. Where things stand and what's next
+## 12. Where things stand and what's next
 
 **Done:**
-- Spec (PRD v0.8.1) and docs.
+- Spec (PRD v0.8.2) and docs.
 - Build phases 1, 2, 3 and 4. Phase 2 is complete, with real Indian data, and `validate` passes.
 - Local-split steps 1–3.
+- Phase 5 groundwork: data moved, scenario builder, `fcfs` and `place_once` running on the dev replicate. The re-planning baselines come next.
 
 **Next:**
 1. Build phase 5 (baselines, with the v0.8 changes and a look at deadline misses), then 6 (decision-flip with the new screen and width).

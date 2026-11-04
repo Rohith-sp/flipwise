@@ -7,7 +7,7 @@ import copy
 import heapq
 from dataclasses import dataclass, field
 
-from flipwise.carbon import ForecastStore, ForecastVintage, Truth
+from flipwise.carbon import CarbonTable, ForecastStore, ForecastVintage, Residuals, Truth
 from flipwise.datacentre import DatacentreClient, InProcDatacentre
 from flipwise.energy import PowerModel, emissions_kg, energy_kwh
 from flipwise.errors import MigrationError, SimulationInvariantError
@@ -23,7 +23,7 @@ from flipwise.models import (
     Priority,
     Request,
 )
-from flipwise.planner import PlannerParams, Residuals
+from flipwise.planner import PlannerParams
 from flipwise.policies import Decision, Policy
 
 
@@ -40,6 +40,7 @@ class Scenario:
     params: PlannerParams = field(default_factory=PlannerParams)
     residuals: Residuals = field(default_factory=Residuals)
     scenario_hash: str = ""
+    build_report: dict = field(default_factory=dict)  # what the builder dropped, fitted, chose
 
 
 @dataclass(frozen=True)
@@ -84,6 +85,7 @@ class SchedulerView:
         self.params = sim.scenario.params
         self.residuals = sim.scenario.residuals
         self._profiles: dict[tuple, UsageProfile] = {}
+        self._tables: dict[tuple[int, int], CarbonTable] = {}
 
     @property
     def now_s(self) -> int:
@@ -92,6 +94,18 @@ class SchedulerView:
     @property
     def forecast(self) -> ForecastVintage | None:
         return self._sim.vintage
+
+    def carbon_table(self, region_id: int) -> CarbonTable:
+        """Prefix sums for the current vintage; rebuilt only when the vintage changes."""
+        vintage = self.forecast
+        key = (vintage.capture_utc, region_id)  # type: ignore[union-attr]
+        table = self._tables.get(key)
+        if table is None:
+            if self._tables and next(iter(self._tables))[0] != key[0]:
+                self._tables.clear()
+            e05, e95 = self.residuals.for_region(region_id)
+            table = self._tables[key] = CarbonTable(vintage, region_id, e05, e95)  # type: ignore[arg-type]
+        return table
 
     def job(self, job_id: str) -> JobInfo:
         return self._sim.job_info(job_id)
@@ -135,7 +149,10 @@ class SchedulerView:
         return build_profile(st.cap, t, running, pending)
 
     def projected_start(self, dc_id: int, job: JobInfo, release_s: int, q: str) -> int | None:
-        prof = self.profile(dc_id, q, exclude=job.job_id)
+        # Only a job already at this datacentre is in its profile, so every other job can share
+        # the one cached profile instead of rebuilding it (PRD §9.3).
+        at_dc = job.dc_id == dc_id and job.state in PENDING
+        prof = self.profile(dc_id, q, exclude=job.job_id if at_dc else None)
         return prof.earliest_fit(release_s, job.r_q(q), job.request)
 
 
@@ -176,6 +193,8 @@ class Simulator:
         self.events: list[str] = []
         self.decisions: list[dict] = []
         self._touched: set[int] = set()
+        self._unfinished = len(self.jobs)
+        self._release_checked: set[str] = set()  # rescued at release: no second check (PRD §10.2)
         self.view = SchedulerView(self)
 
     # ---- state helpers -------------------------------------------------------------------
@@ -230,6 +249,10 @@ class Simulator:
             "to_slot": d.to.release_slot if d.to else None,
             "S_a": d.s_a,
             "S_b": d.s_b,
+            "LB": d.lb,
+            "w_ab": d.w_ab,
+            "g_min": d.g_min,
+            "theta_eff": d.theta_eff,
             "reason": d.reason,
         }
         self.decisions.append(rec)
@@ -237,6 +260,7 @@ class Simulator:
             if d.kind == "REJECT":
                 job.state = JobState.REJECTED
                 self.pending_ids.discard(job.job_id)
+                self._unfinished -= 1
             return
         self._place(job, d.to, d)
 
@@ -251,8 +275,9 @@ class Simulator:
         elif job.state == JobState.PLACED:
             self.placed_at[job.dc_id].discard(job.job_id)  # type: ignore[index]
             self._touch(job.dc_id)  # type: ignore[arg-type]
-        if job.state in PENDING:
-            job.n_moves += 1
+        # A rescue is not a move, so it cannot use up `max_moves` (PRD §10.4, §14.1).
+        job.n_moves += d.kind == "MOVE"
+        job.rescued += d.kind == "RESCUE"
         job.state = JobState.PLACED
         job.dc_id, job.release_slot = to.dc_id, to.release_slot
         job.placed_at_s = self.now_s
@@ -279,6 +304,9 @@ class Simulator:
         for j in order:
             self._push(j.deadline_s, Priority.DEADLINE, j.job_id)
         self._push(sc.end_s, Priority.SIM_END)
+        if self.policy.tick_s is not None:
+            for t in range(sc.start_s + self.policy.tick_s, sc.end_s, self.policy.tick_s):
+                self._push(t, Priority.PERIODIC_TICK)
         # Vintage visible at start: the latest capture at or before the start time.
         first = sc.forecast.latest_capture(sc.start_s - 1)
         if first is not None:
@@ -298,7 +326,7 @@ class Simulator:
             self._dispatch()
             if self.debug:
                 self._check_invariants()
-            if all(j.state in (JobState.COMPLETED, JobState.REJECTED) for j in self.jobs.values()):
+            if self._unfinished == 0:
                 break
         return RunResult(
             list(self.jobs.values()), self.events, self.decisions, sc, self.policy.name
@@ -313,29 +341,33 @@ class Simulator:
             job = self.jobs[ev.job_id]  # type: ignore[index]
             self.clients[job.dc_id].complete(self.now_s, job.job_id)  # type: ignore[index]
             job.state = JobState.COMPLETED
+            self._unfinished -= 1
             self._touch(job.dc_id)  # type: ignore[arg-type]
         elif ev.kind == "JOB_ARRIVAL":
-            d = self.policy.on_arrival(self.view, ev.job_id)  # type: ignore[arg-type]
-            self._apply(
-                Decision(
-                    ev.job_id,
-                    d.kind,
-                    d.to,
-                    d.s_a,
-                    d.s_b,
-                    d.reason,  # type: ignore[arg-type]
-                    d.deadline_risk,
-                )
-            )
+            self._apply(self.policy.on_arrival(self.view, ev.job_id))  # type: ignore[arg-type]
+        elif ev.kind == "PERIODIC_TICK":
+            for d in self.policy.on_tick(self.view):
+                self._apply(d)
         elif ev.kind == "JOB_RELEASE":
             job = self.jobs[ev.job_id]  # type: ignore[index]
+            if job.job_id in self._release_checked:
+                self._release_checked.discard(job.job_id)
+            else:
+                d = self.policy.on_release(self.view, job.job_id)
+                if d is not None:
+                    self._apply(d)
+                    if d.to is not None:
+                        # At most one rescue per release: a plan due now joins the queue directly.
+                        if d.to.release_slot <= self.now_s:
+                            self._release_checked.add(job.job_id)
+                        return
             self.placed_at[job.dc_id].discard(job.job_id)  # type: ignore[index]
             self.clients[job.dc_id].enqueue(  # type: ignore[index]
                 self.now_s, job.job_id, job.request, job.runtime_actual_s
             )
             job.state = JobState.QUEUED
             self._touch(job.dc_id)  # type: ignore[arg-type]
-        # DEADLINE is diagnostic only; PERIODIC_TICK arrives with the periodic policy.
+        # DEADLINE is diagnostic only.
 
     def _dispatch(self) -> None:
         for dc_id in sorted(self._touched):

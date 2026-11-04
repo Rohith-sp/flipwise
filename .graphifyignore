@@ -1,0 +1,7 @@
+# Data and outputs are huge or generated; the old PRD copy would pollute the graph with stale rules.
+data/processed/
+data/raw/
+results/
+prd (1).md
+uv.lock
+.claude/

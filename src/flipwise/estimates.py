@@ -1,7 +1,4 @@
-"""Queue-wait estimates from projected usage profiles (PRD §9.3).
-
-Runtime-quantile fitting (PRD §6.5) is added in build phase 5.
-"""
+"""Runtime quantiles (PRD §6.5) and queue-wait estimates from usage profiles (PRD §9.3)."""
 
 from __future__ import annotations
 
@@ -9,11 +6,62 @@ import bisect
 from collections.abc import Iterable
 from dataclasses import dataclass
 
+import numpy as np
+import pandas as pd
+
 from flipwise.models import Request
 
 QUANTILES = ("q05", "q50", "q95")
 PROFILE_HORIZON_S = 9 * 86400
 OVERRUN_MIN_S = 60  # a job past its estimate is assumed to need at least one more minute
+RUNTIME_QUANTILES = (0.05, 0.50, 0.90, 0.95)
+N_MIN_USER_JOBS = 20  # PRD §6.5
+
+type RuntimeQuantiles = tuple[int, int, int, int]  # q05, q50, q90, q95 in seconds
+
+
+def gpu_class(gpu_req: float) -> int:
+    """GPU-request class of PRD §6.5: {0}, (0, 1], (1, 8], > 8."""
+    if gpu_req <= 0:
+        return 0
+    return 1 if gpu_req <= 1 else 2 if gpu_req <= 8 else 3
+
+
+def _quantiles(runtimes: np.ndarray) -> RuntimeQuantiles:
+    q = np.quantile(runtimes, RUNTIME_QUANTILES, method="linear")
+    return tuple(max(1, int(np.rint(x))) for x in q)  # type: ignore[return-value]
+
+
+@dataclass(frozen=True)
+class RuntimeModel:
+    """Frozen after calibration; the fallback chain is user → GPU class → global (PRD §10.7)."""
+
+    by_user: dict[str, RuntimeQuantiles]
+    by_class: dict[int, RuntimeQuantiles]
+    overall: RuntimeQuantiles
+
+    def estimate(self, user: str, gpu_req: float) -> tuple[RuntimeQuantiles, str]:
+        """The quantiles and which level supplied them: `user`, `class` or `global`."""
+        q = self.by_user.get(user)
+        if q is not None:
+            return q, "user"
+        q = self.by_class.get(gpu_class(gpu_req))
+        return (q, "class") if q is not None else (self.overall, "global")
+
+
+def fit_runtime(calibration: pd.DataFrame, n_min: int = N_MIN_USER_JOBS) -> RuntimeModel:
+    """Fit from calibration jobs with columns `user, gpu_req, runtime_actual_s` (PRD §6.5)."""
+    by_user = {
+        str(user): _quantiles(group.to_numpy())
+        for user, group in calibration.groupby("user", sort=True)["runtime_actual_s"]
+        if len(group) >= n_min
+    }
+    classes = calibration["gpu_req"].map(gpu_class)
+    by_class = {
+        int(c): _quantiles(group.to_numpy())
+        for c, group in calibration.groupby(classes, sort=True)["runtime_actual_s"]
+    }
+    return RuntimeModel(by_user, by_class, _quantiles(calibration["runtime_actual_s"].to_numpy()))
 
 
 @dataclass(frozen=True)

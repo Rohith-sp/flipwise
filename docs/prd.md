@@ -4,8 +4,8 @@
 
 | Field | Value |
 |---|---|
-| Document status | Implementation-ready draft. Supersedes v0.8 (2 Nov 2026), v0.7 (29 Oct 2026), v0.6, v0.5.1 and v0.5 (29 Oct 2026), v0.4 (28 Oct 2026), v0.3 (24 Oct 2026), v0.2 (24 Oct 2026) and v0.1 (23 Oct 2026). Changes are listed in the changelog below. |
-| Version | 0.8.1 |
+| Document status | Implementation-ready draft. Supersedes v0.8.1 (4 Nov 2026), v0.8 (2 Nov 2026), v0.7 (29 Oct 2026), v0.6, v0.5.1 and v0.5 (29 Oct 2026), v0.4 (28 Oct 2026), v0.3 (24 Oct 2026), v0.2 (24 Oct 2026) and v0.1 (23 Oct 2026). Changes are listed in the changelog below. |
+| Version | 0.8.2 |
 | Revised | 4 November 2026 |
 | Project name | **Flipwise** (Python package and CLI `flipwise`) [Decision]: it re-evaluates decision flips wisely. Renamed from FlipSim on 25 Oct 2026. Availability of the name on GitHub and PyPI is [Open], not yet checked. |
 | Project context | RV College of Engineering, Experiential Learning, V Semester, AY 2026–27; SDG 9 |
@@ -17,6 +17,7 @@
 
 | Version | Date | Changes |
 |---|---|---|
+| 0.8.2 | 4 Nov 2026 | Trace day origin stated: day 0 is 1970-01-01 00:00 UTC+8 (14.2). First baseline runs on the v0.8 calendar recorded (10.11). Correction to v0.8: rotating FCFS's tie-break lowered its intensity, so the dc0 bias does not explain the small `place_once` gain; a few long jobs do (11, 17.1). Residual fit limited to slots inside the calibration period (6.8). Added `docs/decisions.md` (decisions by phase, D21–D41, findings) and `docs/HANDOFF.md` (current state). Added graphify as an optional navigation tool outside the project's dependencies (12.1). |
 | 0.8.1 | 4 Nov 2026 | Two fixes approved after the first phase 5 build, plus a reporting rule. C3: a `QUEUED` job's incumbent is scored with the job at its own queue position, and every candidate of job `j` is scored on wait profiles that exclude `j` itself (9.3); before this, a queued job's own plan looked slower than it is, causing spurious moves and false rescues. C7: a move needs a strictly positive gain as well as the gate, in every policy with an acceptance rule (10.5, 11); before this, a zero-power job with `g_min = 0` moved at every update. Long-running jobs: on the first validation week 35 of 6,975 jobs used half the energy, most running for days against estimates under an hour, so emissions and intensity are also reported over jobs with `runtime_actual_s ≤ r_q90` (fixed rule, 14.1), and no conclusion rests on one replicate (14.2). |
 | 0.8 | 2 Nov 2026 | Design review of phases 5–7 against the first validation week (evidence in 10.11). Stage-1 screen replaced: the v0.7 bound searched 8 days past the deferral horizon and passed 100 % of checks; the new bound searches only start times a feasible candidate can have (10.3, 10.4, R-TRIG-1). Noise width `w_ab` made paired: runtime uncertainty, which shifts both options together, enters only through the difference of the two scores (10.5); θ grid moved down to {0, 0.05, 0.1, 0.25, 0.5} (10.10). Rescue limited to `DEADLINE_RISK` and `NO_START`, resolving the 10.2 / 10.7 contradiction on missing carbon in favour of keeping the incumbent; rescue may not repeat on a job already on a fallback placement, and runs at most once per release (10.2). A queued job's incumbent is exempt from the Range check (9.5). Moves within one update applied one at a time (10.6, R-TRIG-8). FCFS tie-break rotates over datacentres instead of always preferring dc0 (11). Trace slices re-anchored to trace Mondays, identified from the weekly submission pattern: days 25, 32, …, 67 (14.2, 14.3). Cluster totals from `pai_machine_spec` recorded (8.1). Placeholder powers 0.3 kW per GPU and 0.01 kW per core allowed for the Phase 2 review, results labelled relative (7.2). Findings to watch: FCFS's earlier dc0 bias and place-once's tripled deadline misses (17.1). |
 | 0.7 | 29 Oct 2026 | Resolved B4 with source option 3 (6.2.2): regional daily generation by fuel from Grid-India NLDC daily PSP reports, shaped within each IST day by Grid-India NLDC all-India SCADA generation by fuel (10-second data, Mendeley Data, CC BY 4.0). Electricity Maps was checked first: its free CSV datasets were discontinued in March 2026 (academic access only, by application). CEA factors filled from User Guide v19.0 Table 6 (FY 2022-23): coal 978, lignite 1286, gas 478 g/kWh (7.5). New scripts `download_india.py`, `build_india_generation.py`; optional extra `india-data` (openpyxl, xlrd) for reading the reports (12.1, 13.4). |
@@ -319,7 +320,7 @@ Defaults `slack_base_s = 14,400` (4 h), `k_slack = 2.0`. Sweep: `slack_base_s �
 
 ### 6.8 Carbon residual model [Decision]
 
-For the calibration period (13 Mar – 30 Jun 2023), compute residuals `e = A(r, k) − F(r, k, v)` for every captured `(r, k, v)` with lead `ℓ = k − v` in buckets `[0, 6 h), [6, 12 h), [12, 24 h), [24, 48 h]`. Store the 5th and 95th percentiles `e05(b), e95(b)` per lead bucket, computed on the Indian vintages (6.2.4), pooled over the three regions (per-region quantiles if each region has ≥ 500 residuals per bucket; report which was used). Interval for a forecast slot: `[max(0, F + e05(b)), F + e95(b)]`. Coverage and width are reported per bucket on validation and test periods.
+For the calibration period (13 Mar – 30 Jun 2023), compute residuals `e = A(r, k) − F(r, k, v)` for every captured `(r, k, v)`, with slot `k` also inside the period [v0.8.2], with lead `ℓ = k − v` in buckets `[0, 6 h), [6, 12 h), [12, 24 h), [24, 48 h]`. Store the 5th and 95th percentiles `e05(b), e95(b)` per lead bucket, computed on the Indian vintages (6.2.4), pooled over the three regions (per-region quantiles if each region has ≥ 500 residuals per bucket; report which was used). Interval for a forecast slot: `[max(0, F + e05(b)), F + e95(b)]`. Coverage and width are reported per bucket on validation and test periods.
 
 ### 6.9 Development (toy) mode
 
@@ -696,6 +697,15 @@ The second column is the forecast-and-wait part of the paired width; the paired 
 
 See 17.1 for what these two lines mean for the experiment.
 
+[Measured, 4 Nov 2026] The same week after build-phase steps 0–2: v0.8 calendar, rotated FCFS tie-break, cluster-total capacity, one job excluded as too large for any datacentre (6,975 jobs).
+
+| Policy | Mean carbon intensity (g/kWh) | Same, jobs with runtime ≤ `r_q90` | Deadline misses |
+|---|---|---|---|
+| `fcfs` | 639.0 | 654.8 | 2.44 % |
+| `place_once` | 638.9 | 635.1 | 7.34 % |
+
+Energy is extremely concentrated: 35 jobs use 50 % of it and the top 10 use 34 %. Those 10 ran between 0.3 and 6.4 days against an `r_q50` of 0.5–0.8 h, and jobs that outran `r_q90` (13.7 % of jobs) used 72.5 % of the energy. The scheduler cannot see these jobs coming, and where they land outweighs any policy effect in a single replicate.
+
 ---
 
 ## 11. Baselines and the perfect-information reference
@@ -714,7 +724,7 @@ Every policy uses the same scenario object (jobs, capacities, carbon views, trut
 
 Throttling (`cooldown_s`, `max_moves`) applies identically to `periodic`, `pred_error`, `fixed_savings` and `decision_flip`.
 
-Why FCFS rotates its tie-break [v0.8]: with the global tie order (`dc_id` first), every tie on an idle system went to dc0, Delhi NCR, one of the two cleanest grids. That made the carbon-blind reference partly carbon-aware: on the first validation week FCFS reached 665.6 g/kWh, close to Delhi's 657 mean, and understated what carbon-aware placement adds. Rotation spreads ties evenly and stays deterministic. The rotation applies to FCFS only; the carbon-aware policies keep the 9.1 tie order, where ties are rare.
+Why FCFS rotates its tie-break [v0.8]: with the global tie order (`dc_id` first), every tie on an idle system went to dc0, Delhi NCR, one of the two cleanest grids, so a carbon-blind reference favoured one site. Rotation spreads ties evenly and stays deterministic. [Correction, v0.8.2] v0.8 expected this to raise FCFS's intensity; on the first validation week it fell from 665.6 to 639.0 g/kWh, because the result turns on where a few long jobs land (10.11). The rotation applies to FCFS only; the carbon-aware policies keep the 9.1 tie order, where ties are rare.
 
 Note on `pig`: its wait profile uses actual runtimes of committed jobs, so its wait estimate is exact only if no later arrival changes the queue ahead of it. It still places jobs greedily in arrival order, which is why it is a reference and not an optimum.
 
@@ -737,6 +747,7 @@ Note on `pig`: its wait profile uses actual runtimes of committed jobs, so its w
 | pytest ≥ 9 | Tests | Standard; fixtures for toy scenario | MVP (dev) |
 | ruff ≥ 0.17 | Lint and format | One tool for both | MVP (dev) |
 | hypothesis | Property tests for bound and invariants | Only if hand-written randomised tests prove insufficient | Optional |
+| graphify (`graphifyy` on PyPI, Apache-2.0) | Developer navigation only: a queryable graph of code and of `docs/decisions.md`, built by `scripts/build_graph.py` | Makes context transfer cheaper. Installed as a tool (`uv tool install graphifyy`), not in `pyproject.toml`; `src/flipwise/` never imports it, so results cannot depend on it | Optional (dev) |
 | pyarrow | Parquet | Only if CSV I/O becomes a measured bottleneck | Optional |
 | openpyxl, xlrd | Read Grid-India `.xlsx`/`.xls` reports and SCADA workbooks | Only `scripts/build_india_generation.py`; extra `flipwise[india-data]` (`uv sync --extra india-data`) | Optional |
 | `http.server` (`ThreadingHTTPServer`), `urllib.request` (stdlib) | Datacentre service and coordinator client, JSON over HTTP | DT1–DT3 need a transport; the stdlib adds no dependency and the API is seven endpoints (13.5) | Deployment track |
@@ -1003,7 +1014,7 @@ Why `J_e` [v0.8.1]: on the first validation week 35 of 6,975 jobs used half the 
 
 A replicate is `(trace slice i, carbon start C0, missing_gpu_policy, phase_shift)`. Each `compare` runs every policy on the same replicates. Inputs are built once per replicate into a scenario object, hashed (`scenario_hash`), and passed read-only to each policy run. The only randomness in the MVP is job sub-sampling (deterministic hash of `job_id` with a seed) and synthetic forecast-error scenarios; seeds are recorded.
 
-Trace slices [v0.8]: trace days `[25, 32), [32, 39), …, [67, 74)` (7 slices of 7 days). Each starts on a trace Monday, as 6.3 requires. The trace has no calendar, so Mondays are identified from the weekly submission pattern: arrivals per trace day drop on days 16–17, 23–24, 30–31, …, 65–66 (weekends), so days 25, 32, …, 67 are Mondays. The v0.7 slices started on day 21, a Thursday by this pattern. Days 21–24 are left unused, between calibration and validation. Validation uses the 3 slices in trace days 25–45 and test the 4 slices in days 46–73, each crossed with 4 carbon-start Mondays from its own period: 12 validation and 16 test replicates per policy. `configs/base.yaml` (`splits`, `dev`) must be updated to match in build phase 5.
+Trace slices [v0.8]: trace days `[25, 32), [32, 39), …, [67, 74)` (7 slices of 7 days). Each starts on a trace Monday, as 6.3 requires. The trace has no calendar, so Mondays are identified from the weekly submission pattern: arrivals per trace day drop on days 16–17, 23–24, 30–31, …, 65–66 (weekends), so days 25, 32, …, 67 are Mondays. The v0.7 slices started on day 21, a Thursday by this pattern. Days 21–24 are left unused, between calibration and validation. [v0.8.2] Trace day `d` starts at `trace_day_origin_s + d × 86400`, with `trace_day_origin_s = −28800` (1970-01-01 00:00 UTC+8; `configs/base.yaml`). The first job arrives on day 6.6, so the calibration slice [0, 21) holds about 14.4 days of jobs. Validation uses the 3 slices in trace days 25–45 and test the 4 slices in days 46–73, each crossed with 4 carbon-start Mondays from its own period: 12 validation and 16 test replicates per policy. `configs/base.yaml` (`splits`, `dev`) must be updated to match in build phase 5.
 
 ### 14.3 Chronological separation
 
@@ -1155,8 +1166,8 @@ Raw data are not committed. `README.md` gives the download commands for the v202
 | Risk | Effect | Mitigation |
 |---|---|---|
 | Stage-1 bound too loose (pass rate ≈ 1) | No overhead saving; H1 fails | [Occurred, v0.8] The v0.7 bound passed 100 % of checks; replaced by the feasible-window bound (10.4), 18.3 % on validation data. Report the v0.7 result as a finding |
-| Small gain from carbon-aware placement [v0.8] | Re-planning has little to improve; H1–H3 effects small | On the first validation week `place_once` cut mean intensity only 3 % below `fcfs` (10.11), partly because FCFS's dc0 tie-break favoured Delhi (fixed in 11). Re-measure with the rotated tie-break; a small gain is a valid result and is reported as such |
-| Place-once deadline misses (2.25 % → 7.30 %) [v0.8] | Carbon gains bought with missed deadlines; re-planning results inherit this | Investigate before build phase 6: check `w_hi` coverage and the deadline-slack formula (6.6) on validation; rescue (10.2) should recover part. Report misses next to every emissions number |
+| Small gain from carbon-aware placement [v0.8] | Re-planning has little to improve; H1–H3 effects small | [Updated, v0.8.2] With the rotated tie-break, `place_once` and `fcfs` have equal mean intensity on the first validation week (638.9 and 639.0 g/kWh), though `place_once` is 3 % cleaner on jobs within `r_q90` (10.11). A few long, underestimated jobs dominate energy, so single-replicate totals are noisy: compare policies across replicates, and report intensity with and without those jobs. A small gain is a valid result and is reported as such |
+| Place-once deadline misses (2.25 % → 7.30 %) [v0.8] | Carbon gains bought with missed deadlines; re-planning results inherit this | [Partly explained, v0.8.2] 81 % of `place_once` misses are jobs that outran `r_q90`: deferral uses up the slack those jobs needed. Before build phase 6, also check `w_hi` coverage and the deadline-slack formula (6.6) on validation; rescue (10.2) should recover part. Report misses next to every emissions number |
 | Indian truth is modelled from generation by fuel, not metered intensity, and ignores inter-regional flows | Absolute regional values may be off; regions may look more different than consumers experience | Label results; report the source used; compare annual means with CEA grid factors |
 | No Indian generation data at ≤ 1 h resolution (B4) | Truth must fall back to a constructed profile | Source preference order in 6.2.2; the fallback is labelled [Synthetic] |
 | Borrowed GB error paths do not reflect Indian weather | Forecast-error effects (H2, H4) may differ in reality | α sweep and permuted mapping; stated as a limitation in every report |

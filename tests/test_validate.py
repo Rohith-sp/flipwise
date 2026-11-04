@@ -27,3 +27,11 @@ def test_non_monday_and_horizon_overflow_rejected():
     errs = check_splits(cfg)
     assert any("not a Monday" in e for e in errs)
     assert any("leaves its carbon period" in e for e in errs)
+
+
+def test_slices_must_start_on_trace_mondays():
+    """PRD §6.3, §14.2: day 25 is a Monday when counted from the configured origin; 21 is not."""
+    cfg = copy.deepcopy(BASE)
+    assert [cfg["splits"][n]["trace_days"][0] for n in ("validation", "test")] == [25, 46]
+    cfg["splits"]["validation"]["trace_days"] = [21, 46]
+    assert any("trace day 21 is not a Monday" in e for e in check_splits(cfg))

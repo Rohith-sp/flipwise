@@ -19,6 +19,9 @@ emission_factors:
     other: 0.0                    # [Open] PRD §6.2.2: 0 by default
 
 power:
-  p_gpu_kw: null                  # B3: TDP_type × f (PRD §7.2)
-  p_cpu_kw: null                  # B3: per core
+  # Placeholders for the Phase 2 review only (PRD §7.2, v0.8); B3 is still open, so every kgCO2
+  # from these values is relative. 0.3 kW is on the high side for a fleet of mostly P100 and T4.
+  p_gpu_kw: 0.3
+  p_cpu_kw: 0.01
+  label: relative
   pue: 1.0

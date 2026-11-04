@@ -15,6 +15,7 @@ from flipwise.trace import sha256_file
 
 MAX_CAPTURE_SPACING_S = 6 * 3600  # longer silences make the scheduler's view stale
 IST_OFFSET_S = 19800  # UTC+5:30; carbon starts are Monday 00:00 IST (PRD v0.5 §6.3)
+TRACE_TZ = dt.timezone(dt.timedelta(hours=8))  # the trace keeps its weekday in UTC+8 (PRD §6.1)
 
 
 def monday_start_utc(d: dt.date) -> int:
@@ -42,6 +43,14 @@ def check_splits(cfg: dict) -> list[str]:
     (vlo, vhi), (tlo, _thi) = periods["validation"], periods["test"]
     if not (rf[1] < vlo and vhi < tlo):
         errs.append("carbon periods overlap: residual fit < validation < test is required")
+    origin_s = cfg.get("trace_day_origin_s")
+    if origin_s is not None:
+        for name in ("validation", "test"):
+            # Slices must start on a trace Monday for the weekday alignment of PRD §6.3.
+            first_day = sp[name]["trace_days"][0]
+            local = dt.datetime.fromtimestamp(origin_s + first_day * 86400, TRACE_TZ)
+            if local.weekday() != 0 or local.hour != 0:
+                errs.append(f"{name}: trace day {first_day} is not a Monday 00:00 UTC+8")
     tr = [sp["runtime_fit_trace_days"], sp["validation"]["trace_days"], sp["test"]["trace_days"]]
     if not (tr[0][1] <= tr[1][0] and tr[1][1] <= tr[2][0]):
         errs.append("trace-day windows overlap: runtime fit < validation < test is required")

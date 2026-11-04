@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import copy
 import datetime as dt
 import hashlib
 import json
@@ -25,6 +26,25 @@ def load_config(path: Path) -> dict:
     if not (isinstance(cfg["regions"], list) and all(isinstance(r, int) for r in cfg["regions"])):
         raise ConfigError("regions: expected a list of NESO region ids (int)")
     return cfg
+
+
+def apply_overrides(cfg: dict, overrides: list[str]) -> dict:
+    """Return a copy of `cfg` with each `a.b.c=value` applied; the value is parsed as YAML."""
+    out = copy.deepcopy(cfg)
+    for item in overrides:
+        key, sep, raw = item.partition("=")
+        if not sep or not key:
+            raise ConfigError(f"--set: expected key=value, got {item!r}")
+        *parents, leaf = key.split(".")
+        node = out
+        for part in parents:
+            if not isinstance(node.get(part), dict):
+                raise ConfigError(f"--set {key}: {part!r} is not a section of the config")
+            node = node[part]
+        if leaf not in node:
+            raise ConfigError(f"--set {key}: unknown key {leaf!r}")
+        node[leaf] = yaml.safe_load(raw)
+    return out
 
 
 def canonical_json(cfg: dict) -> str:

@@ -3,6 +3,7 @@
 
 from __future__ import annotations
 
+from collections.abc import Iterable
 from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
@@ -25,17 +26,33 @@ class Decision:
     s_b: float | None = None  # chosen / best alternative score
     reason: str = ""
     deadline_risk: bool = False
+    lb: float | None = None  # Stage-1 lower bound
+    w_ab: float | None = None  # noise width of the comparison
+    g_min: float | None = None  # benefit gate
+    theta_eff: float | None = None  # θ actually applied, after the §10.7 fallbacks
 
 
 class Policy:
     name = "base"
     uses_oracle = False
+    tick_s: int | None = None  # interval of PERIODIC_TICK events, if the policy wants them
 
     def on_arrival(self, view: SchedulerView, job_id: str) -> Decision:
         raise NotImplementedError
 
-    def on_carbon_update(self, view: SchedulerView) -> list[Decision]:
+    def on_carbon_update(self, view: SchedulerView) -> Iterable[Decision]:
+        """Re-planning policies are generators: the simulator applies each decision before the
+        policy resumes, so the next job sees the new congestion (PRD §10.6, R-TRIG-8)."""
         return []
+
+    def on_tick(self, view: SchedulerView) -> Iterable[Decision]:
+        """Same contract as `on_carbon_update`; only called when `tick_s` is set."""
+        return []
+
+    def on_release(self, view: SchedulerView, job_id: str) -> Decision | None:
+        """Last check before a job joins the queue. A decision with `to` set replaces the release
+        (rescue, PRD §10.2); one without is only logged; None means nothing to log."""
+        return None
 
 
 class Fcfs(Policy):
@@ -43,9 +60,13 @@ class Fcfs(Policy):
 
     name = "fcfs"
 
+    def __init__(self) -> None:
+        self._arrivals = 0
+
     def on_arrival(self, view: SchedulerView, job_id: str) -> Decision:
         job = view.job(job_id)
-        c = planner.earliest_start(view, job)
+        c = planner.earliest_start(view, job, self._arrivals)
+        self._arrivals += 1
         if c is None:
             return Decision(job_id, "REJECT", reason="NO_START")
         return Decision(job_id, "PLACE", c.placement, s_b=c.s_hat)

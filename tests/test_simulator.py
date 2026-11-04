@@ -134,3 +134,86 @@ def test_outputs_are_lf_terminated(toy, tmp_path):
     write_run(Simulator(toy, Fcfs()).run(), tmp_path)
     data = (tmp_path / "jobs.csv").read_bytes()
     assert b"\r\n" not in data and hashlib.sha256(data).hexdigest()
+
+
+class _Sequential(Policy):
+    """Generator policy: checks each decision is applied before the policy resumes."""
+
+    name = "sequential"
+
+    def __init__(self):
+        self.seen = []
+
+    def on_arrival(self, view, job_id):
+        return Decision(job_id, "PLACE", Placement(0, T0 + 8 * 1800))
+
+    def on_carbon_update(self, view):
+        if view.now_s == T0 + 3600:
+            yield Decision("J4", "MOVE", Placement(1, T0 + 8 * 1800))
+            self.seen.append(view.job("J4").dc_id)
+            yield Decision("J6", "RESCUE", Placement(2, T0 + 8 * 1800))
+            self.seen.append(view.job("J6").dc_id)
+
+
+def test_decisions_apply_one_at_a_time_r_trig_8(toy):
+    policy = _Sequential()
+    res = Simulator(toy, policy).run()
+    assert policy.seen == [1, 2]
+    jobs = {j.job_id: j for j in res.jobs}
+    assert (jobs["J4"].n_moves, jobs["J4"].rescued) == (1, 0)
+    assert (jobs["J6"].n_moves, jobs["J6"].rescued) == (0, 1)  # a rescue is not a move
+
+
+class _RescueAtRelease(Policy):
+    """Rescues J4 at its release to a plan already due, then would do so forever if asked."""
+
+    name = "rescue_at_release"
+
+    def __init__(self):
+        self.calls = []
+
+    def on_arrival(self, view, job_id):
+        return Decision(job_id, "PLACE", Placement(0, T0 + 8 * 1800))
+
+    def on_release(self, view, job_id):
+        if job_id != "J4":
+            return None
+        self.calls.append(view.now_s)
+        return Decision(job_id, "RESCUE", Placement(1, view.now_s))
+
+
+def test_one_rescue_per_release_r_trig_7(toy):
+    policy = _RescueAtRelease()
+    res = Simulator(toy, policy).run()
+    j4 = next(j for j in res.jobs if j.job_id == "J4")
+    assert policy.calls == [T0 + 8 * 1800]
+    assert (j4.dc_id, j4.rescued, j4.start_s) == (1, 1, T0 + 8 * 1800)
+
+
+class _Ticker(Policy):
+    name = "ticker"
+    tick_s = 3600
+
+    def __init__(self):
+        self.ticks = []
+
+    def on_arrival(self, view, job_id):
+        return Decision(job_id, "PLACE", Placement(0, T0 + 1800))
+
+    def on_tick(self, view):
+        self.ticks.append(view.now_s)
+        return []
+
+
+def test_periodic_ticks_follow_priority_order(toy):
+    policy = _Ticker()
+    ev = Simulator(toy, policy).run().events
+    assert policy.ticks and all((t - T0) % 3600 == 0 and t > T0 for t in policy.ticks)
+    at_first = [int(e.split(",")[1]) for e in ev if e.startswith(f"{policy.ticks[0]},")]
+    assert at_first == sorted(at_first) and 5 in at_first
+
+
+def test_fcfs_ties_rotate_over_datacentres(toy):
+    """PRD §11, v0.8: the first three idle-system ties do not all go to dc0."""
+    jobs = {j.job_id: j for j in Simulator(toy, Fcfs()).run().jobs}
+    assert [jobs[j].dc_id for j in ("J1", "J2", "J3")] == [0, 1, 2]

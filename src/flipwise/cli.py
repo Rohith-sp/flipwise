@@ -122,15 +122,29 @@ def _cmd_smoke(args: argparse.Namespace) -> int:
 
 
 def _cmd_run(args: argparse.Namespace) -> int:
+    import hashlib
+
+    from flipwise.config import apply_overrides, canonical_json, config_hash, load_config
     from flipwise.policies import make_policy
     from flipwise.reporting import write_run
-    from flipwise.scenario import load_scenario
+    from flipwise.scenario import build_replicate, dev_replicate, load_scenario
     from flipwise.simulator import Simulator
 
-    sc = load_scenario(args.scenario)
-    res = Simulator(sc, make_policy(args.policy)).run()
-    out = args.out / f"{sc.name}_{args.policy}"
-    hashes = write_run(res, out)
+    if args.scenario is not None:
+        sc = load_scenario(args.scenario)
+        out, manifest = args.out / f"{sc.name}_{args.policy}", None
+        debug = True
+    else:
+        cfg = apply_overrides(load_config(args.config), args.set)
+        sc = build_replicate(cfg, dev_replicate(cfg), args.seed)
+        key = canonical_json(cfg) + sc.scenario_hash + args.policy + str(args.seed)
+        run_id = hashlib.sha256(key.encode()).hexdigest()[:12]  # PRD §16.1
+        out = args.out / run_id
+        manifest = {"run_id": run_id, "seed": args.seed, "config": cfg,
+                    "config_hash": config_hash(cfg), "build": sc.build_report}  # fmt: skip
+        debug = False  # per-event invariant checks are for the toy and the tests
+    res = Simulator(sc, make_policy(args.policy), debug=debug).run()
+    hashes = write_run(res, out, manifest)
     print(f"wrote {out}")
     for name, h in hashes.items():
         print(f"  {name}  {h[:16]}")
@@ -186,8 +200,13 @@ def build_parser() -> argparse.ArgumentParser:
     sm.set_defaults(func=_cmd_smoke)
 
     r = sub.add_parser("run", help="one policy on one scenario → results/<name>_<policy>/")
-    r.add_argument("--scenario", type=Path, required=True, help="scenario dir or scenario.yaml")
+    source = r.add_mutually_exclusive_group(required=True)
+    source.add_argument("--config", type=Path, help="experiment config; runs the dev replicate")
+    source.add_argument("--scenario", type=Path, help="scenario dir or scenario.yaml")
     r.add_argument("--policy", required=True)
+    r.add_argument("--seed", type=int, default=0)
+    r.add_argument("--set", action="append", default=[], metavar="KEY=VALUE",
+                   help="override a config value, e.g. scenario.rho=0.4")  # fmt: skip
     r.add_argument("--out", type=Path, default=Path("results"))
     r.set_defaults(func=_cmd_run)
     return p

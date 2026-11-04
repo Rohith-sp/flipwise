@@ -4,9 +4,10 @@ Flipwise: an offline, deterministic discrete-event simulator that tests **when**
 
 ## Source of truth
 
-- `docs/prd.md` (v0.8.1) is authoritative: formulas, data rules, requirement IDs (R-*), decisions (D*), open items (B*/O*). If code and PRD disagree, flag it; don't silently pick one.
+- `docs/prd.md` (v0.8.2) is authoritative: formulas, data rules, requirement IDs (R-*), decisions (D*), open items (B*/O*). If code and PRD disagree, flag it; don't silently pick one.
 - `docs/explanation.md` is the plain-language version; `docs/project_journey.md` records how and why the project got to its current state (update it after major decisions). `README.md` is the short overview and roadmap.
-- A design change means editing the PRD (and its changelog) in the same change.
+- A design change means editing the PRD (and its changelog) and `docs/decisions.md` in the same change.
+- `docs/HANDOFF.md` is the current state and next steps: read it first in a new session, and update it before ending one. `docs/decisions.md` lists every decision and finding by phase, with why; check it before reopening a settled choice.
 
 ## Reading the docs cheaply
 
@@ -72,4 +73,15 @@ Before finishing any code change: ruff check, ruff format, and the relevant test
 
 ## Current status
 
-EL Phase 1 done; Phase 2 in progress. Build phases 1–4 done, including the full data pipeline on real Indian data (`validate: OK` on 29 Oct). Indian generation constructed from Grid-India data, B4 resolved: `scripts/download_india.py` → `scripts/build_india_generation.py` (needs `uv sync --extra india-data`) → `ingest india`). Toy `smoke` matches `expected.yaml`. Next: phase 5 (`estimates`, real-trace scenario builder, `periodic`, `fixed_savings`, rescue, throttling), then 6 (decision-flip). In parallel, DT1 local split and DT2 Docker (stretch) in the order of PRD §18 "Deployment track": `DatacentreClient` → `dcservice.py` → scripted driver → `local_cluster.sh` → `--mode remote` → Docker (`datacentre.py` already exists). Open blockers: B1 (mentor confirms scope), B2 (NESO redistribution terms; coverage answered), B3 (power values; until resolved, report kgCO2 as relative). Update this section when a phase completes.
+EL Phase 1 done; Phase 2 in progress. Build phases 1–4 done, including the full data pipeline on real Indian data (`validate: OK` on 29 Oct). Indian generation constructed from Grid-India data, B4 resolved: `scripts/download_india.py` → `scripts/build_india_generation.py` (needs `uv sync --extra india-data`) → `ingest india`). Toy `smoke` matches `expected.yaml`. Phase 5 groundwork done: runtime and residual fitting, real-trace scenario builder, `flipwise run --config` (dev replicate), scoring prefix sums, hooks. Next: rest of phase 5 (`rescore`, rescue, throttling, `periodic`, `fixed_savings`), then 6 (decision-flip). Design notes: `docs/design_phases_5_7.md`. In parallel, DT1 local split and DT2 Docker (stretch) in the order of PRD §18 "Deployment track": `DatacentreClient` → `dcservice.py` → scripted driver → `local_cluster.sh` → `--mode remote` → Docker (`datacentre.py` already exists). Open blockers: B1 (mentor confirms scope), B2 (NESO redistribution terms; coverage answered), B3 (power values; until resolved, report kgCO2 as relative). Update this section when a phase completes.
+
+## graphify
+
+This project has a knowledge graph at graphify-out/ with god nodes, community structure, and cross-file relationships.
+
+Rules:
+- When graphify-out/graph.json exists, run `graphify query "<question>"` before your first grep, search or source-file read for a codebase question, and put this rule in every subagent prompt that explores code. Read raw files only for lines the graph or an earlier read already located. Use `graphify path "<A>" "<B>"` for relationships and `graphify explain "<concept>"` for focused concepts. These return a scoped subgraph, usually much smaller than GRAPH_REPORT.md or raw grep output.
+- If graphify-out/wiki/index.md exists, use it for broad navigation instead of raw source browsing.
+- Read graphify-out/GRAPH_REPORT.md only for broad architecture review or when query/path/explain do not surface enough context.
+- After modifying code, run `graphify update .` to keep the graph current (AST-only, no API cost). After changing `docs/decisions.md`, rebuild with `uv tool run --from graphifyy python scripts/build_graph.py`. Graph-derived answers about why something was decided must be confirmed in `docs/decisions.md`, which is the record.
+- A committed graphify-out/graph.json is rewritten whole on every build, so a large diff to it in a pull request is expected. Do not flag it as churn or suggest skipping the graph rebuild or its hooks.
