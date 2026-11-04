@@ -6,7 +6,7 @@ from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
 from flipwise.carbon import lead_bucket as lead_bucket
-from flipwise.models import SLOT_S, Candidate, ceil_to_slot, floor_to_slot
+from flipwise.models import PENDING, SLOT_S, Candidate, ceil_to_slot, floor_to_slot
 
 if TYPE_CHECKING:
     from flipwise.simulator import JobInfo, SchedulerView
@@ -18,6 +18,7 @@ OUT_OF_RANGE = "OUT_OF_RANGE"
 NO_START = "NO_START"
 DEADLINE_RISK = "DEADLINE_RISK"
 NO_CARBON = "NO_CARBON"
+QUANTILES = ("q05", "q50", "q95")
 
 
 @dataclass(frozen=True)
@@ -32,15 +33,32 @@ def release_range(job: JobInfo, now_s: int, params: PlannerParams) -> tuple[int,
     return slot0, max(latest, slot0)
 
 
-def evaluate(view: SchedulerView, job: JobInfo, dc_id: int, release_slot: int) -> Candidate:
-    """Score one candidate and run the feasibility checks of PRD §9.5 in order."""
+def evaluate(
+    view: SchedulerView,
+    job: JobInfo,
+    dc_id: int,
+    release_slot: int,
+    incumbent: bool = False,
+    intervals: bool = True,
+    known_starts: dict[str, int | None] | None = None,
+) -> Candidate:
+    """Score one candidate and run the feasibility checks of PRD §9.5 in order.
+
+    With `incumbent`, the candidate is the job's current plan: the job then keeps its own place
+    in the projected order (§9.3, C3) and a past release is exempt from the Range check (§9.5).
+    `intervals=False` skips `L` and `U`, which only the chosen candidates need; `known_starts`
+    carries starts between ascending slots of one datacentre (see `_projected_starts`).
+    """
     c = Candidate(dc_id, release_slot)
     dc = view.dcs[dc_id]
     if not job.request.fits_in(dc.cap):
         c.reject_reason = NO_FIT
         return c
     slot0, latest = release_range(job, view.now_s, view.params)
-    starts = {q: view.projected_start(dc_id, job, release_slot, q) for q in ("q05", "q50", "q95")}
+    if incumbent and job.state in PENDING:
+        starts = {q: view.own_start(job, q) for q in QUANTILES}
+    else:
+        starts = _projected_starts(view, job, dc_id, release_slot, known_starts)
     if any(s is None for s in starts.values()):
         c.reject_reason = NO_START
         return c
@@ -51,14 +69,14 @@ def evaluate(view: SchedulerView, job: JobInfo, dc_id: int, release_slot: int) -
     k_kg = dc.pue * job.power_kw / 3600 / 1000
     if view.forecast is not None:
         table = view.carbon_table(dc.region_id)
-        p = table.integrate(release_slot + c.w_mid, job.r_q50_s)
-        lo = table.integrate(release_slot + c.w_lo, job.r_q05_s)
-        hi = table.integrate(release_slot + c.w_hi, job.r_q95_s)
+        p = table.point(release_slot + c.w_mid, job.r_q50_s)
         if p is not None:
-            c.s_hat, c.extrapolated = k_kg * p[0], p[3]
-        if lo is not None and hi is not None:
-            c.lower, c.upper = k_kg * lo[1], k_kg * hi[2]
-    if not slot0 <= release_slot <= latest:
+            c.s_hat, c.extrapolated = k_kg * p[0], p[1]
+        if intervals:
+            add_interval(view, job, c)
+    # A placed incumbent past `latest` can only be past it through the deadline term, so the
+    # Deadline check below catches it with the reason that rescue acts on.
+    if not incumbent and not slot0 <= release_slot <= latest:
         c.reject_reason = OUT_OF_RANGE
     elif _finish(c, job, view.params) > job.deadline_s:
         c.reject_reason = DEADLINE_RISK
@@ -67,6 +85,40 @@ def evaluate(view: SchedulerView, job: JobInfo, dc_id: int, release_slot: int) -
     else:
         c.feasible = True
     return c
+
+
+def _projected_starts(
+    view: SchedulerView,
+    job: JobInfo,
+    dc_id: int,
+    release_slot: int,
+    known: dict[str, int | None] | None,
+) -> dict[str, int | None]:
+    """Projected start per runtime quantile. The earliest fit never moves back as the release gets
+    later, so a start already found from an earlier slot still holds if it is not before this one.
+    """
+    if known is None:
+        return {q: view.projected_start(dc_id, job, release_slot, q) for q in QUANTILES}
+    starts = {}
+    for q in QUANTILES:
+        if q in known and (known[q] is None or known[q] >= release_slot):
+            starts[q] = known[q]
+        else:
+            starts[q] = known[q] = view.projected_start(dc_id, job, release_slot, q)
+    return starts
+
+
+def add_interval(view: SchedulerView, job: JobInfo, c: Candidate) -> None:
+    """`L_c` and `U_c` of PRD §9.4. Left as None when any needed slot is unknown."""
+    if view.forecast is None or c.w_lo is None:
+        return
+    dc = view.dcs[c.dc_id]
+    table = view.carbon_table(dc.region_id)
+    k_kg = dc.pue * job.power_kw / 3600 / 1000
+    lo = table.integrate(c.release_slot + c.w_lo, job.r_q05_s)
+    hi = table.integrate(c.release_slot + c.w_hi, job.r_q95_s)
+    if lo is not None and hi is not None:
+        c.lower, c.upper = k_kg * lo[1], k_kg * hi[2]
 
 
 def _finish(c: Candidate, job: JobInfo, params: PlannerParams) -> int:
@@ -82,8 +134,9 @@ def candidates(view: SchedulerView, job: JobInfo) -> list[Candidate]:
     for dc_id in sorted(view.dcs):
         if not job.request.fits_in(view.dcs[dc_id].cap):
             continue
+        known: dict[str, int | None] = {}
         for s in range(slot0, latest + 1, SLOT_S):
-            out.append(evaluate(view, job, dc_id, s))
+            out.append(evaluate(view, job, dc_id, s, intervals=False, known_starts=known))
     return out
 
 
@@ -99,6 +152,41 @@ def best_candidate(cands: list[Candidate]) -> Candidate | None:
     best_s = min(c.s_hat for c in feas)  # type: ignore[type-var]
     near = [c for c in feas if c.s_hat <= best_s + EPS_TIE_KG]  # type: ignore[operator]
     return min(near, key=_tie_key)
+
+
+def rescore(view: SchedulerView, job: JobInfo) -> Candidate:
+    """The job's current plan, scored now (PRD §10.3). One candidate."""
+    return evaluate(view, job, job.dc_id, job.release_slot, incumbent=True)  # type: ignore[arg-type]
+
+
+def alternatives(view: SchedulerView, job: JobInfo) -> list[Candidate]:
+    """Every candidate except the current plan. Leaving a queue, even for the same datacentre,
+    means joining the end of it, so those remain real alternatives (PRD §10.6)."""
+    return [
+        c
+        for c in candidates(view, job)
+        if (c.dc_id, c.release_slot) != (job.dc_id, job.release_slot)
+    ]
+
+
+def best_alternative(view: SchedulerView, job: JobInfo) -> Candidate | None:
+    """Best feasible `b ≠ a` (PRD §10.5), or None."""
+    return best_candidate(alternatives(view, job))
+
+
+def finish_estimate(c: Candidate, job: JobInfo, params: PlannerParams) -> int | None:
+    """Conservative finish `s + w_hi + r_q90`; None when the candidate has no projected start."""
+    return None if c.w_hi is None else _finish(c, job, params)
+
+
+def window_mean_forecast(view: SchedulerView, job: JobInfo, c: Candidate) -> float | None:
+    """Mean forecast g/kWh over a candidate's point-estimate window (`pred_error`, PRD §11)."""
+    if view.forecast is None or c.w_mid is None:
+        return None
+    p = view.carbon_table(view.dcs[c.dc_id].region_id).integrate(
+        c.release_slot + c.w_mid, job.r_q50_s
+    )
+    return None if p is None else p[0] / max(job.r_q50_s, 1)
 
 
 def fallback(cands: list[Candidate], job: JobInfo, params: PlannerParams) -> Candidate | None:

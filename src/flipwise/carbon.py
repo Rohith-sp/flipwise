@@ -132,6 +132,20 @@ class CarbonTable:
             return self._prefix[which][self.n] * SLOT_S + tail
         return self._prefix[which][i] * SLOT_S + rem * self._series[which][i]
 
+    def point(self, start_s: int, dur_s: int) -> tuple[float, bool] | None:
+        """`(Σ τ·F, extrapolated)`: `integrate` for the one series every candidate needs."""
+        end_s = start_s + dur_s
+        if start_s < self.first_s:
+            return None
+        extrapolated = end_s > self.stop_s
+        if extrapolated and self._tail is None:
+            return None
+        i0 = min((start_s - self.first_s) // SLOT_S, self.n)
+        i1 = min(-(-(end_s - self.first_s) // SLOT_S), self.n)
+        if i1 > i0 and self._unknown[i1] != self._unknown[i0]:
+            return None
+        return self._cumulative(0, end_s) - self._cumulative(0, start_s), extrapolated
+
     def integrate(self, start_s: int, dur_s: int) -> tuple[float, float, float, bool] | None:
         """`(Σ τ·F, Σ τ·L, Σ τ·U, extrapolated)` over `[start, start + dur)`; None if unknown."""
         end_s = start_s + dur_s
@@ -234,6 +248,13 @@ class Truth:
             return self._v[(region_id, slot_utc)]
         except KeyError:
             raise CarbonDataError(f"no truth for region {region_id} slot {slot_utc}") from None
+
+    def as_vintage(self, first_slot_utc: int) -> ForecastVintage:
+        """Truth in the shape of a forecast, for the `pig` reference's `OracleView` only."""
+        values: dict[int, dict[int, float]] = {}
+        for (r, k), x in self._v.items():
+            values.setdefault(r, {})[k] = x
+        return ForecastVintage(first_slot_utc, max(k for _, k in self._v), values)
 
 
 def fit_residuals(

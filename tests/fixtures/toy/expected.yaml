@@ -50,6 +50,27 @@
 #   J6 3*0.5*400 = 0.6   total 2.308
 # place_once emits more than fcfs (1.904) here because the forecast at arrival was wrong about
 # Delhi NCR: this is the gap that re-planning on forecast updates is meant to close.
+# --- fixed_savings: as place_once until v1 at t=3600, then re-plans. Same for pred_error, whose
+# trigger fires because the incumbent windows' mean forecast went 100 -> 400 ---
+# t=1800 update: forecast unchanged, every alternative costs more; all KEEP (J5 is on a fallback).
+# t=3600 v1, before the completions (priority 1). Profile: J1, J2 still fill dc0 until 3660 (an
+#        estimate reached exactly at t gets one more minute, PRD §9.3). Tie order J3, J4, J6.
+#        J3 at its own queue place: 4.04*0.5*400 = 0.808; dc2 at 3600 = 0.404, dc1 = 0.606 -> dc2.
+#        J4: dc0 0.2; dc2 only from 5400 behind J3: 1*0.5*200 = 0.1 -> dc2, release 3600.
+#        J6: dc0 0.6; dc2 from 5400 beside J4: 3*0.5*200 = 0.3 -> dc2, release 3600.
+# Truth for dc2 is 200 throughout: J3 0.404, J4 0.1, J6 0.3; J1 0.2, J2 0.2, J5 0.3; total 1.504.
+#
+# --- periodic (T = 1800): ticks follow completions and releases at the same instant (§8.4) ---
+# t=1800 tick: no gain anywhere; all KEEP.
+# t=3600 J1, J2 complete; J4 and J6 start on dc0 at 400 before the tick, so only J3 is pending
+#        and it moves to dc2.  J3 0.404, J4 0.2, J6 0.6, J1 0.2, J2 0.2, J5 0.3; total 1.904.
+#
+# --- pig: truth and actual runtimes at arrival, then no re-planning ---
+# t=0    J1, J2 -> dc0 (truth 100 until 3600).  J3: dc0 only from 3600 at 400 = 0.808; dc2 at 0
+#        = 0.404, dc1 = 0.606 -> dc2.
+# t=900  J5 fallback, as place_once. J4: dc0 from 3600 = 0.2; dc2 free at 1800 = 0.1 -> dc2.
+# t=1800 J6: dc0 from 3600 = 0.6; dc2 from 1800 beside J4 = 0.3 -> dc2.  Total 1.504: here it ties
+#        with re-planning, which is why it is a reference and not a bound.
 
 policies:
   fcfs:
@@ -71,3 +92,34 @@ policies:
       J5: {dc_id: 1, release: 1800, start: 1800, end: 5400, kg_co2: 0.3,   deadline_missed: 1,
            deadline_risk: 1}
       J6: {dc_id: 0, release: 1800, start: 3600, end: 5400, kg_co2: 0.6,   deadline_missed: 0}
+  fixed_savings: &replanned
+    total_kg_co2: 1.504
+    jobs:
+      J1: {dc_id: 0, release: 0,    start: 0,    end: 3600, kg_co2: 0.2,   deadline_missed: 0}
+      J2: {dc_id: 0, release: 0,    start: 0,    end: 3600, kg_co2: 0.2,   deadline_missed: 0}
+      J3: {dc_id: 2, release: 3600, start: 3600, end: 5400, kg_co2: 0.404, deadline_missed: 0}
+      J4: {dc_id: 2, release: 3600, start: 5400, end: 7200, kg_co2: 0.1,   deadline_missed: 0}
+      J5: {dc_id: 1, release: 1800, start: 1800, end: 5400, kg_co2: 0.3,   deadline_missed: 1,
+           deadline_risk: 1}
+      J6: {dc_id: 2, release: 3600, start: 5400, end: 7200, kg_co2: 0.3,   deadline_missed: 0}
+  pred_error: *replanned
+  periodic:
+    total_kg_co2: 1.904
+    jobs:
+      J1: {dc_id: 0, release: 0,    start: 0,    end: 3600, kg_co2: 0.2,   deadline_missed: 0}
+      J2: {dc_id: 0, release: 0,    start: 0,    end: 3600, kg_co2: 0.2,   deadline_missed: 0}
+      J3: {dc_id: 2, release: 3600, start: 3600, end: 5400, kg_co2: 0.404, deadline_missed: 0}
+      J4: {dc_id: 0, release: 1800, start: 3600, end: 5400, kg_co2: 0.2,   deadline_missed: 0}
+      J5: {dc_id: 1, release: 1800, start: 1800, end: 5400, kg_co2: 0.3,   deadline_missed: 1,
+           deadline_risk: 1}
+      J6: {dc_id: 0, release: 1800, start: 3600, end: 5400, kg_co2: 0.6,   deadline_missed: 0}
+  pig:
+    total_kg_co2: 1.504
+    jobs:
+      J1: {dc_id: 0, release: 0,    start: 0,    end: 3600, kg_co2: 0.2,   deadline_missed: 0}
+      J2: {dc_id: 0, release: 0,    start: 0,    end: 3600, kg_co2: 0.2,   deadline_missed: 0}
+      J3: {dc_id: 2, release: 0,    start: 0,    end: 1800, kg_co2: 0.404, deadline_missed: 0}
+      J4: {dc_id: 2, release: 1800, start: 1800, end: 3600, kg_co2: 0.1,   deadline_missed: 0}
+      J5: {dc_id: 1, release: 1800, start: 1800, end: 5400, kg_co2: 0.3,   deadline_missed: 1,
+           deadline_risk: 1}
+      J6: {dc_id: 2, release: 1800, start: 1800, end: 3600, kg_co2: 0.3,   deadline_missed: 0}

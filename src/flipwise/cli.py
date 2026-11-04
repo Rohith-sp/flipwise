@@ -124,7 +124,13 @@ def _cmd_smoke(args: argparse.Namespace) -> int:
 def _cmd_run(args: argparse.Namespace) -> int:
     import hashlib
 
-    from flipwise.config import apply_overrides, canonical_json, config_hash, load_config
+    from flipwise.config import (
+        apply_overrides,
+        canonical_json,
+        config_hash,
+        load_config,
+        policy_params,
+    )
     from flipwise.policies import make_policy
     from flipwise.reporting import write_run
     from flipwise.scenario import build_replicate, dev_replicate, load_scenario
@@ -133,7 +139,7 @@ def _cmd_run(args: argparse.Namespace) -> int:
     if args.scenario is not None:
         sc = load_scenario(args.scenario)
         out, manifest = args.out / f"{sc.name}_{args.policy}", None
-        debug = True
+        debug, params = True, {}
     else:
         cfg = apply_overrides(load_config(args.config), args.set)
         sc = build_replicate(cfg, dev_replicate(cfg), args.seed)
@@ -143,7 +149,8 @@ def _cmd_run(args: argparse.Namespace) -> int:
         manifest = {"run_id": run_id, "seed": args.seed, "config": cfg,
                     "config_hash": config_hash(cfg), "build": sc.build_report}  # fmt: skip
         debug = False  # per-event invariant checks are for the toy and the tests
-    res = Simulator(sc, make_policy(args.policy), debug=debug).run()
+        params = policy_params(cfg, args.policy)
+    res = Simulator(sc, make_policy(args.policy, **params), debug=debug).run()
     hashes = write_run(res, out, manifest)
     print(f"wrote {out}")
     for name, h in hashes.items():

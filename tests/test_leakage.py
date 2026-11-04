@@ -11,13 +11,15 @@ from flipwise.policies import make_policy
 from flipwise.simulator import JobInfo, SchedulerView, Simulator
 
 T0 = 1688342400
+# `pig` is the one policy allowed to see these (PRD §8.7).
+NON_ORACLE = ["fcfs", "place_once", "periodic", "pred_error", "fixed_savings"]
 
 
 def _decisions_until(res, t):
     return [d for d in res.decisions if d["time_s"] <= t]
 
 
-@pytest.mark.parametrize("policy", ["fcfs", "place_once"])
+@pytest.mark.parametrize("policy", NON_ORACLE)
 def test_future_captures_and_truth_do_not_leak_r_leak_2(toy, policy):
     t = T0 + 1800  # all arrivals done; capture v1 (T0+3600) is in the future
     base = Simulator(toy, make_policy(policy)).run()
@@ -33,7 +35,7 @@ def test_future_captures_and_truth_do_not_leak_r_leak_2(toy, policy):
     )
 
 
-@pytest.mark.parametrize("policy", ["fcfs", "place_once"])
+@pytest.mark.parametrize("policy", NON_ORACLE)
 def test_unfinished_runtimes_do_not_leak_r_leak_1(toy, policy):
     t = T0 + 1800
     base = Simulator(toy, make_policy(policy)).run()
@@ -55,3 +57,8 @@ def test_view_exposes_no_hidden_fields():
     assert not hidden & {f.name for f in dataclasses.fields(JobInfo)}
     assert not hidden & {n for n in dir(SchedulerView) if not n.startswith("_")}
     assert "truth" not in {n for n in dir(SchedulerView) if not n.startswith("_")}
+
+
+def test_only_declared_policies_use_the_oracle():
+    assert make_policy("pig").uses_oracle
+    assert not any(make_policy(p).uses_oracle for p in NON_ORACLE)

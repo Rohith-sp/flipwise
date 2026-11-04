@@ -25,7 +25,21 @@ def load_config(path: Path) -> dict:
             raise ConfigError(f"{path}: missing required key {key!r}")
     if not (isinstance(cfg["regions"], list) and all(isinstance(r, int) for r in cfg["regions"])):
         raise ConfigError("regions: expected a list of NESO region ids (int)")
+    if "policies" in cfg:
+        # Merged in, so `--set policies.x.y=...` and the run hash both cover policy parameters.
+        policies_path = Path(cfg["policies"])
+        try:
+            cfg["policies"] = yaml.safe_load(policies_path.read_text())
+        except FileNotFoundError:
+            raise ConfigError(f"policies file not found: {policies_path}") from None
+        if not isinstance(cfg["policies"], dict):
+            raise ConfigError(f"{policies_path}: expected a mapping of policy -> parameters")
     return cfg
+
+
+def policy_params(cfg: dict, policy: str) -> dict:
+    """Parameters of one policy; a policy with no entry runs on its defaults."""
+    return dict(cfg.get("policies", {}).get(policy) or {})
 
 
 def apply_overrides(cfg: dict, overrides: list[str]) -> dict:

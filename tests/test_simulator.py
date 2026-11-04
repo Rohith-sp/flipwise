@@ -217,3 +217,10 @@ def test_fcfs_ties_rotate_over_datacentres(toy):
     """PRD §11, v0.8: the first three idle-system ties do not all go to dc0."""
     jobs = {j.job_id: j for j in Simulator(toy, Fcfs()).run().jobs}
     assert [jobs[j].dc_id for j in ("J1", "J2", "J3")] == [0, 1, 2]
+
+
+@pytest.mark.parametrize("policy", ["periodic", "pred_error", "fixed_savings", "pig"])
+def test_replanning_outputs_are_byte_identical_r_sim_1(toy, policy, tmp_path):
+    a = write_run(Simulator(toy, make_policy(policy)).run(), tmp_path / "a")
+    b = write_run(Simulator(toy, make_policy(policy)).run(), tmp_path / "b")
+    assert a == b

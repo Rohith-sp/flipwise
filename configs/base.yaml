@@ -15,6 +15,7 @@ regions: [1, 2, 3]
 # Forecast-error source g(r) (§6.2.4, O3): NR <- London, WR <- South Wales, SR <- East Midlands.
 error_source: {1: 13, 2: 7, 3: 9}
 alpha: 1.0                   # forecast-error scaling (§14.4)
+policies: configs/policies.yaml
 horizon_days: 15             # 7-day arrival slice + 8 days to finish (PRD §8.6)
 # energy parameters, including the Phase 2 placeholder powers (PRD §7.2)
 energy: configs/energy.yaml

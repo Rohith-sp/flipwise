@@ -4,6 +4,7 @@ datacentres only through `DatacentreClient`; hands policies a `SchedulerView` (P
 from __future__ import annotations
 
 import copy
+import dataclasses
 import heapq
 from dataclasses import dataclass, field
 
@@ -14,6 +15,7 @@ from flipwise.errors import MigrationError, SimulationInvariantError
 from flipwise.estimates import ProfileJob, UsageProfile, build_profile
 from flipwise.models import (
     PENDING,
+    QUANTILE_FIELD,
     DcConfig,
     DcState,
     Event,
@@ -22,6 +24,7 @@ from flipwise.models import (
     Placement,
     Priority,
     Request,
+    floor_to_slot,
 )
 from flipwise.planner import PlannerParams
 from flipwise.policies import Decision, Policy
@@ -65,15 +68,14 @@ class JobInfo:
     start_s: int | None
     n_moves: int
     plan_score: float | None
+    on_fallback: bool = False
 
     @property
     def request(self) -> Request:
         return Request(self.gpu_req, self.cpu_req, self.mem_req_gb)
 
     def r_q(self, q: str) -> int:
-        return {"q05": self.r_q05_s, "q50": self.r_q50_s, "q90": self.r_q90_s, "q95": self.r_q95_s}[
-            q
-        ]
+        return getattr(self, QUANTILE_FIELD[q])
 
 
 class SchedulerView:
@@ -84,7 +86,8 @@ class SchedulerView:
         self.dcs: dict[int, DcConfig] = {d.dc_id: d for d in sim.scenario.dcs}
         self.params = sim.scenario.params
         self.residuals = sim.scenario.residuals
-        self._profiles: dict[tuple, UsageProfile] = {}
+        self._profiles: dict[tuple[int, str], tuple[tuple[int, int], UsageProfile]] = {}
+        self._excluding: dict[tuple, UsageProfile] = {}
         self._tables: dict[tuple[int, int], CarbonTable] = {}
 
     @property
@@ -118,35 +121,58 @@ class SchedulerView:
     def dc_state(self, dc_id: int) -> DcState:
         return self._sim.dc_state(dc_id)
 
+    @property
+    def debug(self) -> bool:
+        return self._sim.debug
+
     def profile(self, dc_id: int, q: str, exclude: str | None = None) -> UsageProfile:
-        key = (dc_id, q, exclude, self._sim.dc_version[dc_id], self.now_s)
-        prof = self._profiles.get(key)
+        stamp = (self._sim.dc_version[dc_id], self.now_s)
+        if exclude is None:
+            # Kept apart from the per-job profiles: every candidate of every job at another
+            # datacentre shares this one, so it must survive their churn.
+            saved = self._profiles.get((dc_id, q))
+            if saved is not None and saved[0] == stamp:
+                return saved[1]
+            prof = self._build_profile(dc_id, q, None)
+            self._profiles[(dc_id, q)] = (stamp, prof)
+            return prof
+        key = (dc_id, q, exclude, *stamp)
+        prof = self._excluding.get(key)
         if prof is None:
             prof = self._build_profile(dc_id, q, exclude)
-            if len(self._profiles) > 64:
-                self._profiles.clear()
-            self._profiles[key] = prof
+            if len(self._excluding) > 64:
+                self._excluding.clear()
+            self._excluding[key] = prof
         return prof
 
     def _build_profile(self, dc_id: int, q: str, exclude: str | None) -> UsageProfile:
+        # Reads simulator jobs directly: this runs for every job in every profile, and only the
+        # runtime estimate reaches the result, through `_runtime_q`.
         st = self.dc_state(dc_id)
         t = self.now_s
+        jobs = self._sim.jobs
         running = [
-            (Request(r.gpu_req, r.cpu_req, r.mem_req_gb), r.start_s, self.job(r.job_id).r_q(q))
+            (Request(r.gpu_req, r.cpu_req, r.mem_req_gb), r.start_s, self._runtime_q(r.job_id, q))
             for r in st.running
         ]
         pending: list[ProfileJob] = []
         for jid in st.queue:
             if jid != exclude:
-                j = self.job(jid)
-                pending.append(ProfileJob(jid, j.request, t, j.r_q(q)))
+                pending.append(ProfileJob(jid, jobs[jid].request, t, self._runtime_q(jid, q)))
         placed = sorted(
-            (self.job(j) for j in self._sim.placed_at[dc_id] if j != exclude),
+            (jobs[j] for j in self._sim.placed_at[dc_id] if j != exclude),
             key=lambda j: (j.release_slot, j.deadline_s, j.job_id),
         )
         for j in placed:
-            pending.append(ProfileJob(j.job_id, j.request, max(t, j.release_slot), j.r_q(q)))
+            pending.append(
+                ProfileJob(
+                    j.job_id, j.request, max(t, j.release_slot), self._runtime_q(j.job_id, q)
+                )
+            )
         return build_profile(st.cap, t, running, pending)
+
+    def _runtime_q(self, job_id: str, q: str) -> int:
+        return self._sim.jobs[job_id].r_q(q)
 
     def projected_start(self, dc_id: int, job: JobInfo, release_s: int, q: str) -> int | None:
         # Only a job already at this datacentre is in its profile, so every other job can share
@@ -154,6 +180,36 @@ class SchedulerView:
         at_dc = job.dc_id == dc_id and job.state in PENDING
         prof = self.profile(dc_id, q, exclude=job.job_id if at_dc else None)
         return prof.earliest_fit(release_s, job.r_q(q), job.request)
+
+    def own_start(self, job: JobInfo, q: str) -> int | None:
+        """Projected start of a pending job at its own place in the order (PRD §9.3, C3, D44).
+
+        List scheduling places jobs in order, so jobs behind `job` cannot affect this start and
+        the shared profile, which contains `job`, gives the same answer as one cut off there.
+        """
+        return self.profile(job.dc_id, q).starts.get(job.job_id)  # type: ignore[arg-type]
+
+
+class OracleView(SchedulerView):
+    """What only `pig` sees (PRD §8.7, §11): truth instead of forecasts, actual runtimes instead
+    of estimates. The planner code stays the same, so `pig` differs from `place_once` by inputs."""
+
+    def __init__(self, sim: Simulator) -> None:
+        super().__init__(sim)
+        self._truth = sim.scenario.truth.as_vintage(floor_to_slot(sim.scenario.start_s))
+
+    @property
+    def forecast(self) -> ForecastVintage:
+        return self._truth
+
+    def _runtime_q(self, job_id: str, q: str) -> int:
+        return self._sim.jobs[job_id].runtime_actual_s
+
+    def job(self, job_id: str) -> JobInfo:
+        r = self._sim.jobs[job_id].runtime_actual_s
+        return dataclasses.replace(
+            self._sim.job_info(job_id), r_q05_s=r, r_q50_s=r, r_q90_s=r, r_q95_s=r
+        )
 
 
 @dataclass
@@ -163,6 +219,8 @@ class RunResult:
     decisions: list[dict]
     scenario: Scenario
     policy: str
+    uses_oracle: bool = False
+    stats: dict = field(default_factory=dict)  # PolicyStats, for metrics.json only
 
 
 class Simulator:
@@ -195,7 +253,7 @@ class Simulator:
         self._touched: set[int] = set()
         self._unfinished = len(self.jobs)
         self._release_checked: set[str] = set()  # rescued at release: no second check (PRD §10.2)
-        self.view = SchedulerView(self)
+        self.view = policy.make_view(self)
 
     # ---- state helpers -------------------------------------------------------------------
     def job_info(self, job_id: str) -> JobInfo:
@@ -219,6 +277,7 @@ class Simulator:
             start_s=j.start_s if j.state in (JobState.RUNNING, JobState.COMPLETED) else None,
             n_moves=j.n_moves,
             plan_score=j.plan_score,
+            on_fallback=j.on_fallback,
         )
 
     def dc_state(self, dc_id: int) -> DcState:
@@ -284,6 +343,8 @@ class Simulator:
         job.plan_score = d.s_b
         job.plan_capture_utc = self.vintage.capture_utc if self.vintage else None
         job.deadline_risk = int(job.deadline_risk or d.deadline_risk)
+        job.on_fallback = d.deadline_risk
+        job.plan_w_lo_s, job.plan_w_hi_s = d.w_lo, d.w_hi
         job.version += 1
         self.placed_at[to.dc_id].add(job.job_id)
         self.pending_ids.add(job.job_id)
@@ -328,8 +389,15 @@ class Simulator:
                 self._check_invariants()
             if self._unfinished == 0:
                 break
+        stats = getattr(self.policy, "stats", None)
         return RunResult(
-            list(self.jobs.values()), self.events, self.decisions, sc, self.policy.name
+            list(self.jobs.values()),
+            self.events,
+            self.decisions,
+            sc,
+            self.policy.name,
+            self.policy.uses_oracle,
+            stats.as_dict() if stats is not None else {},
         )
 
     def _handle(self, ev: Event) -> None:

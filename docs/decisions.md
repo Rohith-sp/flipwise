@@ -2,7 +2,7 @@
 
 Every design decision, grouped by the phase it was made in. For how the project got here as a story, see `project_journey.md`; for where work stands today, see `HANDOFF.md`.
 
-**PRD version: 0.8.2**
+**PRD version: 0.8.3**
 
 ## Rules
 
@@ -66,8 +66,8 @@ Every design decision, grouped by the phase it was made in. For how the project 
 |---|---|---|---|---|---|---|
 | D26 | 2 Nov | Stage-1 screen uses a feasible-window, empty-queue bound; replaces the `m_p` multi-scale bound | F1 | active | §10.4 | — |
 | D27 | 2 Nov | Noise width is paired: runtime counts only through the difference between options. θ grid becomes 0, 0.05, 0.1, 0.25, 0.5 | F2 | active | §10.5 | — |
-| D28 | 2 Nov | Rescue limits: missing carbon keeps the incumbent, no repeat rescue on a fallback placement, a queued job needs a feasible alternative, one rescue per release | Prevents queue-loss spirals and a release loop; resolves a §10.2 and §10.7 contradiction | active | §10.2 | simulator |
-| D29 | 2 Nov | A queued job's incumbent is exempt from the Range check | Its release is already in the past, so it would always look infeasible | active | §9.5 | — |
+| D28 | 2 Nov | Rescue limits: missing carbon keeps the incumbent, no repeat rescue on a fallback placement, a queued job needs a feasible alternative, one rescue per release | Prevents queue-loss spirals and a release loop; resolves a §10.2 and §10.7 contradiction | active | §10.2 | simulator, policies |
+| D29 | 2 Nov | A queued job's incumbent is exempt from the Range check | Its release is already in the past, so it would always look infeasible | active | §9.5 | planner |
 | D30 | 2 Nov | Moves in one update apply one at a time | Otherwise every job picks the same cheap slot | active | §10.6 | simulator, policies |
 | D31 | 2 Nov | FCFS ties rotate over datacentres | A carbon-blind reference should not favour one site. Its expected effect was wrong: see F3 | active | §11 | planner, policies |
 | D32 | 2 Nov | Trace slices start on trace Mondays (days 25, 32, …, 67); trace day 0 is 1970-01-01 00:00 UTC+8 | §6.3 needs Mondays; the origin was stated in v0.8.2 | active | §14.2 | scenario, validate |
@@ -75,9 +75,17 @@ Every design decision, grouped by the phase it was made in. For how the project 
 | D34 | 2 Nov | Placeholder powers for the Phase 2 review: 0.3 kW/GPU, 0.01 kW/core, results labelled relative | B3 is open; rankings do not depend on the scale | active | §7.2 | scenario |
 | D35 | 4 Nov | All data lives in `data/processed/`; `.gitignore` covers `data/` except its README and manifests | A nested unzip could otherwise commit about 250 MB | active | §17.1 | — |
 | D36 | 4 Nov | Residual fit expands full vintages and uses only slots inside the calibration period | The forecast file is a change-log, and late captures reach into validation | active | §6.8 | carbon |
-| D37 | 2 Nov | A queued job's incumbent is scored at its own queue position, and profiles used to score a job never contain that job | Last place overstates its wait, biases towards moving and makes Stage 1 rebuild profiles. Approved in review, added to the PRD in v0.8.1 | active | §9.3 | — |
-| D38 | 2 Nov | Acceptance also requires a strictly positive gain, in every policy with an acceptance rule, so the θ = 0 equivalence holds | One real job has zero power, so a gain of 0 would pass the gate repeatedly. Approved in review, added to the PRD in v0.8.1 | active | §10.5 | — |
+| D37 | 2 Nov | A queued job's incumbent is scored at its own queue position, and profiles used to score a job never contain that job | Last place overstates its wait, biases towards moving and makes Stage 1 rebuild profiles. Approved in review, added to the PRD in v0.8.1. Extended by D44 | active | §9.3 | planner, simulator |
+| D38 | 2 Nov | Acceptance also requires a strictly positive gain, in every policy with an acceptance rule, so the θ = 0 equivalence holds | One real job has zero power, so a gain of 0 would pass the gate repeatedly. Approved in review, added to the PRD in v0.8.1 | active | §10.5 | policies |
 | D41 | 4 Nov | Emissions and intensity are always reported for all jobs and for jobs with `runtime_actual_s ≤ r_q90`. The rule is fixed and not tuned, and no conclusion rests on one week | F4. The rule uses actual runtime only in reporting, so it cannot affect decisions | active | §14.1 | — |
+
+## Build phase 5: baselines, PRD v0.8.3 (4 Nov 2026)
+
+| ID | Date | Decision | Why | Status | PRD | Code |
+|---|---|---|---|---|---|---|
+| D42 | 4 Nov | A job with no feasible alternative moves to the fallback only if that finishes strictly earlier; otherwise `RESCUE_NOOP` | A rescue that finishes no earlier gains nothing. From the design notes (§3.4); the PRD's limits did not cover it | active | §10.2 | policies |
+| D43 | 4 Nov | `pred_error` measures drift from the last time the plan was examined, even if the job was kept | Otherwise one past drift fires that job at every later update, turning the trigger into a timer | active | §11 | policies |
+| D44 | 4 Nov | C3 covers every pending incumbent, not only queued ones: a placed job also keeps its place in the projected order | F6. Extends D37, as the original design note had it. Reads a shared profile, so it also removes three profile rebuilds per check | active | §9.3 | planner, simulator |
 
 ## Project tooling: PRD v0.8.2 (4 Nov 2026)
 
@@ -94,4 +102,6 @@ Every design decision, grouped by the phase it was made in. For how the project 
 | F2 | 2 Nov | The original noise width was "too wide" on 98.7 % of comparisons, which switched θ off | D27 | PRD §10.11; same run |
 | F3 | 4 Nov | Rotating FCFS's tie-break lowered its intensity (665.6 → 639.0 g/kWh), the opposite of what v0.8 expected | Correction to D31 | PRD §10.11 |
 | F4 | 4 Nov | 35 of 6,975 jobs use half the energy, running for days against estimates under an hour. One week's total mostly records where they land: `fcfs` 639.0 and `place_once` 638.9 g/kWh, or 654.8 and 635.1 on jobs within `r_q90` | Compare across replicates; report with and without those jobs (PRD §17.1) | PRD §10.11; one validation week, relative emissions |
-| F5 | 4 Nov | `place_once` misses 7.34 % of deadlines against 2.44 % for `fcfs`; 81 % of its misses are jobs that outran `r_q90` | Check before build phase 6 (PRD §17.1) | PRD §10.11, §17.1 |
+| F5 | 4 Nov | `place_once` misses 7.34 % of deadlines against 2.44 % for `fcfs`; 81 % of its misses are jobs that outran `r_q90` | Check before build phase 6 (PRD §17.1); see F7 | PRD §10.11, §17.1 |
+| F6 | 4 Nov | With C3 as worded in v0.8.1, placed jobs still competed with themselves: 3,532 `place_once` rescues across 6,975 jobs, undoing its carbon gain (668.6 g/kWh on jobs within `r_q90`). With every pending incumbent keeping its place: 939 rescues, 638.3 g/kWh | D44 | PRD §10.11; one validation week, relative emissions |
+| F7 | 4 Nov | Place-once misses are explained: 87 % are jobs that outran `r_q90`. Deferral (mean 3.2 h) uses up slack they turn out to need: 39.8 % of them miss against 16.6 % under `fcfs`. Rescue lowers the rate from 7.34 % to 6.24 %; it cannot help a job already running | Closes phase 5's exit criterion; slack stays a sweep parameter | PRD §17.1; one validation week |

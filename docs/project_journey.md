@@ -181,7 +181,13 @@ Design had started changing quickly, and the reasons were spread across the PRD 
 | `docs/HANDOFF.md` | Current state and next steps, read first by a teammate or new session |
 | graphify, via `scripts/build_graph.py` | Navigation: a queryable graph linking code to decisions, parsed from the log, so it needs no LLM |
 
-## 11. Tools used along the way
+## 11. Building the baselines: when "C3" wasn't enough (4 Nov, PRD v0.8.3)
+
+Phase 5 added rescue, throttling and the other baselines. The first real run looked wrong: `place_once` rescued 3,532 jobs out of 6,975, and its clean-job intensity got worse, not better. The v0.8.1 fix stopped queued jobs competing with themselves, but a job *placed* for later still was: it was scored behind every other plan at its datacentre, including plans that release after it. Letting every pending job keep its place cut rescues to 939 and brought intensity back to 638.3 g/kWh.
+
+The deadline misses are now explained too. 87 % are jobs that outran their 90th-percentile estimate: deferring them spends slack they turn out to need. Rescue lowers misses from 7.34 % to 6.24 %, but nothing can rescue a job that has already started.
+
+## 12. Tools used along the way
 
 | Tool | Used for |
 |---|---|
@@ -195,16 +201,16 @@ Design had started changing quickly, and the reasons were spread across the PRD 
 | docx (JavaScript) + Microsoft Word | Building and checking the Word guide |
 | Claude Code | Drafting docs, research, code and checks, guided by `CLAUDE.md` |
 
-## 12. Where things stand and what's next
+## 13. Where things stand and what's next
 
 **Done:**
-- Spec (PRD v0.8.2) and docs.
+- Spec (PRD v0.8.3) and docs.
 - Build phases 1, 2, 3 and 4. Phase 2 is complete, with real Indian data, and `validate` passes.
 - Local-split steps 1–3.
-- Phase 5 groundwork: data moved, scenario builder, `fcfs` and `place_once` running on the dev replicate. The re-planning baselines come next.
+- Build phase 5: the baselines, rescue and throttling, with the deadline misses explained.
 
 **Next:**
-1. Build phase 5 (baselines, with the v0.8 changes and a look at deadline misses), then 6 (decision-flip with the new screen and width).
+1. Build phase 6 (decision-flip with the new screen and width), then 7 (experiment runner).
 2. Deployment step 4 (`dcservice.py`), then the scripted driver and `local_cluster.sh`.
 3. Install Docker Desktop for step 8.
 

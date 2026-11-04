@@ -26,6 +26,7 @@ class JobState(StrEnum):
 
 
 PENDING = (JobState.PLACED, JobState.QUEUED)
+QUANTILE_FIELD = {"q05": "r_q05_s", "q50": "r_q50_s", "q90": "r_q90_s", "q95": "r_q95_s"}
 
 
 class Priority(IntEnum):
@@ -82,15 +83,17 @@ class Job:
     end_s: int | None = None
     rescued: int = 0
     deadline_risk: int = 0
+    on_fallback: bool = False  # current plan is a no-feasible fallback (PRD §10.2)
+    # Wait interval of the last placement, for wait coverage (PRD §14.1).
+    plan_w_lo_s: int | None = None
+    plan_w_hi_s: int | None = None
 
     @property
     def request(self) -> Request:
         return Request(self.gpu_req, self.cpu_req, self.mem_req_gb)
 
     def r_q(self, q: str) -> int:
-        return {"q05": self.r_q05_s, "q50": self.r_q50_s, "q90": self.r_q90_s, "q95": self.r_q95_s}[
-            q
-        ]
+        return getattr(self, QUANTILE_FIELD[q])
 
 
 @dataclass(frozen=True)
@@ -133,7 +136,7 @@ class Placement:
     release_slot: int
 
 
-@dataclass
+@dataclass(slots=True)
 class Candidate:
     dc_id: int
     release_slot: int

@@ -1,0 +1,16 @@
+# One entry per policy and its parameters (PRD §10.10, §11). Thresholds are chosen on validation
+# data only (PRD §14.5); these are the PRD defaults.
+fcfs: {}
+place_once: {}
+# T is 30 min, the one published precedent (PRD §11, ref 17). Sweep: 1800, 7200, 21600.
+periodic: {T_s: 1800, cooldown_s: 1800, max_moves: 3}
+pred_error: {epsilon: 0.1, cooldown_s: 1800, max_moves: 3}
+fixed_savings:
+  g_rel: 0.05
+  g_abs: 0.0
+  kappa_switch: 0.0
+  kappa_queue: 0.0
+  lambda_ovh: 0.0
+  cooldown_s: 1800
+  max_moves: 3
+pig: {}

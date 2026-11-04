@@ -13,9 +13,10 @@ from flipwise.simulator import RunResult, job_outcome
 
 JOBS_CSV = [
     "job_id", "user", "gpu_req", "cpu_req", "mem_req_gb", "arrival_s", "deadline_s",
-    "r_q50_s", "r_q90_s", "dc_id", "region_id", "release_slot", "start_s", "end_s", "wait_s",
+    "r_q05_s", "r_q50_s", "r_q90_s", "r_q95_s", "dc_id", "region_id", "release_slot", "start_s",
+    "end_s", "wait_s",
     "runtime_s", "energy_kwh", "kg_co2", "deadline_missed", "n_moves", "rescued",
-    "deadline_risk", "incomplete",
+    "deadline_risk", "incomplete", "plan_w_lo_s", "plan_w_hi_s",
 ]  # fmt: skip
 DECISIONS_CSV = [
     "time_s", "job_id", "kind", "from_dc", "from_slot", "to_dc", "to_slot", "S_a", "S_b",
@@ -42,7 +43,8 @@ def job_rows(result: RunResult) -> list[dict]:
             {
                 "job_id": j.job_id, "user": j.user, "gpu_req": j.gpu_req, "cpu_req": j.cpu_req,
                 "mem_req_gb": j.mem_req_gb, "arrival_s": j.arrival_s, "deadline_s": j.deadline_s,
-                "r_q50_s": j.r_q50_s, "r_q90_s": j.r_q90_s, "dc_id": j.dc_id,
+                "r_q05_s": j.r_q05_s, "r_q50_s": j.r_q50_s, "r_q90_s": j.r_q90_s,
+                "r_q95_s": j.r_q95_s, "dc_id": j.dc_id,
                 "region_id": region.get(j.dc_id), "release_slot": j.release_slot,  # type: ignore[arg-type]
                 "start_s": j.start_s, "end_s": j.end_s,
                 "wait_s": None if j.start_s is None else j.start_s - j.arrival_s,
@@ -51,6 +53,7 @@ def job_rows(result: RunResult) -> list[dict]:
                 "deadline_missed": int(done and j.end_s > j.deadline_s),  # type: ignore[operator]
                 "n_moves": j.n_moves, "rescued": j.rescued, "deadline_risk": j.deadline_risk,
                 "incomplete": int(not done),
+                "plan_w_lo_s": j.plan_w_lo_s, "plan_w_hi_s": j.plan_w_hi_s,
             }
         )  # fmt: skip
     return rows
@@ -76,11 +79,14 @@ def write_run(result: RunResult, out_dir: Path, manifest: dict | None = None) ->
         name: hashlib.sha256((out_dir / name).read_bytes()).hexdigest()
         for name in ("jobs.csv", "decisions.csv", "events.log")
     }
+    (out_dir / "policy_stats.json").write_text(
+        json.dumps(result.stats, indent=2, sort_keys=True) + "\n"
+    )
     man = {
         "policy": result.policy,
         "scenario": result.scenario.name,
         "scenario_hash": result.scenario.scenario_hash,
-        "uses_oracle": False,
+        "uses_oracle": result.uses_oracle,
         "output_sha256": hashes,
         "python": platform.python_version(),
         "platform": platform.platform(),

@@ -83,6 +83,7 @@ class UsageProfile:
         self.horizon_s = t_s + PROFILE_HORIZON_S
         self._times: list[int] = [t_s]
         self._used: list[tuple[float, float, float]] = [(0.0, 0.0, 0.0)]  # from _times[i] on
+        self.starts: dict[str, int | None] = {}  # projected start of each scheduled job
 
     def _split(self, x: int) -> int:
         i = bisect.bisect_right(self._times, x) - 1
@@ -130,6 +131,7 @@ class UsageProfile:
 
     def place(self, job: ProfileJob) -> int | None:
         s = self.earliest_fit(job.release_s, job.duration_s, job.req)
+        self.starts[job.job_id] = s
         if s is not None:
             self.occupy(s, s + job.duration_s, job.req)
         return s
