@@ -42,6 +42,8 @@ To rebuild the review outputs: `uv run flipwise compare --config configs/base.ya
 
 ## Waiting on a decision
 
+Rohith has the open questions, with evidence and recommendations, in `docs/questions_for_rohith.md`.
+
 | Item | Question | Who |
 |---|---|---|
 | F9 | `INTERVAL_TOO_WIDE` is above its 10 % flag on every validation replicate at the frozen `w_max` = 2. Widening to 5 brings the mean under the flag, but no emissions gain was measured (F13). Accept the flag, or change it before the test run? | Team |
