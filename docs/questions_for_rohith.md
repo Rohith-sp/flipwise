@@ -50,7 +50,7 @@ Recommended: deployment steps 5–7 first, since the review expects the demo. Wh
 ## Good to know
 
 - **You won't get the run logs, and don't need them.** They are 2.5 GB and stay on Stavan's laptop. Test, sensitivity and ablation runs start fresh, and `configs/sweeps/g_abs.yaml` and `kappa.yaml` already hold the values derived from validation. Re-running validation is optional (`docs/HANDOFF.md`).
-- **You do need `data/processed/` (243 MB, not in git)** for any real run, including the test set. If you don't have it, tell Stavan or rebuild it with the steps in `data/README.md`.
+- **Before any real run,** check your `data/processed/` matches the manifests with `uv run flipwise validate`. Different data would make the test run incomparable with these results.
 - **Sweep curves are done:** all six are in `docs/validation/figures/sweep_*.png`, as §14.5 asks. They show cheaper settings the single frozen value hides: `periodic` at 7,200 s is 10 kg behind 1,800 s (CI −85 to +103) with a quarter of the re-scorings.
 - **`g_rel` differs by policy:** `fixed_savings` is 0.01 and `decision_flip` is 0.05. P1 and ablation A1 must set the same value on both.
 - **Sweeps weren't a full grid:** θ and `w_max` were swept at `g_rel` = 0.05, and `g_rel` at θ = 0.1, `w_max` = 2.
