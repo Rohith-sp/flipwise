@@ -195,6 +195,10 @@ Decision-flip went in as a subclass of fixed-savings, so at θ = 0 the only diff
 
 Metrics, `compare`, `sweep`, `report` and the dashboard went in, so one command now produces the table for the Phase 2 review. All seven policies ran on the real week. Two things stand out, and neither is a conclusion yet. FCFS has the lowest all-jobs emissions on this week, which is the long-job noise from section 9. And θ now really does turn down moves (3,834 to 1,795), which the v0.7 width could never do, though the width's fallback still fires on 30 % of comparisons, above its 10 % flag.
 
+## 13a. Validation and the freeze (5 Nov, PRD v0.8.6)
+
+We ran 300 simulations across 12 validation weeks, pausing once part-way when the laptop was needed. The result was more modest than the headline: decision-flip beat place-once clearly, but could not be told apart from the other re-planners on emissions. Its measured advantage is cost, with far fewer full re-scorings and moves for about the same carbon. Finishing the sweeps also exposed a gap: `g_rel` had only been swept for fixed-savings, so we added the missing sweep before freezing (D47, F14).
+
 ## 14. Tools used along the way
 
 | Tool | Used for |
@@ -212,14 +216,16 @@ Metrics, `compare`, `sweep`, `report` and the dashboard went in, so one command 
 ## 15. Where things stand and what's next
 
 **Done:**
-- Spec (PRD v0.8.5) and docs.
+- Spec (PRD v0.8.6) and docs.
 - Build phases 1, 2, 3 and 4. Phase 2 is complete, with real Indian data, and `validate` passes.
 - Local-split steps 1–3.
 - Build phases 5, 6 and 7: every policy, P1 proved on real data, and the experiment runner.
+- Build phase 8, first part: validation replicates, sweeps and the threshold freeze.
+- Deployment step 4 (`dcservice.py`).
 
 **Next:**
-1. Build phase 8: validation replicates, sweeps, threshold freeze.
-2. Deployment step 4 (`dcservice.py`), then the scripted driver and `local_cluster.sh`.
+1. Build phase 8, the rest: test set once, sensitivity sweeps, ablations.
+2. The scripted driver and `local_cluster.sh`.
 3. Install Docker Desktop for step 8.
 
 **Still open:**

@@ -1,12 +1,13 @@
-# One entry per policy and its parameters (PRD §10.10, §11). Thresholds are chosen on validation
-# data only (PRD §14.5); these are the PRD defaults.
+# One entry per policy and its parameters (PRD §10.10, §11). Thresholds frozen on validation data
+# by the rule of PRD §14.5 (results in §14.5, at sampling 0.1). Each policy has its own g_rel, so
+# P1 and ablation A1 must set the same g_* on both policies.
 fcfs: {}
 place_once: {}
 # T is 30 min, the one published precedent (PRD §11, ref 17). Sweep: 1800, 7200, 21600.
 periodic: {T_s: 1800, cooldown_s: 1800, max_moves: 3}
-pred_error: {epsilon: 0.1, cooldown_s: 1800, max_moves: 3}
+pred_error: {epsilon: 0.05, cooldown_s: 1800, max_moves: 3}
 fixed_savings:
-  g_rel: 0.05
+  g_rel: 0.01
   g_abs: 0.0
   kappa_switch: 0.0
   kappa_queue: 0.0

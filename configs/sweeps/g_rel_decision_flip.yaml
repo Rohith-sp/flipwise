@@ -1,0 +1,3 @@
+# Benefit gate of decision_flip (PRD §10.10, §14.5), at its chosen θ and w_max. Validation only.
+grid:
+  policies.decision_flip.g_rel: [0.01, 0.05, 0.1, 0.2]

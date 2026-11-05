@@ -4,9 +4,9 @@
 
 | Field | Value |
 |---|---|
-| Document status | Implementation-ready draft. Supersedes v0.8.4 (4 Nov 2026), v0.8.3 (4 Nov 2026), v0.8.2 (4 Nov 2026), v0.8.1 (4 Nov 2026), v0.8 (2 Nov 2026), v0.7 (29 Oct 2026), v0.6, v0.5.1 and v0.5 (29 Oct 2026), v0.4 (28 Oct 2026), v0.3 (24 Oct 2026), v0.2 (24 Oct 2026) and v0.1 (23 Oct 2026). Changes are listed in the changelog below. |
-| Version | 0.8.5 |
-| Revised | 4 November 2026 |
+| Document status | Implementation-ready draft. Supersedes v0.8.5 (4 Nov 2026), v0.8.4 (4 Nov 2026), v0.8.3 (4 Nov 2026), v0.8.2 (4 Nov 2026), v0.8.1 (4 Nov 2026), v0.8 (2 Nov 2026), v0.7 (29 Oct 2026), v0.6, v0.5.1 and v0.5 (29 Oct 2026), v0.4 (28 Oct 2026), v0.3 (24 Oct 2026), v0.2 (24 Oct 2026) and v0.1 (23 Oct 2026). Changes are listed in the changelog below. |
+| Version | 0.8.6 |
+| Revised | 5 November 2026 |
 | Project name | **Flipwise** (Python package and CLI `flipwise`) [Decision]: it re-evaluates decision flips wisely. Renamed from FlipSim on 25 Oct 2026. Availability of the name on GitHub and PyPI is [Open], not yet checked. |
 | Project context | RV College of Engineering, Experiential Learning, V Semester, AY 2026–27; SDG 9 |
 | Deliverable | Offline, command-line research simulator and reproducible evaluation pipeline, plus a static, self-contained HTML results dashboard generated from result CSVs. Not a production scheduler. No web app in the MVP. From v0.4, a **deployment track** (Section 13.5) runs the same simulation with each virtual datacentre as a separate service: first as local processes, then in Docker, then on AWS. Research results always come from the in-process mode; the deployment modes must reproduce them exactly. |
@@ -17,6 +17,7 @@
 
 | Version | Date | Changes |
 |---|---|---|
+| 0.8.6 | 5 Nov 2026 | Thresholds frozen on validation by the 14.5 rule: `fixed_savings` `g_rel` 0.01 and `pred_error` `ε` 0.05; `decision_flip` and `periodic` keep their defaults (14.5, 10.10). `g_rel` also swept for `decision_flip`, since 14.5 applies per policy. |
 | 0.8.5 | 4 Nov 2026 | Validation and test replicates set to sampling 0.1 until 1.0 is shown to be affordable (14.4). Team approved C3 for all pending incumbents, the fallback rule and the `pred_error` reference of v0.8.3. |
 | 0.8.4 | 4 Nov 2026 | Experiment runner built (roadmap phase 7). `run_id` hashes only the parameters of the run's own policy, so a sweep reuses other policies' runs (16.1). Modules `experiment.py` and `figures.py` added to the layout (13.1, 13.3). `policy_stats.json` added to the run files (16.1). First seven-policy table and θ sweep recorded (10.11). Interval fallback rate above its 10 % flag recorded as a finding (17.1). |
 | 0.8.3 | 4 Nov 2026 | C3 extended from `QUEUED` to all pending incumbents after the phase 5 build (9.3, 9.5): under the v0.8.1 wording a `PLACED` job was scored behind every other plan at its datacentre, including plans that release after it. On the first validation week that gave 3,532 `place_once` rescues and 668.6 g/kWh on jobs within `r_q90`; with the extension, 939 and 638.3 (10.11). Rescue to a fallback only if it finishes strictly earlier (10.2). `pred_error` measures drift from the last time the plan was examined (11). Place-once deadline misses explained (17.1). P1 measured on the first validation week: it holds, and the screen skips 66 % of full re-scorings (10.11). |
@@ -664,9 +665,9 @@ on CARBON_UPDATE(v) at time t:
 
 | Parameter | Default | Sweep |
 |---|---|---|
-| `g_rel` | 0.05 | 0.01, 0.05, 0.10, 0.20 |
+| `g_rel` | 0.05 (frozen per policy, 14.5) | 0.01, 0.05, 0.10, 0.20 |
 | `g_abs` (kg) | 0 | 0, and a value equal to the base-scenario median `0.05 × Ŝ` (computed on validation) |
-| `θ` | 0.1 (v0.8; final value chosen on validation) | 0, 0.05, 0.1, 0.25, 0.5 |
+| `θ` | 0.1 (frozen on validation, v0.8.6) | 0, 0.05, 0.1, 0.25, 0.5 |
 | `κ_switch`, `κ_queue` | 0 | 0, and `0.02 × median Ŝ` |
 | `cooldown_s` | 1,800 | 1,800, 7,200 |
 | `max_moves` | 3 | 1, 3, 10 |
@@ -1099,6 +1100,17 @@ Strategy: base case, then one-factor sweeps, then at most one two-factor interac
 ### 14.5 Threshold selection
 
 Policy parameters (`g_rel`, `θ`, `ε`, `T`) are swept on validation replicates. For each policy, pick the parameter that minimises total emissions subject to miss rate ≤ that of `place_once` + 1 pp; ties broken by fewer `stage2_calls`. Freeze in `configs/policies.yaml` with the git commit recorded, then run test once. Also report the full validation sweep curves (emissions vs `stage2_calls`, emissions vs moves) so the reader sees trade-offs instead of one chosen point.
+
+**Frozen values [v0.8.6, 5 Nov 2026]:** 12 validation replicates at sampling 0.1, from runs at commit `b669c70`. Every swept cell met the miss-rate limit (`place_once` 4.09 % + 1 pp).
+
+| Policy | Swept | Frozen | kgCO2 (mean) | Miss rate | `stage2_calls` | Moves |
+|---|---|---|---|---|---|---|
+| `decision_flip` | θ, `w_max`, `g_rel` | θ = 0.1, `w_max` = 2, `g_rel` = 0.05 (all defaults) | 14,008 | 4.17 % | 16,933 | 2,289 |
+| `fixed_savings` | `g_rel` | 0.01 (default 0.05) | 14,032 | 4.26 % | 39,969 | 5,938 |
+| `periodic` | `T` | 1,800 s (default) | 14,057 | 4.16 % | 37,966 | 6,343 |
+| `pred_error` | `ε` | 0.05 (default 0.1) | 14,077 | 4.15 % | 15,684 | 4,569 |
+
+For reference: `place_once` 14,155 kg, `fcfs` 14,169 kg (2.07 % misses), `pig` 13,896 kg (2.64 % misses). kgCO2 is relative until B3. The rule gives one value, but the gaps between neighbouring cells of a sweep are mostly inside their paired 95 % CI, so read the sweep curves rather than the single point. Each policy has its own `g_rel`: P1 and ablation A1 must set the same `g_*` on both policies. `θ` and `w_max` were swept at `g_rel` = 0.05, and `g_rel` at θ = 0.1, `w_max` = 2, not as a full grid. `w_max` = 2 leaves `INTERVAL_TOO_WIDE` above its 10 % flag (17.1), an open question for the team. Evidence: `docs/decisions.md` F12–F14, D47.
 
 ### 14.6 Ablations
 
