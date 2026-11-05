@@ -197,7 +197,7 @@ Metrics, `compare`, `sweep`, `report` and the dashboard went in, so one command 
 
 ## 13a. Validation and the freeze (5 Nov, PRD v0.8.6)
 
-We ran 300 simulations across 12 validation weeks, pausing once part-way when the laptop was needed. The result was more modest than the headline: decision-flip beat place-once clearly, but could not be told apart from the other re-planners on emissions. Its measured advantage is cost, with far fewer full re-scorings and moves for about the same carbon. Finishing the sweeps also exposed a gap: `g_rel` had only been swept for fixed-savings, so we added the missing sweep before freezing (D47, F14).
+We ran 300 simulations across 12 validation weeks, pausing once part-way when the laptop was needed. The result was more modest than the headline: decision-flip beat place-once clearly, but could not be told apart from the other re-planners on emissions. Its measured advantage is cost, with far fewer full re-scorings and moves for about the same carbon. Finishing the sweeps also exposed a gap: `g_rel` had only been swept for fixed-savings, so we added the missing sweep before freezing (D47, F14). The logs came to 2.5 GB, too much to share, so everything the team needs from them went into `docs/validation/` (D48).
 
 ## 14. Tools used along the way
 
@@ -216,7 +216,7 @@ We ran 300 simulations across 12 validation weeks, pausing once part-way when th
 ## 15. Where things stand and what's next
 
 **Done:**
-- Spec (PRD v0.8.6) and docs.
+- Spec (PRD v0.8.7) and docs.
 - Build phases 1, 2, 3 and 4. Phase 2 is complete, with real Indian data, and `validate` passes.
 - Local-split steps 1–3.
 - Build phases 5, 6 and 7: every policy, P1 proved on real data, and the experiment runner.

@@ -1,0 +1,5 @@
+# Switching costs, ablation A6 (PRD §10.10, §14.6). 0.000969 kg is 0.02 × median Ŝ on validation,
+# 0.04844 kg (docs/validation/score_scale.json). For fixed_savings, use policies.fixed_savings.*.
+grid:
+  policies.decision_flip.kappa_switch: [0, 0.000969]
+  policies.decision_flip.kappa_queue: [0, 0.000969]

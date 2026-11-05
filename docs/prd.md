@@ -4,8 +4,8 @@
 
 | Field | Value |
 |---|---|
-| Document status | Implementation-ready draft. Supersedes v0.8.5 (4 Nov 2026), v0.8.4 (4 Nov 2026), v0.8.3 (4 Nov 2026), v0.8.2 (4 Nov 2026), v0.8.1 (4 Nov 2026), v0.8 (2 Nov 2026), v0.7 (29 Oct 2026), v0.6, v0.5.1 and v0.5 (29 Oct 2026), v0.4 (28 Oct 2026), v0.3 (24 Oct 2026), v0.2 (24 Oct 2026) and v0.1 (23 Oct 2026). Changes are listed in the changelog below. |
-| Version | 0.8.6 |
+| Document status | Implementation-ready draft. Supersedes v0.8.6 (5 Nov 2026), v0.8.5 (4 Nov 2026), v0.8.4 (4 Nov 2026), v0.8.3 (4 Nov 2026), v0.8.2 (4 Nov 2026), v0.8.1 (4 Nov 2026), v0.8 (2 Nov 2026), v0.7 (29 Oct 2026), v0.6, v0.5.1 and v0.5 (29 Oct 2026), v0.4 (28 Oct 2026), v0.3 (24 Oct 2026), v0.2 (24 Oct 2026) and v0.1 (23 Oct 2026). Changes are listed in the changelog below. |
+| Version | 0.8.7 |
 | Revised | 5 November 2026 |
 | Project name | **Flipwise** (Python package and CLI `flipwise`) [Decision]: it re-evaluates decision flips wisely. Renamed from FlipSim on 25 Oct 2026. Availability of the name on GitHub and PyPI is [Open], not yet checked. |
 | Project context | RV College of Engineering, Experiential Learning, V Semester, AY 2026–27; SDG 9 |
@@ -17,6 +17,7 @@
 
 | Version | Date | Changes |
 |---|---|---|
+| 0.8.7 | 5 Nov 2026 | Validation evidence exported to `docs/validation/` so it can be used without the run logs (14.5). `g_abs` and `κ` sweep values set from median Ŝ on validation (10.10). Risks updated from all 12 replicates (17.1). Freeze commit recorded (14.5). |
 | 0.8.6 | 5 Nov 2026 | Thresholds frozen on validation by the 14.5 rule: `fixed_savings` `g_rel` 0.01 and `pred_error` `ε` 0.05; `decision_flip` and `periodic` keep their defaults (14.5, 10.10). `g_rel` also swept for `decision_flip`, since 14.5 applies per policy. |
 | 0.8.5 | 4 Nov 2026 | Validation and test replicates set to sampling 0.1 until 1.0 is shown to be affordable (14.4). Team approved C3 for all pending incumbents, the fallback rule and the `pred_error` reference of v0.8.3. |
 | 0.8.4 | 4 Nov 2026 | Experiment runner built (roadmap phase 7). `run_id` hashes only the parameters of the run's own policy, so a sweep reuses other policies' runs (16.1). Modules `experiment.py` and `figures.py` added to the layout (13.1, 13.3). `policy_stats.json` added to the run files (16.1). First seven-policy table and θ sweep recorded (10.11). Interval fallback rate above its 10 % flag recorded as a finding (17.1). |
@@ -666,9 +667,9 @@ on CARBON_UPDATE(v) at time t:
 | Parameter | Default | Sweep |
 |---|---|---|
 | `g_rel` | 0.05 (frozen per policy, 14.5) | 0.01, 0.05, 0.10, 0.20 |
-| `g_abs` (kg) | 0 | 0, and a value equal to the base-scenario median `0.05 × Ŝ` (computed on validation) |
+| `g_abs` (kg) | 0 | 0, and 0.002422, which is `0.05 × ` median `Ŝ` (0.04844 kg on validation, v0.8.7) |
 | `θ` | 0.1 (frozen on validation, v0.8.6) | 0, 0.05, 0.1, 0.25, 0.5 |
-| `κ_switch`, `κ_queue` | 0 | 0, and `0.02 × median Ŝ` |
+| `κ_switch`, `κ_queue` | 0 | 0, and 0.000969, which is `0.02 × ` median `Ŝ` (v0.8.7) |
 | `cooldown_s` | 1,800 | 1,800, 7,200 |
 | `max_moves` | 3 | 1, 3, 10 |
 | `H_defer` | 24 h | 6 h, 24 h |
@@ -1101,7 +1102,7 @@ Strategy: base case, then one-factor sweeps, then at most one two-factor interac
 
 Policy parameters (`g_rel`, `θ`, `ε`, `T`) are swept on validation replicates. For each policy, pick the parameter that minimises total emissions subject to miss rate ≤ that of `place_once` + 1 pp; ties broken by fewer `stage2_calls`. Freeze in `configs/policies.yaml` with the git commit recorded, then run test once. Also report the full validation sweep curves (emissions vs `stage2_calls`, emissions vs moves) so the reader sees trade-offs instead of one chosen point.
 
-**Frozen values [v0.8.6, 5 Nov 2026]:** 12 validation replicates at sampling 0.1, from runs at commit `b669c70`. Every swept cell met the miss-rate limit (`place_once` 4.09 % + 1 pp).
+**Frozen values [v0.8.6, 5 Nov 2026]:** frozen at commit `cc95a54`. 12 validation replicates at sampling 0.1, from runs at commit `b669c70`; tables, curves and per-run hashes are in `docs/validation/` [v0.8.7]. Every swept cell met the miss-rate limit (`place_once` 4.09 % + 1 pp).
 
 | Policy | Swept | Frozen | kgCO2 (mean) | Miss rate | `stage2_calls` | Moves |
 |---|---|---|---|---|---|---|
@@ -1229,10 +1230,10 @@ Raw data are not committed. `README.md` gives the download commands for the v202
 
 | Risk | Effect | Mitigation |
 |---|---|---|
-| Stage-1 bound too loose (pass rate ≈ 1) | No overhead saving; H1 fails | [Occurred, v0.8] The v0.7 bound passed 100 % of checks; replaced by the feasible-window bound (10.4), 18.3 % on validation data. Report the v0.7 result as a finding |
+| Stage-1 bound too loose (pass rate ≈ 1) | No overhead saving; H1 fails | [Occurred, v0.8] The v0.7 bound passed 100 % of checks; replaced by the feasible-window bound (10.4), 18.3 % on validation data in the simplified design-review run. The built policy's pass rate at the frozen settings is 40.6 % across 12 replicates (v0.8.7). Report the v0.7 result as a finding |
 | Small gain from carbon-aware placement [v0.8] | Re-planning has little to improve; H1–H3 effects small | [Updated, v0.8.2] With the rotated tie-break, `place_once` and `fcfs` have equal mean intensity on the first validation week (638.9 and 639.0 g/kWh), though `place_once` is 3 % cleaner on jobs within `r_q90` (10.11). A few long, underestimated jobs dominate energy, so single-replicate totals are noisy: compare policies across replicates, and report intensity with and without those jobs. A small gain is a valid result and is reported as such |
 | Place-once deadline misses (2.25 % → 7.30 %) [v0.8] | Carbon gains bought with missed deadlines; re-planning results inherit this | [Explained, v0.8.3] With rescue the rate is 6.24 %. 87 % of misses are jobs that outran `r_q90` (13.7 % of jobs): 39.8 % of those miss under `place_once` against 16.6 % under `fcfs`, because a mean deferral of 3.2 h uses up slack they turn out to need. Jobs within `r_q90` miss at 0.91 % (`fcfs` 0.18 %). Wait coverage is 87 %, and 12.7 % of jobs waited longer than `w_hi`, so waits are a smaller part. The slack formula (6.6) is unchanged: it is a scenario parameter with its own sweep, and no scheduler can rescue a job after it has started. Report misses next to every emissions number |
-| Noise-width fallback above its flag [v0.8.4] | θ has no effect on the comparisons where it fires | On the first validation week `INTERVAL_TOO_WIDE` set θ to 0 on 30.0 % of comparisons, above the 10 % flag of 10.7, with median `w_ab / Ŝ_a` of 1.35 and 67 % of `decision_flip`'s moves made with θ off. Much better than the 98.7 % of v0.7, but not the "rare" that v0.8 expected. `w_max` is a validation-period choice (14.5): measure across the validation replicates before changing it |
+| Noise-width fallback above its flag [v0.8.4] | θ has no effect on the comparisons where it fires | On the first validation week `INTERVAL_TOO_WIDE` set θ to 0 on 30.0 % of comparisons, above the 10 % flag of 10.7, with median `w_ab / Ŝ_a` of 1.35 and 67 % of `decision_flip`'s moves made with θ off. Much better than the 98.7 % of v0.7, but not the "rare" that v0.8 expected. [Measured across 12 replicates, v0.8.7] Fallback share 28.4 % (22.1–32.4 %), above the flag on all 12; median `w_ab / Ŝ_a` 1.32; 68 % of moves made with θ off. `w_max` = 3 and 5 lower the share to 17.3 % and 9.6 % with no measured emissions gain (14.5). `w_max` stays 2; accepting the flag is an open team question |
 | Indian truth is modelled from generation by fuel, not metered intensity, and ignores inter-regional flows | Absolute regional values may be off; regions may look more different than consumers experience | Label results; report the source used; compare annual means with CEA grid factors |
 | No Indian generation data at ≤ 1 h resolution (B4) | Truth must fall back to a constructed profile | Source preference order in 6.2.2; the fallback is labelled [Synthetic] |
 | Borrowed GB error paths do not reflect Indian weather | Forecast-error effects (H2, H4) may differ in reality | α sweep and permuted mapping; stated as a limitation in every report |

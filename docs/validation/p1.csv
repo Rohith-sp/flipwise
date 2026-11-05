@@ -1,0 +1,13 @@
+replicate,jobs_csv_identical,events_log_identical,stage2_calls_decision_flip,stage2_calls_fixed_savings
+validation_d25_2023-07-03_2023-07-03,True,True,14568,43097
+validation_d25_2023-07-17_2023-07-17,True,True,16515,42852
+validation_d25_2023-07-31_2023-07-31,True,True,11892,36651
+validation_d25_2023-08-14_2023-08-14,True,True,13810,46344
+validation_d32_2023-07-03_2023-07-03,True,True,16936,42910
+validation_d32_2023-07-17_2023-07-17,True,True,16420,40505
+validation_d32_2023-07-31_2023-07-31,True,True,14657,37212
+validation_d32_2023-08-14_2023-08-14,True,True,14351,42834
+validation_d39_2023-07-03_2023-07-03,True,True,18276,40212
+validation_d39_2023-07-17_2023-07-17,True,True,17893,40658
+validation_d39_2023-07-31_2023-07-31,True,True,15114,38731
+validation_d39_2023-08-14_2023-08-14,True,True,14756,40777

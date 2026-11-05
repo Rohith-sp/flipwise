@@ -6,7 +6,7 @@ An offline research simulator that tests *when* a carbon-aware scheduler should 
 
 RV College of Engineering · Experiential Learning, V Semester, AY 2026–27 · UN SDG 9 (Industry, Innovation and Infrastructure)
 
-> Status: **EL Phase 1 (pitch) complete. Now on EL Phase 2 (partial results).** Build phases 1–7 are implemented: all seven policies run on real Indian grid data, and at θ = 0 decision-flip makes the same decisions as fixed-savings with 66 % fewer full re-scorings (P1). Validation is done and thresholds are frozen (PRD §14.5); the test set has not been run. The spec is [docs/prd.md](docs/prd.md) (v0.8.6). How we got here: [docs/project_journey.md](docs/project_journey.md). Joining or resuming: start at [docs/HANDOFF.md](docs/HANDOFF.md); decisions and why are in [docs/decisions.md](docs/decisions.md).
+> Status: **EL Phase 1 (pitch) complete. Now on EL Phase 2 (partial results).** Build phases 1–7 are implemented: all seven policies run on real Indian grid data, and at θ = 0 decision-flip makes the same decisions as fixed-savings with 66 % fewer full re-scorings (P1). Validation is done and thresholds are frozen (PRD §14.5, results in [docs/validation/](docs/validation/README.md)); the test set has not been run. The spec is [docs/prd.md](docs/prd.md) (v0.8.7). How we got here: [docs/project_journey.md](docs/project_journey.md). Joining or resuming: start at [docs/HANDOFF.md](docs/HANDOFF.md); decisions and why are in [docs/decisions.md](docs/decisions.md).
 
 ---
 
@@ -93,7 +93,7 @@ Stack: pandas, numpy, PyYAML and matplotlib. Optional: plotly, via `uv sync --ex
 | `flipwise ingest carbon --archive <clone> --start 2023-03-13 --end 2024-01-31 --regions 1,13,7 --out data/processed` | Build forecast, truth and coverage CSVs |
 | `flipwise validate --config configs/base.yaml` | Check config, data, coverage and that calibration/test windows don't overlap |
 | `flipwise run --config configs/base.yaml --policy decision_flip` | One run → `results/<run_id>/` |
-| `flipwise compare --config configs/base.yaml --jobs 7` / `sweep` / `report` | All policies on identical inputs; parameter grids; rebuild tables from saved logs. One dev week takes about 8 minutes with 7 parallel runs on an 8-core laptop (R-PERF-1) |
+| `flipwise compare --config configs/base.yaml --jobs 7` / `sweep` / `report` | All policies on identical inputs; parameter grids; rebuild tables from saved logs. One dev week takes about 8 minutes with 7 parallel runs on an 8-core laptop. On validation, with 5 parallel runs, one week per policy averaged 0.3 min (`fcfs`), 2.3 (`place_once`), 4.2 (`decision_flip`), 4.8 (`pred_error`), 7.9 (`periodic`), 8.0 (`fixed_savings`) and 9.4 (`pig`) at sampling 0.1; per-run times are in `docs/validation/runs.csv` (R-PERF-1) |
 | `flipwise dashboard --runs results/compare_<hash>` | Write a static, offline `dashboard.html` from saved CSVs |
 | `flipwise dc-serve --dc-id 0 --port 8101` | Run one datacentre as an HTTP service (deployment track) |
 | `bash scripts/local_cluster.sh --config configs/base.yaml --policy decision_flip` | DT1: start three local datacentre services, run with `--mode remote`, stop them on exit |

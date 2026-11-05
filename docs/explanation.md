@@ -5,7 +5,7 @@
 **SDG theme:** SDG 9 — Industry, Innovation and Infrastructure  
 **Document purpose:** Explain the project, its motivation, research direction, data, proposed simulation, evaluation plan, current decisions, and unresolved questions in one place.  
 **Project name:** Flipwise (Python package and CLI `flipwise`): it re-evaluates decision flips wisely  
-**Status:** Working explanation based on the submitted EL report, the team's subsequent discussion, and the implementation PRD (`prd.md`). Updated to match PRD v0.8.6 (India-only simulated world; Indian data from Grid-India; the decision-flip screen and noise width as built, in Section 10.8; results always reported with and without long-running jobs, in Section 15). For the history of decisions, see `project_journey.md`. Where the two disagree, the PRD is authoritative.  
+**Status:** Working explanation based on the submitted EL report, the team's subsequent discussion, and the implementation PRD (`prd.md`). Updated to match PRD v0.8.7 (India-only simulated world; Indian data from Grid-India; the decision-flip screen and noise width as built, in Section 10.8; results always reported with and without long-running jobs, in Section 15). For the history of decisions, see `project_journey.md`. Where the two disagree, the PRD is authoritative.  
 **Last updated:** 28 October 2026
 
 ---
@@ -523,7 +523,7 @@ Separating them makes experiments interpretable. It also allows the same planner
 - Ensure every trigger is evaluated only for jobs that remain pending.
 - A trigger that fires must be recorded even if the planner retains the original placement.
 
-### 10.8 What was built (PRD v0.8 to v0.8.6)
+### 10.8 What was built (PRD v0.8 to v0.8.7)
 
 Every 30 minutes, each job that has not started is asked: should you still run where and when you planned?
 

@@ -2,7 +2,7 @@
 
 Current state of the work, for a teammate or a new Claude Code session. Keep it short and overwrite it as things change; history belongs in `decisions.md` and `project_journey.md`.
 
-**Last updated:** 5 Nov 2026 · **PRD version: 0.8.6**
+**Last updated:** 5 Nov 2026 · **PRD version: 0.8.7**
 
 **First-time setup (optional, for the graph):** `uv tool install graphifyy`, then `uv tool run --from graphifyy python scripts/build_graph.py`. Open `graphify-out/graph.html` in a browser to explore. The output is generated and not committed. The project's Claude Code hooks call `graphify`, so install it if you use Claude Code here.
 
@@ -19,13 +19,14 @@ To explore the code, use `graphify query "<question>"` if the graph is built.
 
 - **Done:** build phases 1–7. All seven policies run on the toy (hand-checked in `expected.yaml`) and on the real dev week. P1 holds on real data (F8). `compare`, `sweep`, `report` and `dashboard` work, and their exit criterion is met on both.
 - **First results:** PRD §10.11 has the seven-policy table and the θ sweep for one week, so no ranking follows from them.
-- **Validation is done and thresholds are frozen (D47, PRD §14.5):** 12 replicates at sampling 0.1, 300 runs. Results are in F12–F14. The test set has not been run.
+- **Validation is done and thresholds are frozen (D47, PRD §14.5):** 12 replicates at sampling 0.1, 300 runs. Everything from those runs is in `docs/validation/` (start with its README), and findings are in F12–F15. The test set has not been run.
+- **Nothing left depends on the run logs:** test, sensitivity and ablation runs start fresh from `configs/policies.yaml`, and the `g_abs` and `κ` sweep values are already set (D48).
 - **Not built yet:** deployment steps 5 onward, so there is no `--mode remote` or local-split demo yet. Plotly dashboard charts are also not built: the optional extra would add hover, and the Matplotlib default is in place.
 
 ## Next steps
 
 1. Rest of roadmap phase 8, with thresholds now frozen: run the test set **once** (`--split test`), then the sensitivity sweeps and ablations A0–A6. Settle F9 first, because changing `w_max` afterwards would mean re-tuning on validation and a test run that no longer counts as once.
-2. To reproduce validation, run these from the repo root (about 6 hours with 5 jobs on 8 threads), then `uv run python scripts/select_thresholds.py --policy <policy> results/sweep_<hash> ...`:
+2. Reproducing validation is optional: the commands are below and take about 6 hours with 5 jobs on 8 threads. Check the results against `docs/validation/runs.csv`.
    ```bash
    uv run flipwise compare --config configs/base.yaml --split validation --policies all --jobs 5
    uv run flipwise sweep --config configs/base.yaml --sweep configs/sweeps/theta.yaml --split validation --policies place_once,decision_flip --jobs 5
@@ -35,7 +36,6 @@ To explore the code, use `graphify query "<question>"` if the graph is built.
    uv run flipwise sweep --config configs/base.yaml --sweep configs/sweeps/periodic_t.yaml --split validation --policies place_once,periodic --jobs 5
    uv run flipwise sweep --config configs/base.yaml --sweep configs/sweeps/pred_error_eps.yaml --split validation --policies place_once,pred_error --jobs 5
    ```
-   Saved runs are only on the machine that ran them, because `results/` is not in git; F12–F14 and PRD §14.5 hold the numbers.
 3. Deployment step 5 (scripted driver), then `local_cluster.sh` and `flipwise run --mode remote`. Step 4 is done: `flipwise dc-serve` and `HttpDatacentre` pass R-DEP-4 and R-DEP-7, and every policy on the toy is already byte-identical over HTTP with services in threads.
 
 To rebuild the review outputs: `uv run flipwise compare --config configs/base.yaml --jobs 7`, `uv run flipwise sweep --config configs/base.yaml --sweep configs/sweeps/theta.yaml --policies fcfs,place_once,fixed_savings,decision_flip --jobs 4`, then `uv run flipwise dashboard --runs results/compare_<hash> --sweep results/sweep_<hash>`. Finished runs are reused; a dev week takes about 8 minutes with 7 jobs.

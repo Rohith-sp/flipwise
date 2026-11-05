@@ -1,0 +1,4 @@
+# Absolute benefit gate (PRD §10.10). 0.002422 kg is 0.05 × median Ŝ on validation, 0.04844 kg
+# (docs/validation/score_scale.json). For fixed_savings, use policies.fixed_savings.g_abs.
+grid:
+  policies.decision_flip.g_abs: [0, 0.002422]
