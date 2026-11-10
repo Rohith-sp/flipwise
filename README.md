@@ -108,7 +108,7 @@ flipwise/
 ├── pyproject.toml, uv.lock, .python-version, .gitignore, README.md, CLAUDE.md
 ├── configs/                   # base.yaml, energy.yaml, policies.yaml, sweeps/*.yaml
 ├── data/README.md, manifests/ # raw/ and processed/ are git-ignored
-├── docs/                      # prd.md, explanation.md, helpfullinks.md
+├── docs/                      # prd.md, explanation.md, Flipwise_Project_Guide.docx, helpfullinks.md
 ├── scripts/                   # download_data.sh / .ps1, audit_v2020.py
 ├── src/flipwise/              # cli, config, validate, trace, ingest, carbon, energy, estimates,
 │                              # models, datacentre, simulator, planner, policies, scenario,
@@ -234,7 +234,7 @@ Optional, only after the main results exist: X1 (Global–Local DRO planner) and
 
 ## 8. References
 
-- **Docs:** [PRD](docs/prd.md) · [Plain-language explanation](docs/explanation.md) · [Links](docs/helpfullinks.md)
+- **Docs:** [PRD](docs/prd.md) · [Plain-language explanation](docs/explanation.md) · [Project guide (Word, beginner-friendly, with a technical deep dive)](docs/Flipwise_Project_Guide.docx) · [Links](docs/helpfullinks.md)
 
 Key references (full list in PRD §19):
 
