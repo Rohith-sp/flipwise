@@ -8,6 +8,8 @@ each request; nothing here reads the wall clock.
 from __future__ import annotations
 
 import json
+import os
+import sys
 import threading
 import urllib.error
 import urllib.request
@@ -157,14 +159,30 @@ def _request_json(r: Request) -> dict:
     return {"gpu": r.gpu, "cpu": r.cpu, "mem_gb": r.mem_gb}
 
 
-def make_server(dc_id: int, host: str = "127.0.0.1", port: int = 8101) -> ThreadingHTTPServer:
-    """A bound, not yet serving, server for one datacentre. Port 0 picks a free port."""
+def make_server(
+    dc_id: int, host: str = "127.0.0.1", port: int = 8101, crash_at_request: int | None = None
+) -> ThreadingHTTPServer:
+    """A bound, not yet serving, server for one datacentre. Port 0 picks a free port.
+
+    `crash_at_request` is fault injection for R-DEP-3: the process exits, without answering, on
+    that simulation request (1-based; `/health` does not count). Counting requests, not seconds,
+    makes the failure land at the same point of every run.
+    """
     service = DatacentreService(dc_id)
+    seen = {"n": 0}
+    lock = threading.Lock()
 
     class Handler(BaseHTTPRequestHandler):
         protocol_version = "HTTP/1.1"
 
         def _serve(self, method: str) -> None:
+            if crash_at_request is not None and self.path != "/health":
+                with lock:
+                    seen["n"] += 1
+                    if seen["n"] >= crash_at_request:
+                        print(f"dc {dc_id}: crashing at request {seen['n']} (fault injection)",
+                              flush=True)  # fmt: skip
+                        os._exit(3)
             length = int(self.headers.get("Content-Length") or 0)
             try:
                 body = json.loads(self.rfile.read(length) or b"{}")
@@ -190,12 +208,18 @@ def make_server(dc_id: int, host: str = "127.0.0.1", port: int = 8101) -> Thread
         def log_message(self, format: str, *args) -> None:  # noqa: A002
             pass  # one line per RPC would swamp the service log on a real run
 
-    return ThreadingHTTPServer((host, port), Handler)
+    return _Server((host, port), Handler)
 
 
-def serve(dc_id: int, host: str, port: int) -> None:
+class _Server(ThreadingHTTPServer):
+    # On Windows SO_REUSEADDR lets a second socket take a port that is already listening, so a
+    # service could silently share a port with another program; there, a busy port must fail.
+    allow_reuse_address = sys.platform != "win32"
+
+
+def serve(dc_id: int, host: str, port: int, crash_at_request: int | None = None) -> None:
     """`flipwise dc-serve`: runs until the process is stopped."""
-    with make_server(dc_id, host, port) as server:
+    with make_server(dc_id, host, port, crash_at_request) as server:
         print(f"dc {dc_id} serving on {host}:{server.server_address[1]}", flush=True)
         server.serve_forever()
 

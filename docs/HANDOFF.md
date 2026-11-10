@@ -21,9 +21,11 @@ To explore the code, use `graphify query "<question>"` if the graph is built.
 - **First results:** PRD §10.11 has the seven-policy table and the θ sweep for one week, so no ranking follows from them.
 - **Validation is done and thresholds are frozen (D47, PRD §14.5):** 12 replicates at sampling 0.1, 300 runs. Everything from those runs is in `docs/validation/` (start with its README), and findings are in F12–F15. The test set has not been run.
 - **Nothing left depends on the run logs:** test, sensitivity and ablation runs start fresh from `configs/policies.yaml`, and the `g_abs` and `κ` sweep values are already set (D48).
-- **Deployment:** `flipwise run --mode remote` works (step 7; the scripted driver, step 5, was dropped, D53). Not built yet: `local_cluster.sh`/`.ps1`, the failure check with real processes, overhead numbers, then Docker. Plotly dashboard charts are also not built: the optional extra would add hover, and the Matplotlib default is in place.
+- **Deployment:** `flipwise run --mode remote` works (step 7; the scripted driver, step 5, was dropped, D53). `scripts/local_cluster.sh` and `local_cluster.ps1` are built (step 6, D54) and work by hand, including the crash case (F16). **Open:** the PowerShell crash test timed out once (F16); overhead numbers (R-DEP-5); then Docker. Plotly dashboard charts are also not built: the optional extra would add hover, and the Matplotlib default is in place.
 
 ## Next steps
+
+0. **First, finish the local split (10 Nov):** on a clean machine (no `dc-serve` running: check with `Get-CimInstance Win32_Process | ? CommandLine -match dc-serve`), run `uv run pytest -q "tests/test_local_cluster.py::test_a_crashed_service_aborts_the_run_cleanly_r_dep_3"` and find why it timed out once; never run two copies of `test_local_cluster.py` at once (they pick the same ports). Run the tests on Linux too. Then R-DEP-5 overhead numbers, then Docker (D52). Demo: `bash scripts/local_cluster.sh --scenario tests/fixtures/toy --policy decision_flip` or `.\scripts\local_cluster.ps1 --scenario tests/fixtures/toy --policy decision_flip`.
 
 1. Rest of roadmap phase 8, with thresholds now frozen: run the test set **once** (`--split test`), then the sensitivity sweeps and ablations A0–A6. Settle F9 first, because changing `w_max` afterwards would mean re-tuning on validation and a test run that no longer counts as once.
 2. Reproducing validation is optional: the commands are below and take about 6 hours with 5 jobs on 8 threads. Check the results against `docs/validation/runs.csv`.

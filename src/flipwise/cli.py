@@ -216,7 +216,7 @@ def _cmd_dashboard(args: argparse.Namespace) -> int:
 def _cmd_dc_serve(args: argparse.Namespace) -> int:
     from flipwise.dcservice import serve
 
-    serve(args.dc_id, args.host, args.port)
+    serve(args.dc_id, args.host, args.port, args.crash_at_request)
     return 0
 
 
@@ -306,6 +306,8 @@ def build_parser() -> argparse.ArgumentParser:
     ds.add_argument("--dc-id", type=int, required=True)
     ds.add_argument("--port", type=int, default=8101)
     ds.add_argument("--host", default="127.0.0.1")
+    ds.add_argument("--crash-at-request", type=int, default=None, metavar="N",
+                    help="testing only (R-DEP-3): exit on the N-th simulation request")  # fmt: skip
     ds.set_defaults(func=_cmd_dc_serve)
 
     rp = sub.add_parser("report", help="rebuild tables and figures from saved logs only")
