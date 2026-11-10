@@ -69,6 +69,33 @@ class RunSpec:
     replicate: Replicate | None = None
     scenario_dir: Path | None = None
     debug: bool = False
+    mode: str = "inproc"
+    dc_urls: tuple[str, ...] | None = None
+
+
+DEFAULT_DC_PORT = 8101  # PRD §13.5: services on 127.0.0.1:8101, 8102, …
+
+
+def _clients(spec: RunSpec, scenario: Scenario) -> list | None:
+    """Datacentre clients for `--mode remote` in `dc_id` order, or None for in-process ones.
+    Each service is checked before the run, so a missing one fails before any event."""
+    if spec.mode == "inproc":
+        if spec.dc_urls:
+            raise ConfigError("--dc-urls is only for --mode remote")
+        return None
+    if spec.mode != "remote":
+        raise ConfigError(f"--mode {spec.mode!r}: expected inproc or remote")
+    from flipwise.dcservice import HttpDatacentre
+
+    n = len(scenario.dcs)
+    urls = spec.dc_urls or tuple(f"http://127.0.0.1:{DEFAULT_DC_PORT + i}" for i in range(n))
+    if len(urls) != n:
+        raise ConfigError(f"--dc-urls gives {len(urls)} URLs; the scenario has {n} datacentres")
+    clients = [HttpDatacentre(u) for u in urls]
+    for d, c in zip(scenario.dcs, clients, strict=True):
+        if c.health()["dc_id"] != d.dc_id:
+            raise ConfigError(f"{c.url} serves another datacentre, not dc {d.dc_id}")
+    return clients
 
 
 _last_scenario: tuple[str, Scenario] | None = None
@@ -135,6 +162,10 @@ def execute_run(spec: RunSpec) -> dict:
     scenario = scenario_for(spec)
     run_cfg = _run_config(spec.cfg, spec.policy)
     key = canonical_json(run_cfg) + scenario.scenario_hash + spec.policy + str(spec.seed)
+    if spec.mode == "remote":
+        # Its own run_id, so a remote run is never satisfied by a saved in-process one; the
+        # output files must still be byte-identical to that run (R-DEP-1).
+        key += "|remote"
     run_id = hashlib.sha256(key.encode()).hexdigest()[:12]  # PRD §16.1
     run_dir = spec.out / run_id
     record = {
@@ -146,8 +177,10 @@ def execute_run(spec: RunSpec) -> dict:
     if (run_dir / "metrics.json").exists():
         return record
     params = policy_params(spec.cfg, spec.policy)
+    clients = _clients(spec, scenario)
     started = dt.datetime.now(dt.UTC).isoformat()
-    result = Simulator(scenario, make_policy(spec.policy, **params), debug=spec.debug).run()
+    sim = Simulator(scenario, make_policy(spec.policy, **params), clients, debug=spec.debug)
+    result = sim.run()
     finished = dt.datetime.now(dt.UTC).isoformat()
     write_run(
         result,
@@ -177,6 +210,8 @@ def execute_run(spec: RunSpec) -> dict:
             "packages": {p: metadata.version(p) for p in PACKAGES},
             "cpu_model": _cpu_model(),
             "wall_clock": {"start": started, "end": finished},
+            "mode": spec.mode,
+            "dc_urls": [c.url for c in clients] if clients else None,
         },
     )
     # Written last: its presence is what marks a run as complete and reusable.

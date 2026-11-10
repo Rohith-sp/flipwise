@@ -4,8 +4,8 @@
 
 | Field | Value |
 |---|---|
-| Document status | Implementation-ready draft. Supersedes v0.8.6 (5 Nov 2026), v0.8.5 (4 Nov 2026), v0.8.4 (4 Nov 2026), v0.8.3 (4 Nov 2026), v0.8.2 (4 Nov 2026), v0.8.1 (4 Nov 2026), v0.8 (2 Nov 2026), v0.7 (29 Oct 2026), v0.6, v0.5.1 and v0.5 (29 Oct 2026), v0.4 (28 Oct 2026), v0.3 (24 Oct 2026), v0.2 (24 Oct 2026) and v0.1 (23 Oct 2026). Changes are listed in the changelog below. |
-| Version | 0.8.7 |
+| Document status | Implementation-ready draft. Supersedes v0.8.7 (5 Nov 2026), v0.8.6 (5 Nov 2026), v0.8.5 (4 Nov 2026), v0.8.4 (4 Nov 2026), v0.8.3 (4 Nov 2026), v0.8.2 (4 Nov 2026), v0.8.1 (4 Nov 2026), v0.8 (2 Nov 2026), v0.7 (29 Oct 2026), v0.6, v0.5.1 and v0.5 (29 Oct 2026), v0.4 (28 Oct 2026), v0.3 (24 Oct 2026), v0.2 (24 Oct 2026) and v0.1 (23 Oct 2026). Changes are listed in the changelog below. |
+| Version | 0.8.8 |
 | Revised | 5 November 2026 |
 | Project name | **Flipwise** (Python package and CLI `flipwise`) [Decision]: it re-evaluates decision flips wisely. Renamed from FlipSim on 25 Oct 2026. Availability of the name on GitHub and PyPI is [Open], not yet checked. |
 | Project context | RV College of Engineering, Experiential Learning, V Semester, AY 2026–27; SDG 9 |
@@ -17,6 +17,7 @@
 
 | Version | Date | Changes |
 |---|---|---|
+| 0.8.8 | 10 Nov 2026 | Team decisions after the freeze (14.5; D49–D52): `INTERVAL_TOO_WIDE` above its 10 % flag is accepted at `w_max` = 2 and reported with the results; the test set runs once at sampling 0.1; the claim is stated as about the same carbon at much lower re-planning cost; deployment comes before the test run. DT2 (Docker) is now required for EL Phase 2, not a stretch goal (18.1). Deployment step 7 built: `flipwise run --mode remote --dc-urls …` (13.4); the scripted driver (step 5) is dropped because the simulator now exists (18, D53). |
 | 0.8.7 | 5 Nov 2026 | Validation evidence exported to `docs/validation/` so it can be used without the run logs (14.5). `g_abs` and `κ` sweep values set from median Ŝ on validation (10.10). Risks updated from all 12 replicates (17.1). Freeze commit recorded (14.5). |
 | 0.8.6 | 5 Nov 2026 | Thresholds frozen on validation by the 14.5 rule: `fixed_savings` `g_rel` 0.01 and `pred_error` `ε` 0.05; `decision_flip` and `periodic` keep their defaults (14.5, 10.10). `g_rel` also swept for `decision_flip`, since 14.5 applies per policy. |
 | 0.8.5 | 4 Nov 2026 | Validation and test replicates set to sampling 0.1 until 1.0 is shown to be affordable (14.4). Team approved C3 for all pending incumbents, the fallback rule and the `pred_error` reference of v0.8.3. |
@@ -1111,7 +1112,14 @@ Policy parameters (`g_rel`, `θ`, `ε`, `T`) are swept on validation replicates.
 | `periodic` | `T` | 1,800 s (default) | 14,057 | 4.16 % | 37,966 | 6,343 |
 | `pred_error` | `ε` | 0.05 (default 0.1) | 14,077 | 4.15 % | 15,684 | 4,569 |
 
-For reference: `place_once` 14,155 kg, `fcfs` 14,169 kg (2.07 % misses), `pig` 13,896 kg (2.64 % misses). kgCO2 is relative until B3. The rule gives one value, but the gaps between neighbouring cells of a sweep are mostly inside their paired 95 % CI, so read the sweep curves rather than the single point. Each policy has its own `g_rel`: P1 and ablation A1 must set the same `g_*` on both policies. `θ` and `w_max` were swept at `g_rel` = 0.05, and `g_rel` at θ = 0.1, `w_max` = 2, not as a full grid. `w_max` = 2 leaves `INTERVAL_TOO_WIDE` above its 10 % flag (17.1), an open question for the team. Evidence: `docs/decisions.md` F12–F14, D47.
+For reference: `place_once` 14,155 kg, `fcfs` 14,169 kg (2.07 % misses), `pig` 13,896 kg (2.64 % misses). kgCO2 is relative until B3. The rule gives one value, but the gaps between neighbouring cells of a sweep are mostly inside their paired 95 % CI, so read the sweep curves rather than the single point. Each policy has its own `g_rel`: P1 and ablation A1 must set the same `g_*` on both policies. `θ` and `w_max` were swept at `g_rel` = 0.05, and `g_rel` at θ = 0.1, `w_max` = 2, not as a full grid. `w_max` = 2 leaves `INTERVAL_TOO_WIDE` above its 10 % flag (17.1); the team accepted this (D49). Evidence: `docs/decisions.md` F12–F14, D47.
+
+**Team decisions after the freeze [v0.8.8, 10 Nov 2026]:**
+
+- **`w_max` stays 2 (D49).** The fallback share (28.4 % on validation) and the share of moves made with θ off are reported next to every `decision_flip` result. Widening to 5 cleared the flag on average but did not lower emissions (F13), and changing it now would be tuning without evidence.
+- **The test set runs once, at sampling 0.1 (D50),** the same as validation, and the report says so. Sampling 1.0 is used only if a larger machine becomes available, and must be decided before the run, since the one run is the claim.
+- **The claim (D51):** `decision_flip` reaches about the same carbon as the other re-planners at much lower re-planning cost (fewer full re-scorings and moves), and clearly less carbon than `place_once`. It is not presented as the lowest-emissions policy, because validation could not tell it apart from `fixed_savings`, `periodic` or `pred_error` on carbon (F14). The test run decides whether this holds.
+- **Order of work (D52):** deployment first, so the EL Phase 2 review can show the local split and Docker (18.1), then the test set once, then sensitivity sweeps and ablations.
 
 ### 14.6 Ablations
 
@@ -1312,9 +1320,9 @@ Build order for DT1 [Decision, v0.6], chosen so that no step is throwaway:
 2. `datacentre.py` as plain Python, no networking: capacity, FIFO queue, running set, `enqueue/remove/dispatch/complete/state`, with unit tests for overbooking (R-SIM-3), `MigrationError` and backwards time (R-DEP-4). This is also roadmap phase 3 work: the simulator uses the same module.
 3. The `DatacentreClient` interface and `InProcDatacentre`.
 4. `dcservice.py`: the 13.5 endpoints on stdlib `http.server`, plus `HttpDatacentre`; conformance test R-DEP-7.
-5. A scripted driver (`tests/fixtures/toy/dc_script.yaml` + a test) that replays a fixed sequence of arrivals, dispatches, removals and completions through three datacentres in-process and through three local services, and compares outputs. This demonstrates the local split before the simulator exists; the simulator later replaces the script without changing the services.
+5. [Dropped, v0.8.8, D53: the simulator exists, so `--mode remote` on the toy replaces it] A scripted driver (`tests/fixtures/toy/dc_script.yaml` + a test) that replays a fixed sequence of arrivals, dispatches, removals and completions through three datacentres in-process and through three local services, and compares outputs. This demonstrates the local split before the simulator exists; the simulator later replaces the script without changing the services.
 6. `scripts/local_cluster.sh`: start three services on `127.0.0.1:8101–8103`, wait for `/health`, run, stop on exit or Ctrl-C. On Windows, `uv run` starts a child Python process, so the script also stops services by port (`taskkill` fallback) to leave no orphans (R-DEP-3).
-7. Once the simulator core (roadmap phase 3) exists: `flipwise run --mode remote` and R-DEP-1 on the toy scenario.
+7. Once the simulator core (roadmap phase 3) exists: `flipwise run --mode remote` and R-DEP-1 on the toy scenario. [Done, v0.8.8: `tests/test_remote_mode.py` runs every policy against three separate `dc-serve` processes and compares `jobs.csv`, `decisions.csv` and `events.log` byte for byte. A remote run gets its own `run_id`, and `manifest.json` records `mode` and `dc_urls`.]
 
 | Stage | Implement | Tested by | Starts when | Exit criterion |
 |---|---|---|---|---|
@@ -1328,7 +1336,7 @@ EL Phase 1 (pitch) is complete. Scope must be confirmed with the mentor (B1) bef
 
 | EL phase | Roadmap scope | Must show |
 |---|---|---|
-| **2. Partial results** | Roadmap phases 1–6 on a small slice: one week of the Alibaba trace (one validation slice, dev sampling) and the matching Indian truth and forecast vintages. Policies: `fcfs`, `place_once`, `periodic(T)`, `fixed_savings(g)`, `decision_flip(g, θ)`. `pred_error(ε)` is moved to EL Phase 3. Only the minimum of roadmap phase 7 needed to produce one table and `dashboard.html` (`run`, metrics, `dashboard`). | (1) Toy scenario whose kgCO2 is checked by hand (R-EN-1, toy `expected.yaml`), showing the simulator is correct. (2) At θ = 0, decision-flip makes exactly the same decisions as fixed-savings with fewer `stage2_calls` (P1, R-TRIG-2), the core claim. (3) One comparison table for the validation week: kgCO2, deadline-miss rate and re-score count per policy. (4) `dashboard.html` with the timeline, Pareto and results-table tabs (θ-sweep tab may show "no data"). kgCO2 labelled relative until B3 is resolved. (5) Deployment track **DT1**: three local datacentre services giving outputs identical to the in-process run, first with the scripted driver (R-DEP-7), then with the toy simulation (R-DEP-1). (6) Stretch: **DT2**, the same run via `docker compose up`. Items 5–6 never hold back items 1–4. |
+| **2. Partial results** | Roadmap phases 1–6 on a small slice: one week of the Alibaba trace (one validation slice, dev sampling) and the matching Indian truth and forecast vintages. Policies: `fcfs`, `place_once`, `periodic(T)`, `fixed_savings(g)`, `decision_flip(g, θ)`. `pred_error(ε)` is moved to EL Phase 3. Only the minimum of roadmap phase 7 needed to produce one table and `dashboard.html` (`run`, metrics, `dashboard`). | (1) Toy scenario whose kgCO2 is checked by hand (R-EN-1, toy `expected.yaml`), showing the simulator is correct. (2) At θ = 0, decision-flip makes exactly the same decisions as fixed-savings with fewer `stage2_calls` (P1, R-TRIG-2), the core claim. (3) One comparison table for the validation week: kgCO2, deadline-miss rate and re-score count per policy. (4) `dashboard.html` with the timeline, Pareto and results-table tabs (θ-sweep tab may show "no data"). kgCO2 labelled relative until B3 is resolved. (5) Deployment track **DT1**: three local datacentre services giving outputs identical to the in-process run, first with the scripted driver (R-DEP-7), then with the toy simulation (R-DEP-1). (6) **DT2**, the same run via `docker compose up` [v0.8.8: required for EL Phase 2, no longer a stretch goal; D52]. Items 5–6 never hold back items 1–4. |
 | **3. Full results and paper** | Remainder of roadmap phase 5 (`pred_error(ε)`, with `pig`), phase 7 (`compare`, `sweep`, `report`), phases 8–9: full validation and test split, threshold freeze, all sweeps and ablations, interval calibration. Deployment track: finish **DT2** (Docker) if not done in Phase 2, including the dev replicate (R-DEP-2); then **DT3** (AWS) once the main test results exist. Optional extensions X1 (DRO) and X9 (Streamlit viewer) only after the main results exist. | Final test results, worse-regime table, full dashboard including θ sweep, reproducibility package, paper/report. DT2: `docker compose up` reproduces the results. DT3: a live run on AWS matching the in-process output, with its latency and cost reported. |
 
 ---

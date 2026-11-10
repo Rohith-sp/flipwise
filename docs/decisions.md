@@ -2,7 +2,7 @@
 
 Every design decision, grouped by the phase it was made in. For how the project got here as a story, see `project_journey.md`; for where work stands today, see `HANDOFF.md`.
 
-**PRD version: 0.8.7**
+**PRD version: 0.8.8**
 
 ## Rules
 
@@ -100,6 +100,16 @@ Every design decision, grouped by the phase it was made in. For how the project 
 | D46 | 4 Nov | Validation and test replicates use sampling 0.1, as dev does, until 1.0 is shown to be affordable | Full sampling is about 10× the jobs. One sampled week already takes up to 8 minutes per policy, and this laptop has about 3 GB of disk free | active | §14.4 | experiment |
 | D47 | 5 Nov | Freeze by the §14.5 rule: `decision_flip` θ = 0.1, `w_max` = 2, `g_rel` = 0.05; `fixed_savings` `g_rel` = 0.01; `periodic` T = 1,800 s; `pred_error` ε = 0.05. `g_rel` was also swept for `decision_flip` (`configs/sweeps/g_rel_decision_flip.yaml`) | §14.5 applies per policy, and comparing `decision_flip` at 0.05 with `fixed_savings` at 0.01 needed `decision_flip`'s own sweep to show 0.05 is its pick. The rule decides even where cells can't be told apart (F14) | active | §14.5 | experiment |
 | D48 | 5 Nov | Export validation evidence to `docs/validation/` (tables, curves, diagnostics, per-run hashes, dashboard; 1.3 MB) and set the `g_abs` and `κ` sweep values from median Ŝ = 0.04844 kg | `results/` is 2.5 GB and can't be shared, and the team needs these numbers without re-running 300 simulations. The rule against committing `results/` still stands: this is a curated summary, not the logs | active | §10.10, §14.5 | — |
+
+## Team decisions after the freeze: PRD v0.8.8 (10 Nov 2026)
+
+| ID | Date | Decision | Why | Status | PRD | Code |
+|---|---|---|---|---|---|---|
+| D49 | 10 Nov | Keep `w_max` = 2 and accept `INTERVAL_TOO_WIDE` above its 10 % flag; report the fallback share and the share of moves made with θ off next to every `decision_flip` result | Widening to 5 cleared the flag on average but lowered no emissions (F13); changing it without evidence would be tuning, and after the test run it would break "run once" | active | §14.5 | — |
+| D50 | 10 Nov | Run the test set once at sampling 0.1, as validation was, and say so in the report | Sampling 1.0 is about 10× the jobs and too slow for a laptop; the choice has to be made before the one run | active | §14.5 | — |
+| D51 | 10 Nov | State the claim as "about the same carbon as the other re-planners at much lower re-planning cost", plus "clearly less carbon than place-once"; not "lowest emissions" | On validation `decision_flip` could not be told apart from `fixed_savings`, `periodic` or `pred_error` on carbon, but used 58 % fewer full re-scorings and 61 % fewer moves than `fixed_savings` (F14) | active | §14.5 | — |
+| D53 | 10 Nov | Drop the scripted driver (deployment step 5); `flipwise run --mode remote` on the toy is the local-split check. A remote run gets its own `run_id` (so a saved in-process run never stands in for it), and its URLs are checked against `dc_id` before the first event | The driver was meant to show the split before the simulator existed; the simulator now does the same job with every policy, and R-DEP-7 already covers the call-by-call behaviour | active | §18 | experiment |
+| D52 | 10 Nov | Deployment before the test run: DT1 steps 5–7, then DT2 (Docker), which is now required for EL Phase 2 rather than a stretch goal; then the test set once, sensitivity sweeps and ablations | The Phase 2 review expects both the local split and Docker; the test run needs no further code | active | §14.5, §18.1 | — |
 
 ## Project tooling: PRD v0.8.2 (4 Nov 2026)
 

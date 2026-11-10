@@ -1,5 +1,7 @@
 # Open questions for Rohith
 
+**Answered 10 Nov 2026:** Rohith agreed with all four recommendations: keep `w_max` = 2 and report the fallback share (D49); test once at sampling 0.1 (D50); claim "about the same carbon at much lower re-planning cost" (D51); deployment first, with Docker now required for Phase 2 (D52). Kept below for the record.
+
 Validation is finished and thresholds are frozen (PRD v0.8.6). These decisions are yours now. **You don't need the run logs:** everything from the 300 runs is in `docs/validation/` (start with its README), and findings are in `docs/decisions.md` (F9, F12–F15, D46–D48) and PRD §14.5. All figures are from 12 validation replicates at job sampling 0.1, and kgCO2 is relative until B3 is resolved.
 
 Please settle question 1 before running the test set. Record each answer in `docs/decisions.md`, and in the PRD if the design changes.

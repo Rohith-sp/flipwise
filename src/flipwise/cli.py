@@ -156,6 +156,8 @@ def _cmd_run(args: argparse.Namespace) -> int:
         replicate=None if args.scenario is not None else replicates_for(cfg, "dev")[0],
         scenario_dir=args.scenario,
         debug=args.scenario is not None,
+        mode=args.mode,
+        dc_urls=tuple(u for u in args.dc_urls.split(",") if u) if args.dc_urls else None,
     )
     record = execute_run(spec)
     print(f"wrote {args.out / record['run_id']}")
@@ -279,6 +281,10 @@ def build_parser() -> argparse.ArgumentParser:
     r = sub.add_parser("run", help="one policy on one scenario → results/<run_id>/")
     _experiment_args(r)
     r.add_argument("--policy", required=True)
+    r.add_argument("--mode", choices=["inproc", "remote"], default="inproc",
+                   help="remote: datacentres are dc-serve services (§13.5)")  # fmt: skip
+    r.add_argument("--dc-urls", default=None, metavar="URL1,URL2,URL3",
+                   help="in dc_id order; default 127.0.0.1:8101, 8102, …")  # fmt: skip
     r.set_defaults(func=_cmd_run)
 
     cp = sub.add_parser("compare", help="all policies on identical replicates")

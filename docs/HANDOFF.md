@@ -2,7 +2,7 @@
 
 Current state of the work, for a teammate or a new Claude Code session. Keep it short and overwrite it as things change; history belongs in `decisions.md` and `project_journey.md`.
 
-**Last updated:** 5 Nov 2026 · **PRD version: 0.8.7**
+**Last updated:** 5 Nov 2026 · **PRD version: 0.8.8**
 
 **First-time setup (optional, for the graph):** `uv tool install graphifyy`, then `uv tool run --from graphifyy python scripts/build_graph.py`. Open `graphify-out/graph.html` in a browser to explore. The output is generated and not committed. The project's Claude Code hooks call `graphify`, so install it if you use Claude Code here.
 
@@ -21,7 +21,7 @@ To explore the code, use `graphify query "<question>"` if the graph is built.
 - **First results:** PRD §10.11 has the seven-policy table and the θ sweep for one week, so no ranking follows from them.
 - **Validation is done and thresholds are frozen (D47, PRD §14.5):** 12 replicates at sampling 0.1, 300 runs. Everything from those runs is in `docs/validation/` (start with its README), and findings are in F12–F15. The test set has not been run.
 - **Nothing left depends on the run logs:** test, sensitivity and ablation runs start fresh from `configs/policies.yaml`, and the `g_abs` and `κ` sweep values are already set (D48).
-- **Not built yet:** deployment steps 5 onward, so there is no `--mode remote` or local-split demo yet. Plotly dashboard charts are also not built: the optional extra would add hover, and the Matplotlib default is in place.
+- **Deployment:** `flipwise run --mode remote` works (step 7; the scripted driver, step 5, was dropped, D53). Not built yet: `local_cluster.sh`/`.ps1`, the failure check with real processes, overhead numbers, then Docker. Plotly dashboard charts are also not built: the optional extra would add hover, and the Matplotlib default is in place.
 
 ## Next steps
 
@@ -46,7 +46,6 @@ Rohith has the open questions, with evidence and recommendations, in `docs/quest
 
 | Item | Question | Who |
 |---|---|---|
-| F9 | `INTERVAL_TOO_WIDE` is above its 10 % flag on every validation replicate at the frozen `w_max` = 2. Widening to 5 brings the mean under the flag, but no emissions gain was measured (F13). Accept the flag, or change it before the test run? | Team |
 | B1 | Does the mentor confirm the scope, including the v0.8 method changes? | Mentor |
 | B3 | Cited power values; until then kgCO2 is relative | Team |
 

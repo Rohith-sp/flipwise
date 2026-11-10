@@ -6,7 +6,7 @@ An offline research simulator that tests *when* a carbon-aware scheduler should 
 
 RV College of Engineering · Experiential Learning, V Semester, AY 2026–27 · UN SDG 9 (Industry, Innovation and Infrastructure)
 
-> Status: **EL Phase 1 (pitch) complete. Now on EL Phase 2 (partial results).** Build phases 1–7 are implemented: all seven policies run on real Indian grid data, and at θ = 0 decision-flip makes the same decisions as fixed-savings with 66 % fewer full re-scorings (P1). Validation is done and thresholds are frozen (PRD §14.5, results in [docs/validation/](docs/validation/README.md)); the test set has not been run. The spec is [docs/prd.md](docs/prd.md) (v0.8.7). How we got here: [docs/project_journey.md](docs/project_journey.md). Joining or resuming: start at [docs/HANDOFF.md](docs/HANDOFF.md); decisions and why are in [docs/decisions.md](docs/decisions.md).
+> Status: **EL Phase 1 (pitch) complete. Now on EL Phase 2 (partial results).** Build phases 1–7 are implemented: all seven policies run on real Indian grid data, and at θ = 0 decision-flip makes the same decisions as fixed-savings with 66 % fewer full re-scorings (P1). Validation is done and thresholds are frozen (PRD §14.5, results in [docs/validation/](docs/validation/README.md)); the test set has not been run. The spec is [docs/prd.md](docs/prd.md) (v0.8.8). How we got here: [docs/project_journey.md](docs/project_journey.md). Joining or resuming: start at [docs/HANDOFF.md](docs/HANDOFF.md); decisions and why are in [docs/decisions.md](docs/decisions.md).
 
 ---
 
@@ -138,7 +138,7 @@ The PRD defines nine build phases (§18). The EL reviews map onto them as follow
 | EL phase | Build phases | Deployment track | Status |
 |---|---|---|---|
 | 1. Pitch | — | — | ✅ Done |
-| **2. Partial results** | 1–6, plus a minimal part of 7 | DT1 local split, then DT2 Docker (stretch) | ⏳ **Current** |
+| **2. Partial results** | 1–6, plus a minimal part of 7 | DT1 local split, then DT2 Docker (both required, D52) | ⏳ **Current** |
 | 3. Full results and paper (final) | Rest of 5 and 7, then 8–9 | Finish DT2, then DT3 AWS | Not started |
 
 The deployment track runs in parallel, owned by one team member, and never blocks the research phases.
