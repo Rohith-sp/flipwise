@@ -38,8 +38,11 @@ $status = 1
 function Stop-Services {
     # /T stops each launcher's whole tree, including the interpreter the venv launcher starts.
     # Only processes this script started are touched, never "whatever holds the port".
+    # Through cmd and never fatal: in Windows PowerShell 5.1 with ErrorActionPreference 'Stop', a
+    # native program's stderr (taskkill's "not found" for a service that already crashed) is a
+    # terminating error, which used to abort this loop and leave the later services running.
     foreach ($proc in $script:procs) {
-        & taskkill /F /T /PID $proc.Id 2>&1 | Out-Null
+        try { cmd /c "taskkill /F /T /PID $($proc.Id) >nul 2>&1" } catch { }
     }
     $script:procs = @()
 }

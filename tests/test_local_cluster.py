@@ -65,7 +65,15 @@ def _cluster(runner: str, base: int, *args: str) -> subprocess.CompletedProcess:
     else:
         cmd = [_git_bash(), str(ROOT / "scripts" / "local_cluster.sh"), *extra]
     env = {**os.environ, "PYTHONIOENCODING": "utf-8"}
-    return subprocess.run(cmd, cwd=ROOT, capture_output=True, text=True, timeout=180, env=env)
+    # Output to a file, not a pipe: a service the script failed to stop would keep a pipe open
+    # and hang this test, whereas with a file it fails on the free-port check instead.
+    log = Path(os.environ.get("TMP", "/tmp")) / f"local_cluster_{runner}_{base}.log"
+    with open(log, "w+", encoding="utf-8", errors="replace") as out:
+        code = subprocess.run(cmd, cwd=ROOT, stdout=out, stderr=subprocess.STDOUT, timeout=180,
+                              env=env).returncode  # fmt: skip
+        out.seek(0)
+        text = out.read()
+    return subprocess.CompletedProcess(cmd, code, text, "")
 
 
 def _only_run_dir(out: Path) -> Path:

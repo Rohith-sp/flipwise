@@ -12,6 +12,7 @@ import itertools
 import json
 import platform
 import subprocess
+import time
 from concurrent.futures import ProcessPoolExecutor
 from dataclasses import dataclass
 from importlib import metadata
@@ -21,6 +22,8 @@ import pandas as pd
 import yaml
 
 from flipwise.config import apply_overrides, canonical_json, config_hash, policy_params
+from flipwise.datacentre import InProcDatacentre
+from flipwise.dcservice import PROTOCOL_VERSION
 from flipwise.errors import ConfigError
 from flipwise.metrics import carbon_coverage, carbon_timeline, metrics_from_run_dir
 from flipwise.policies import make_policy
@@ -74,6 +77,32 @@ class RunSpec:
 
 
 DEFAULT_DC_PORT = 8101  # PRD §13.5: services on 127.0.0.1:8101, 8102, …
+
+
+class TimedClient:
+    """Counts a datacentre client's calls and the time they take, for the manifest's `overhead`
+    block (R-DEP-5). It wraps both modes alike, so in-process and remote runs compare directly.
+    The numbers are only reported: no simulation decision reads them (rule 1, determinism)."""
+
+    def __init__(self, inner) -> None:
+        self.inner = inner
+        self.calls = 0
+        self.seconds = 0.0
+
+    def __getattr__(self, name: str):
+        attr = getattr(self.inner, name)
+        if not callable(attr):
+            return attr
+
+        def timed(*args, **kwargs):
+            t0 = time.perf_counter()
+            try:
+                return attr(*args, **kwargs)
+            finally:
+                self.calls += 1
+                self.seconds += time.perf_counter() - t0
+
+        return timed
 
 
 def _clients(spec: RunSpec, scenario: Scenario) -> list | None:
@@ -177,10 +206,13 @@ def execute_run(spec: RunSpec) -> dict:
     if (run_dir / "metrics.json").exists():
         return record
     params = policy_params(spec.cfg, spec.policy)
-    clients = _clients(spec, scenario)
+    remote = _clients(spec, scenario)
+    timed = [TimedClient(c) for c in (remote or [InProcDatacentre() for _ in scenario.dcs])]
     started = dt.datetime.now(dt.UTC).isoformat()
-    sim = Simulator(scenario, make_policy(spec.policy, **params), clients, debug=spec.debug)
+    t0 = time.perf_counter()
+    sim = Simulator(scenario, make_policy(spec.policy, **params), timed, debug=spec.debug)
     result = sim.run()
+    run_s = time.perf_counter() - t0
     finished = dt.datetime.now(dt.UTC).isoformat()
     write_run(
         result,
@@ -211,7 +243,15 @@ def execute_run(spec: RunSpec) -> dict:
             "cpu_model": _cpu_model(),
             "wall_clock": {"start": started, "end": finished},
             "mode": spec.mode,
-            "dc_urls": [c.url for c in clients] if clients else None,
+            "dc_urls": [c.url for c in remote] if remote else None,
+            "protocol_version": PROTOCOL_VERSION if remote else None,
+            "overhead": {
+                "run_s": round(run_s, 4),
+                "per_dc": [
+                    {"dc_id": d.dc_id, "calls": c.calls, "seconds": round(c.seconds, 4)}
+                    for d, c in zip(scenario.dcs, timed, strict=True)
+                ],
+            },
         },
     )
     # Written last: its presence is what marks a run as complete and reusable.

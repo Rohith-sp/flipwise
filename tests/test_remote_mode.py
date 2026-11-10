@@ -77,6 +77,11 @@ def test_cli_remote_run_is_byte_identical_r_dep_1(cluster, policy, tmp_path):
         assert (remote / name).read_bytes() == (local / name).read_bytes(), name
     manifest = json.loads((remote / "manifest.json").read_text())
     assert manifest["mode"] == "remote" and manifest["dc_urls"] == cluster
+    # R-DEP-5: both modes report overhead, and make the same calls to each datacentre
+    local_calls = json.loads((local / "manifest.json").read_text())["overhead"]["per_dc"]
+    remote_calls = manifest["overhead"]["per_dc"]
+    assert [d["calls"] for d in remote_calls] == [d["calls"] for d in local_calls]
+    assert all(d["calls"] > 0 and d["seconds"] >= 0 for d in remote_calls)
     assert remote.name != local.name  # a remote run is never served from a saved in-process run
 
 
