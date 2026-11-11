@@ -58,7 +58,7 @@ powershell -ExecutionPolicy Bypass -File scripts\download_data.ps1
 
 ## 4. Setup
 
-Requires [uv](https://docs.astral.sh/uv/); uv installs Python 3.12 itself (`.python-version`), so the system Python version does not matter. Works on Linux and Windows 11.
+Requires [uv](https://docs.astral.sh/uv/); uv installs Python 3.12 itself (`.python-version`), so the system Python version does not matter. Works on Linux and Windows 11. **For a step-by-step demo of every command (toy run, comparisons, local split, Docker), see [docs/USAGE.md](docs/USAGE.md).**
 
 Install uv once:
 
@@ -234,7 +234,7 @@ Optional, only after the main results exist: X1 (Global–Local DRO planner) and
 
 ## 8. References
 
-- **Docs:** [PRD](docs/prd.md) · [Plain-language explanation](docs/explanation.md) · [Project guide (Word, beginner-friendly, with a technical deep dive)](docs/Flipwise_Project_Guide.docx) · [Links](docs/helpfullinks.md)
+- **Docs:** [Usage guide](docs/USAGE.md) · [PRD](docs/prd.md) · [Plain-language explanation](docs/explanation.md) · [Project guide (Word, beginner-friendly, with a technical deep dive)](docs/Flipwise_Project_Guide.docx) · [Links](docs/helpfullinks.md)
 
 Key references (full list in PRD §19):
 
