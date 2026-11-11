@@ -1,0 +1,4 @@
+# Ablations A3 and A4 (PRD §14.6): `width` selects the uncertainty used in decision_flip's noise
+# margin. full = A0 reference, no_wait = A3 (queue-wait interval off), carbon_only = A4.
+grid:
+  policies.decision_flip.width: [full, no_wait, carbon_only]

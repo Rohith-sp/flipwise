@@ -1,0 +1,4 @@
+# Ablation A2 (PRD §14.6): the screen switched off. Decisions must equal A0 (the screen is sound),
+# and the number of full re-scorings should rise towards fixed_savings.
+grid:
+  policies.decision_flip.screen: [true, false]

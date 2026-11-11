@@ -1,0 +1,3 @@
+# Sensitivity: how jobs with no recorded GPU request are treated (PRD §6.4, §14.4).
+grid:
+  scenario.missing_gpu_policy: [zero, drop]

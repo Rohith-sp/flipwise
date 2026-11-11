@@ -1,0 +1,3 @@
+# Sensitivity: alignment of the trace's clock hours with Indian clock hours (PRD §6.3, §14.4).
+grid:
+  scenario.phase_shift_h: [0, -2.5]

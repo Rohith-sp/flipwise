@@ -1,0 +1,4 @@
+# Sensitivity: charge per full re-scoring (PRD §14.4). 0.000969 kg is 0.02 x the median score
+# on validation (docs/validation/score_scale.json), as for kappa.yaml.
+grid:
+  policies.decision_flip.lambda_ovh: [0, 0.000969]

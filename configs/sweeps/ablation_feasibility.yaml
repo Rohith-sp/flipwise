@@ -1,0 +1,4 @@
+# Ablation A5 (PRD §14.6): the deadline rule for every policy. conservative = r_q90 (base),
+# point = r_q50.
+grid:
+  scenario.feasibility: [conservative, point]
