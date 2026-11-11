@@ -199,6 +199,10 @@ Metrics, `compare`, `sweep`, `report` and the dashboard went in, so one command 
 
 We ran 300 simulations across 12 validation weeks, pausing once part-way when the laptop was needed. The result was more modest than the headline: decision-flip beat place-once clearly, but could not be told apart from the other re-planners on emissions. Its measured advantage is cost, with far fewer full re-scorings and moves for about the same carbon. Finishing the sweeps also exposed a gap: `g_rel` had only been swept for fixed-savings, so we added the missing sweep before freezing (D47, F14). The logs came to 2.5 GB, too much to share, so everything the team needs from them went into `docs/validation/` (D48).
 
+## 13b. The local split works (10–11 Nov, PRD v0.8.8)
+
+The team decided to build deployment before the test run (D49–D52), because the Phase 2 review expects a demo. The scripted driver was dropped (D53), since the simulator already existed. `local_cluster.sh` and its PowerShell twin followed (D54), and a crash test found a Windows clean-up bug that was fixed (F16, F17). Overhead is recorded per datacentre (D55, F18). On 11 Nov the work moved to Fedora: a port check failed there only because of TIME_WAIT, and was fixed. Then the full suite and the dev week through the local split matched the in-process run byte for byte (F19). The local split is complete; Docker is next.
+
 ## 14. Tools used along the way
 
 | Tool | Used for |
@@ -221,12 +225,12 @@ We ran 300 simulations across 12 validation weeks, pausing once part-way when th
 - Local-split steps 1–3.
 - Build phases 5, 6 and 7: every policy, P1 proved on real data, and the experiment runner.
 - Build phase 8, first part: validation replicates, sweeps and the threshold freeze.
-- Deployment step 4 (`dcservice.py`).
+- Deployment steps 4–7: `dcservice.py`, `--mode remote`, `local_cluster` scripts, overhead numbers. DT1 (local split) is complete.
 
 **Next:**
 1. Build phase 8, the rest: test set once, sensitivity sweeps, ablations.
-2. The scripted driver and `local_cluster.sh`.
-3. Install Docker Desktop for step 8.
+2. DT2 Docker (required for Phase 2, D52), ideally before the test run.
+3. DT3 AWS after the test results.
 
 **Still open:**
 - **B1:** the mentor confirms the scope, now including the v0.8 changes to the screen and θ.

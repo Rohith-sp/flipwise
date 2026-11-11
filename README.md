@@ -166,14 +166,14 @@ Policies in Phase 2: `fcfs`, `place_once`, `periodic(T)`, `fixed_savings(g)`, `d
 2. At θ = 0, decision-flip makes **identical decisions** to fixed-savings with fewer `stage2_calls` (P1, R-TRIG-2). This is the core claim.
 3. One comparison table for the validation week: kgCO2, deadline-miss rate and re-score count per policy.
 4. A `dashboard.html` with the timeline, Pareto and results-table tabs. The θ-sweep tab may show "no data".
-5. **DT1 local split:** three local datacentre services (`scripts/local_cluster.sh`) giving outputs identical to the in-process run, first with a scripted driver, then with the toy simulation.
+5. **DT1 local split:** three local datacentre services (`scripts/local_cluster.sh`) giving outputs identical to the in-process run, verified on the toy scenario and on the dev week (the scripted driver was dropped, D53).
 6. **Stretch, DT2 Docker:** the same run via `docker compose up`.
 
 Items 5–6 never hold back items 1–4.
 
 kgCO2 stays labelled **relative** until power parameters are cited (blocker B3).
 
-**Where items 1–4 stand:** done. Run `flipwise smoke`, `scripts/check_p1.py`, `flipwise compare`, `flipwise dashboard`; first results are in PRD §10.11. Items 5–6 (deployment) are still open.
+**Where items 1–4 stand:** done. Run `flipwise smoke`, `scripts/check_p1.py`, `flipwise compare`, `flipwise dashboard`; first results are in PRD §10.11. Item 5 (DT1) is done; item 6 (DT2 Docker) is open.
 
 #### Deployment track in Phase 2: local split, then Docker
 
@@ -185,14 +185,14 @@ Build order (PRD §18), chosen so nothing is throwaway:
 | 2 | `datacentre.py`, plain Python: capacity, FIFO queue, `enqueue/remove/dispatch/complete/state` (also used by the simulator) | Unit tests: no overbooking, `MigrationError`, no backwards time |
 | 3 | `DatacentreClient` interface + `InProcDatacentre` | Simulator code can only reach datacentres through it |
 | 4 | `dcservice.py`: the 7 endpoints of PRD §13.5 on stdlib `http.server`, plus `HttpDatacentre` | Same call sequence gives identical responses through both clients (R-DEP-7) |
-| 5 | Scripted driver: a fixed toy sequence of events run in-process and through 3 local services | Identical outputs: **first local-split demo**, before the simulator exists |
+| 5 | ~~Scripted driver~~ dropped (D53): the simulator exists, so step 7 does its job | n/a |
 | 6 | `scripts/local_cluster.sh`: start services on `127.0.0.1:8101–8103`, wait for `/health`, run, clean up (with a `taskkill` fallback on Windows) | Killing a service aborts the run; no orphan processes |
 | 7 | `flipwise run --mode remote` with the real simulator (needs build phase 3) | Toy simulation identical in-process and remote (R-DEP-1) |
 | 8 | **Stretch, DT2:** `Dockerfile` + `docker-compose.yml` (`dc-delhi`, `dc-mumbai`, `dc-chennai`, `coordinator`) | `docker compose up` from a clean clone gives the same outputs |
 
-**Status (4 Nov):** step 4 is done (`dcservice.py`, `flipwise dc-serve`, `HttpDatacentre`; R-DEP-4 and R-DEP-7 pass). Steps 1–3 were done earlier (build phases 1 and 3: `datacentre.py` with `DatacentreClient` and `InProcDatacentre`, and the simulator talks to datacentres only through the interface). **Next: step 4, `dcservice.py`.**
+**Status (11 Nov):** steps 1–7 are done, so **DT1 is complete**: `dcservice.py`, `flipwise dc-serve`, `HttpDatacentre`, `--mode remote`, `local_cluster.sh` and `.ps1`, and the crash test (R-DEP-3). R-DEP-1 holds on the toy for every policy, and on the dev week for `decision_flip` (F19). **Next: step 8, DT2 Docker.**
 
-PRD §13.5 is the contract, so steps 4–8 can run in parallel with the simulator work. Steps 2–3 are shared. Docker needs Docker Desktop with WSL2 on every laptop.
+PRD §13.5 is the contract, so steps 4–8 can run in parallel with the simulator work. Steps 2–3 are shared. Docker needs Docker Desktop with WSL2 on Windows laptops; on Linux, Docker Engine is enough.
 
 ### EL Phase 3: full results and paper (final)
 

@@ -376,10 +376,12 @@ The simulator must be designed for this from the start: datacentre state and dis
 2. `datacentre.py` as plain Python (no networking), with tests. The simulator uses the same module.
 3. The `DatacentreClient` interface and its in-process implementation.
 4. The HTTP service and its client, tested to behave identically to the in-process version.
-5. A **scripted driver**: a fixed sequence of toy events run in-process and through three local services. Identical outputs give a working local-split demo before the simulator exists.
-6. `scripts/local_cluster.sh` to start and stop the three services.
-7. The real simulator in remote mode, once it exists.
-8. Docker, as a stretch goal in Phase 2.
+5. ~~A scripted driver~~ (dropped, D53: the simulator exists, so step 7 does its job).
+6. `scripts/local_cluster.sh` (and a PowerShell twin) to start and stop the three services. Done.
+7. The real simulator in remote mode (`flipwise run --mode remote`). Done: outputs are byte-identical to in-process on the toy and on the dev week.
+8. Docker, now required for Phase 2 (D52). Next.
+
+**Status (11 Nov):** steps 1–7 are done, so the local split is complete.
 
 ---
 
