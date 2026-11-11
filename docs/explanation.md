@@ -379,7 +379,7 @@ The simulator must be designed for this from the start: datacentre state and dis
 5. ~~A scripted driver~~ (dropped, D53: the simulator exists, so step 7 does its job).
 6. `scripts/local_cluster.sh` (and a PowerShell twin) to start and stop the three services. Done.
 7. The real simulator in remote mode (`flipwise run --mode remote`). Done: outputs are byte-identical to in-process on the toy and on the dev week.
-8. Docker, required for Phase 2 (D52). Built: `docker-compose.yml` starts three datacentre containers and the coordinator, and `scripts/docker_check.sh` shows the outputs match in-process. Still to do: a clean-clone run and a Windows run.
+8. Docker, required for Phase 2 (D52). Built: `docker-compose.yml` starts three datacentre containers and the coordinator, and `scripts/docker_check.sh` shows the outputs match in-process. Passed from a clean clone; still to do: one Windows run.
 
 **Status (11 Nov):** steps 1–7 are done, so the local split is complete.
 

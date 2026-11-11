@@ -205,7 +205,7 @@ The team decided to build deployment before the test run (D49–D52), because th
 
 ## 13c. Docker (11 Nov, PRD v0.8.9)
 
-DT2 followed the same shape as DT1: one image, started four times. The image is built from an allow-list so data and secrets cannot get in; data is mounted read-only, and the compose network has no ports published. Three things only showed up when running it: services must bind `0.0.0.0` inside a container; the manifest has no `.git` to read, so the commit is passed in; and Fedora's SELinux blocked the results mount until it was labelled `:z`. `scripts/docker_check.sh` then proved the three exit criteria: every policy on the toy, the dev week, and a killed container (D56, F20). Left: a clean-clone run and one on Windows.
+DT2 followed the same shape as DT1: one image, started four times. The image is built from an allow-list so data and secrets cannot get in; data is mounted read-only, and the compose network has no ports published. Three things only showed up when running it: services must bind `0.0.0.0` inside a container; the manifest has no `.git` to read, so the commit is passed in; and Fedora's SELinux blocked the results mount until it was labelled `:z`. `scripts/docker_check.sh` then proved the three exit criteria: every policy on the toy, the dev week, and a killed container (D56, F20). The same checks also passed from a fresh clone. Left: one run on Windows.
 
 ## 14. Tools used along the way
 
@@ -234,7 +234,7 @@ DT2 followed the same shape as DT1: one image, started four times. The image is 
 
 **Next:**
 1. Build phase 8, the rest: test set once, sensitivity sweeps, ablations.
-2. Finish DT2: a clean-clone run and a Windows run (the Docker build itself is done).
+2. Finish DT2: one Windows run (the Docker build and the clean-clone run are done).
 3. DT3 AWS after the test results.
 
 **Still open:**
