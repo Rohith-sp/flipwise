@@ -43,6 +43,8 @@ URL_LIST=$(IFS=,; echo "${URLS[*]}")
 import socket, sys
 for p in sys.argv[1:]:
     with socket.socket() as s:
+        if sys.platform != "win32":  # ignore TIME_WAIT from a previous run, like the services do
+            s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         try:
             s.bind(("127.0.0.1", int(p)))
         except OSError:

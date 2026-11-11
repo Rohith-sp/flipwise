@@ -43,6 +43,10 @@ def _runners() -> list:
 
 def _port_free(port: int) -> bool:
     with socket.socket() as s:
+        # Same rule as the services (dcservice._Server): on Linux a closed server's connections
+        # sit in TIME_WAIT for about a minute and block a plain bind although nothing listens.
+        if sys.platform != "win32":
+            s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         try:
             s.bind(("127.0.0.1", port))
         except OSError:
@@ -114,6 +118,8 @@ def test_a_busy_port_starts_nothing_and_kills_nothing(runner, tmp_path):
     """The script must never stop a process it did not start, here this test's own socket."""
     base = _free_base()
     with socket.socket() as other:
+        if sys.platform != "win32":  # earlier tests leave this port in TIME_WAIT on Linux
+            other.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         other.bind(("127.0.0.1", base + 1))
         other.listen()
         done = _cluster(runner, base, "--scenario", str(TOY), "--policy", "fcfs",
