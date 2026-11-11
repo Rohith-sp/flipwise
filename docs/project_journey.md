@@ -207,6 +207,10 @@ The team decided to build deployment before the test run (D49–D52), because th
 
 DT2 followed the same shape as DT1: one image, started four times. The image is built from an allow-list so data and secrets cannot get in; data is mounted read-only, and the compose network has no ports published. Three things only showed up when running it: services must bind `0.0.0.0` inside a container; the manifest has no `.git` to read, so the commit is passed in; and Fedora's SELinux blocked the results mount until it was labelled `:z`. `scripts/docker_check.sh` then proved the three exit criteria: every policy on the toy, the dev week, and a killed container (D56, F20). The same checks also passed from a fresh clone. Left: one run on Windows.
 
+## 13d. The test set (12 Nov, PRD v0.9)
+
+With deployment working, the team ran the test set once, as agreed (D50): 16 replicates, 7 policies, 112 runs, on a clean commit. The result was less flattering than validation. `decision_flip` stayed clearly below `fcfs` and kept its lower re-planning cost against `fixed_savings` and `periodic`, but its lead over `place_once` shrank from 146 kg to 55 kg and stopped being distinguishable from zero. The claim agreed in D51, about the same carbon at much lower re-planning cost, still stands; a claim of lower emissions than the simple baselines does not (F21).
+
 ## 14. Tools used along the way
 
 | Tool | Used for |
@@ -231,9 +235,10 @@ DT2 followed the same shape as DT1: one image, started four times. The image is 
 - Build phase 8, first part: validation replicates, sweeps and the threshold freeze.
 - Deployment steps 4–7: `dcservice.py`, `--mode remote`, `local_cluster` scripts, overhead numbers. DT1 (local split) is complete.
 - DT2 Docker built and passing R-DEP-1/2/3 on Linux.
+- The test set, run once (F21).
 
 **Next:**
-1. Build phase 8, the rest: test set once, sensitivity sweeps, ablations.
+1. Build phase 8, the rest: sensitivity sweeps and ablations (the test set is done, F21).
 2. Finish DT2: one Windows run (the Docker build and the clean-clone run are done).
 3. DT3 AWS after the test results.
 

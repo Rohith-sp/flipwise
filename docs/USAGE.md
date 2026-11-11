@@ -150,7 +150,7 @@ uv run flipwise dashboard --runs results/compare_<hash> --sweep results/sweep_<h
 uv run flipwise report --runs results/compare_<hash>
 ```
 
-**Splits.** `--split dev` (the default) is one week for development. `--split validation` is the 12 replicates the thresholds were frozen on (about 6 hours). **`--split test` may be run once only**, after everything is frozen (PRD §14.3); do not use it to try things out.
+**Splits.** `--split dev` (the default) is one week for development. `--split validation` is the 12 replicates the thresholds were frozen on (about 6 hours). **`--split test` has already been run once (12 Nov 2026, results in `docs/test_results/`), and the PRD allows no second run (§14.3, D57).** Do not run it again; use `--split validation` or `dev` for any new experiment.
 
 **Reusing results.** A finished run is reused when its `run_id` matches. The `run_id` does not include the code, so after changing simulator, planner or policy code, delete `results/` or old runs come back as if they were current.
 
@@ -293,7 +293,7 @@ A remote run gets its own `run_id` (the mode is part of it), so the two folders 
 ## 10. Rules to keep
 
 - **Same inputs, same outputs.** A fixed config and seed give byte-identical `events.log`, `jobs.csv` and `decisions.csv`. Do not add wall-clock time or unseeded randomness to the simulation.
-- **No tuning on the test period.** Thresholds are frozen; the test split runs once.
+- **No tuning on the test period.** Thresholds are frozen and the test split has been run; its results are in `docs/test_results/`.
 - **kgCO2 is relative** until B3 is resolved. Say so in anything you show.
 - **Do not commit** `data/raw/`, `data/processed/`, `results/`, `.venv`, `.env`, `*.pem` or AWS credentials.
 - After any design change, update `docs/prd.md` and `docs/decisions.md` together, and `docs/HANDOFF.md` before ending a session.

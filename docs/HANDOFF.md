@@ -2,7 +2,7 @@
 
 Current state of the work, for a teammate or a new Claude Code session. Keep it short and overwrite it as things change; history belongs in `decisions.md` and `project_journey.md`.
 
-**Last updated:** 11 Nov 2026 · **PRD version: 0.8.9**
+**Last updated:** 11 Nov 2026 · **PRD version: 0.9**
 
 **First-time setup (optional, for the graph):** `uv tool install graphifyy`, then `uv tool run --from graphifyy python scripts/build_graph.py`. Open `graphify-out/graph.html` in a browser to explore. The output is generated and not committed. The project's Claude Code hooks call `graphify`, so install it if you use Claude Code here.
 
@@ -20,13 +20,14 @@ To explore the code, use `graphify query "<question>"` if the graph is built.
 - **Done:** build phases 1–7. All seven policies run on the toy (hand-checked in `expected.yaml`) and on the real dev week. P1 holds on real data (F8). `compare`, `sweep`, `report` and `dashboard` work, and their exit criterion is met on both.
 - **First results:** PRD §10.11 has the seven-policy table and the θ sweep for one week, so no ranking follows from them.
 - **Validation is done and thresholds are frozen (D47, PRD §14.5):** 12 replicates at sampling 0.1, 300 runs. Everything from those runs is in `docs/validation/` (start with its README), and findings are in F12–F15. The test set has not been run.
+- **The test set has been run (12 Nov, D57, F21):** results in `docs/test_results/` (start with its README). **It is spent: never re-run `--split test`.** `decision_flip` is within noise of `place_once`, `fixed_savings`, `periodic` and `pred_error` on emissions (the validation lead over `place_once` did not repeat), is clearly below `fcfs`, and keeps its cost advantage over `fixed_savings` and `periodic` (54 % fewer re-scorings, 60 % fewer moves). State the claim with those limits.
 - **Nothing left depends on the run logs:** test, sensitivity and ablation runs start fresh from `configs/policies.yaml`, and the `g_abs` and `κ` sweep values are already set (D48).
 - **Deployment:** DT1 (local split) is complete: `dc-serve`, `--mode remote`, `local_cluster.sh` and `.ps1`, R-DEP-1/3/4/7 and overhead numbers (R-DEP-5, F18) all pass on Windows and Linux (Fedora, 11 Nov; 247 tests). The scripted driver (step 5) was dropped (D53). **DT2 Docker is built (11 Nov, D56, F20):** `Dockerfile`, `docker-compose.yml`, `.dockerignore`, and `scripts/docker_check.sh`, which passes R-DEP-1 (all seven policies on the toy), R-DEP-2 (dev week) and R-DEP-3 (a killed container) on Fedora. It also passed from a clean clone (11 Nov, F20). **Not done:** one run on a Windows laptop with Docker Desktop (the last DT2 exit item); DT3 AWS. Demo: `bash scripts/local_cluster.sh --scenario tests/fixtures/toy --policy decision_flip` (Linux/Git Bash) or `.\scripts\local_cluster.ps1 --scenario tests/fixtures/toy --policy decision_flip` (PowerShell); never run two copies of `tests/test_local_cluster.py` at once (same ports). Plotly dashboard charts are not built (optional; Matplotlib default is in place).
 
 ## Next steps
 
 1. **Finish DT2:** one run on Windows with Docker Desktop (set `$env:GIT_COMMIT`; PowerShell has no twin of `docker_check.sh` yet, so run the `docker compose up` commands from its header by hand, or use Git Bash). The clean-clone run is done. Commands: `export GIT_COMMIT=$(git rev-parse HEAD)`, then `docker compose up --build --abort-on-container-exit --exit-code-from coordinator`.
-2. Rest of roadmap phase 8: run the test set **once** (`--split test`, sampling 0.1, D50), then the sensitivity sweeps and ablations A0–A6. `w_max` is settled at 2 (D49), so F9 no longer blocks.
+2. Rest of roadmap phase 8: the sensitivity sweeps and ablations A0–A6 (PRD §14), on **validation** data, not the test split. Check which of A2–A6 already have config switches before starting (`screen` and `width` exist in `configs/policies.yaml`; A5 `feasibility = point` and A6 may not). Then roadmap phase 9: the report figures, limitations (including F21) and the reproducibility package.
 3. Reproducing validation is optional: the commands are below and take about 6 hours with 5 jobs on 8 threads. Check the results against `docs/validation/runs.csv`.
    ```bash
    uv run flipwise compare --config configs/base.yaml --split validation --policies all --jobs 5

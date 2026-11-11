@@ -5,7 +5,7 @@
 | Field | Value |
 |---|---|
 | Document status | Implementation-ready draft. Supersedes v0.8.7 (5 Nov 2026), v0.8.6 (5 Nov 2026), v0.8.5 (4 Nov 2026), v0.8.4 (4 Nov 2026), v0.8.3 (4 Nov 2026), v0.8.2 (4 Nov 2026), v0.8.1 (4 Nov 2026), v0.8 (2 Nov 2026), v0.7 (29 Oct 2026), v0.6, v0.5.1 and v0.5 (29 Oct 2026), v0.4 (28 Oct 2026), v0.3 (24 Oct 2026), v0.2 (24 Oct 2026) and v0.1 (23 Oct 2026). Changes are listed in the changelog below. |
-| Version | 0.8.9 |
+| Version | 0.9 |
 | Revised | 5 November 2026 |
 | Project name | **Flipwise** (Python package and CLI `flipwise`) [Decision]: it re-evaluates decision flips wisely. Renamed from FlipSim on 25 Oct 2026. Availability of the name on GitHub and PyPI is [Open], not yet checked. |
 | Project context | RV College of Engineering, Experiential Learning, V Semester, AY 2026–27; SDG 9 |
@@ -17,6 +17,7 @@
 
 | Version | Date | Changes |
 |---|---|---|
+| 0.9 | 12 Nov 2026 | Test set run once (D57, F21; 14.5): 16 replicates × 7 policies at sampling 0.1, commit `6cf8b8a`, results in `docs/test_results/`. The validation advantage of `decision_flip` over `place_once` did not repeat (−55 kg, CI −128 to +12), and it is not distinguishable on emissions from the other re-planners. Its cost advantage held against `fixed_savings` and `periodic` (54 % fewer full re-scorings, 60–63 % fewer moves) but not on re-scorings against `pred_error`. The claim (D51) is unchanged and is stated with these limits. |
 | 0.8.9 | 11 Nov 2026 | Deployment step DT2 built (13.4, 13.5, 18, D56, F19, F20): `Dockerfile`, `.dockerignore` (allow-list), `docker-compose.yml` and `scripts/docker_check.sh`. R-DEP-1 (every policy on the toy), R-DEP-2 (dev replicate) and R-DEP-3 (a killed datacentre container) hold in Compose. The manifest takes the commit from `FLIPWISE_GIT_COMMIT` when there is no `.git`. Phase 2 scope item 5 no longer mentions the scripted driver (D53). |
 | 0.8.8 | 10 Nov 2026 | Team decisions after the freeze (14.5; D49–D52): `INTERVAL_TOO_WIDE` above its 10 % flag is accepted at `w_max` = 2 and reported with the results; the test set runs once at sampling 0.1; the claim is stated as about the same carbon at much lower re-planning cost; deployment comes before the test run. DT2 (Docker) is now required for EL Phase 2, not a stretch goal (18.1). Deployment step 7 built: `flipwise run --mode remote --dc-urls …` (13.4); the scripted driver (step 5) is dropped because the simulator now exists (18, D53). Deployment step 6 built: `scripts/local_cluster.sh` and its PowerShell twin `local_cluster.ps1`, with `dc-serve --crash-at-request N` as fault injection for R-DEP-3 (13.4, 18, D54, F16). F16 fixed (F17). Overhead block in `manifest.json` built (13.5 rule 5, R-DEP-5, D55); first numbers in F18. |
 | 0.8.7 | 5 Nov 2026 | Validation evidence exported to `docs/validation/` so it can be used without the run logs (14.5). `g_abs` and `κ` sweep values set from median Ŝ on validation (10.10). Risks updated from all 12 replicates (17.1). Freeze commit recorded (14.5). |

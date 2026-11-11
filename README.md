@@ -6,7 +6,7 @@ An offline research simulator that tests *when* a carbon-aware scheduler should 
 
 RV College of Engineering · Experiential Learning, V Semester, AY 2026–27 · UN SDG 9 (Industry, Innovation and Infrastructure)
 
-> Status: **EL Phase 1 (pitch) complete. Now on EL Phase 2 (partial results).** Build phases 1–7 are implemented: all seven policies run on real Indian grid data, and at θ = 0 decision-flip makes the same decisions as fixed-savings with 66 % fewer full re-scorings (P1). Validation is done and thresholds are frozen (PRD §14.5, results in [docs/validation/](docs/validation/README.md)); the test set has not been run. The spec is [docs/prd.md](docs/prd.md) (v0.8.8). How we got here: [docs/project_journey.md](docs/project_journey.md). Joining or resuming: start at [docs/HANDOFF.md](docs/HANDOFF.md); decisions and why are in [docs/decisions.md](docs/decisions.md).
+> Status: **EL Phase 1 (pitch) complete. Now on EL Phase 2 (partial results).** Build phases 1–7 are implemented: all seven policies run on real Indian grid data, and at θ = 0 decision-flip makes the same decisions as fixed-savings with 66 % fewer full re-scorings (P1). Validation is done and thresholds are frozen (PRD §14.5, results in [docs/validation/](docs/validation/README.md)); the test set has been run once (12 Nov 2026, [docs/test_results/](docs/test_results/README.md)): decision-flip matches the other re-planners and `place_once` on emissions within noise, is clearly below `fcfs`, and uses 54 % fewer full re-scorings and 60 % fewer moves than `fixed_savings`. The spec is [docs/prd.md](docs/prd.md) (v0.9). How we got here: [docs/project_journey.md](docs/project_journey.md). Joining or resuming: start at [docs/HANDOFF.md](docs/HANDOFF.md); decisions and why are in [docs/decisions.md](docs/decisions.md).
 
 ---
 
@@ -200,7 +200,7 @@ PRD §13.5 is the contract, so steps 4–8 can run in parallel with the simulato
 |---|---|
 | 5 (rest) | `pred_error(ε)`, the error-magnitude trigger and key comparison for the contribution, plus the `pig` perfect-information reference |
 | 7 (rest) | `compare`, `sweep`, `report`, paired bootstrap statistics, full plots and manifests |
-| 8 | Real-trace evaluation: fit residual and runtime quantiles; validation sweeps (`g_rel`, θ, ε, T); freeze thresholds; run the test set **once**; sensitivity sweeps (load, carbon spread, forecast-error and interval scaling, deadline slack, energy multipliers); ablations A0–A6 |
+| 8 | Real-trace evaluation: fit residual and runtime quantiles; validation sweeps (`g_rel`, θ, ε, T); freeze thresholds; run the test set **once** (done, 12 Nov); sensitivity sweeps (load, carbon spread, forecast-error and interval scaling, deadline slack, energy multipliers); ablations A0–A6 |
 | 9 | Analysis and packaging: report figures, limitations, a reproducibility README (a clean clone reproduces the summary tables from raw downloads) |
 | DT2 Docker (finish) | If not done in Phase 2: one image, `docker-compose.yml` with three datacentre containers and a coordinator. By Phase 3 it must also reproduce the dev-replicate outputs |
 | DT3 AWS | The DT2 image on three small EC2 instances (default `ap-south-1`, Mumbai); same outputs as in-process; latency and cost reported; budget alert first and `teardown.sh` after every session. Starts only after the main test results exist and the AWS account question (O8) is settled |
