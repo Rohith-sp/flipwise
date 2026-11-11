@@ -10,6 +10,7 @@ import datetime as dt
 import hashlib
 import itertools
 import json
+import os
 import platform
 import subprocess
 import time
@@ -164,7 +165,8 @@ def _git_commit() -> dict:
             ["git", "status", "--porcelain"], capture_output=True, text=True, check=True
         )
     except (OSError, subprocess.CalledProcessError):
-        return {"commit": None, "dirty": None}
+        # A container image has no .git: the Dockerfile bakes the commit into the environment.
+        return {"commit": os.environ.get("FLIPWISE_GIT_COMMIT") or None, "dirty": None}
     return {"commit": run.stdout.strip(), "dirty": bool(dirty.stdout.strip())}
 
 

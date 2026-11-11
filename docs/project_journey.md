@@ -201,7 +201,11 @@ We ran 300 simulations across 12 validation weeks, pausing once part-way when th
 
 ## 13b. The local split works (10–11 Nov, PRD v0.8.8)
 
-The team decided to build deployment before the test run (D49–D52), because the Phase 2 review expects a demo. The scripted driver was dropped (D53), since the simulator already existed. `local_cluster.sh` and its PowerShell twin followed (D54), and a crash test found a Windows clean-up bug that was fixed (F16, F17). Overhead is recorded per datacentre (D55, F18). On 11 Nov the work moved to Fedora: a port check failed there only because of TIME_WAIT, and was fixed. Then the full suite and the dev week through the local split matched the in-process run byte for byte (F19). The local split is complete; Docker is next.
+The team decided to build deployment before the test run (D49–D52), because the Phase 2 review expects a demo. The scripted driver was dropped (D53), since the simulator already existed. `local_cluster.sh` and its PowerShell twin followed (D54), and a crash test found a Windows clean-up bug that was fixed (F16, F17). Overhead is recorded per datacentre (D55, F18). On 11 Nov the work moved to Fedora: a port check failed there only because of TIME_WAIT, and was fixed. Then the full suite and the dev week through the local split matched the in-process run byte for byte (F19). The local split is complete.
+
+## 13c. Docker (11 Nov, PRD v0.8.9)
+
+DT2 followed the same shape as DT1: one image, started four times. The image is built from an allow-list so data and secrets cannot get in; data is mounted read-only, and the compose network has no ports published. Three things only showed up when running it: services must bind `0.0.0.0` inside a container; the manifest has no `.git` to read, so the commit is passed in; and Fedora's SELinux blocked the results mount until it was labelled `:z`. `scripts/docker_check.sh` then proved the three exit criteria: every policy on the toy, the dev week, and a killed container (D56, F20). Left: a clean-clone run and one on Windows.
 
 ## 14. Tools used along the way
 
@@ -226,10 +230,11 @@ The team decided to build deployment before the test run (D49–D52), because th
 - Build phases 5, 6 and 7: every policy, P1 proved on real data, and the experiment runner.
 - Build phase 8, first part: validation replicates, sweeps and the threshold freeze.
 - Deployment steps 4–7: `dcservice.py`, `--mode remote`, `local_cluster` scripts, overhead numbers. DT1 (local split) is complete.
+- DT2 Docker built and passing R-DEP-1/2/3 on Linux.
 
 **Next:**
 1. Build phase 8, the rest: test set once, sensitivity sweeps, ablations.
-2. DT2 Docker (required for Phase 2, D52), ideally before the test run.
+2. Finish DT2: a clean-clone run and a Windows run (the Docker build itself is done).
 3. DT3 AWS after the test results.
 
 **Still open:**

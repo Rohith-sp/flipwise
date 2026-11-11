@@ -1,0 +1,56 @@
+# DT2 (PRD §13.5): the three virtual datacentres as containers, plus the coordinator.
+# dc_id order is fixed by the --dc-urls list: dc0 Delhi NCR, dc1 Mumbai, dc2 Chennai.
+#
+#   export GIT_COMMIT=$(git rev-parse HEAD)          # PowerShell: $env:GIT_COMMIT = git rev-parse HEAD
+#   docker compose up --build --abort-on-container-exit --exit-code-from coordinator
+#   docker compose down
+#
+# Default run is the toy scenario. Other runs, for example the dev week:
+#   FLIPWISE_RUN_ARGS="--config configs/base.yaml --policy decision_flip" docker compose up ...
+#
+# `:z` relabels the bind mounts for SELinux (Fedora); other systems ignore it.
+
+x-dc: &dc
+  build:
+    context: .
+    args:
+      GIT_COMMIT: ${GIT_COMMIT:-unknown}
+  image: flipwise:${FLIPWISE_TAG:-dev}
+  networks: [fw]
+  healthcheck:
+    test: ["CMD", "python", "-c", "import urllib.request as u; u.urlopen('http://127.0.0.1:8101/health', timeout=2)"]
+    interval: 2s
+    timeout: 3s
+    retries: 10
+    start_period: 2s
+
+services:
+  dc-delhi:
+    <<: *dc
+    command: ["dc-serve", "--dc-id", "0", "--host", "0.0.0.0", "--port", "8101"]
+  dc-mumbai:
+    <<: *dc
+    command: ["dc-serve", "--dc-id", "1", "--host", "0.0.0.0", "--port", "8101"]
+  dc-chennai:
+    <<: *dc
+    command: ["dc-serve", "--dc-id", "2", "--host", "0.0.0.0", "--port", "8101"]
+
+  coordinator:
+    image: flipwise:${FLIPWISE_TAG:-dev}
+    networks: [fw]
+    depends_on:
+      dc-delhi: {condition: service_healthy}
+      dc-mumbai: {condition: service_healthy}
+      dc-chennai: {condition: service_healthy}
+    volumes:
+      - ./data:/app/data:ro,z
+      - ${FLIPWISE_RESULTS:-./results}:/app/results:z
+    command: >-
+      run --mode remote
+      --dc-urls http://dc-delhi:8101,http://dc-mumbai:8101,http://dc-chennai:8101
+      ${FLIPWISE_RUN_ARGS:---scenario tests/fixtures/toy --policy decision_flip}
+
+# No published ports and no outside access: the services are reachable only from the coordinator.
+networks:
+  fw:
+    internal: true

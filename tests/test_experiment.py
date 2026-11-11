@@ -237,3 +237,17 @@ def test_threshold_rule_prd_14_5():
     table = _select_module().select([data], "p")
     assert list(table["params"]) == ["t=0.3", "t=0.2", "t=0.1"]
     assert list(table["allowed"]) == [True, True, False]
+
+
+def test_git_commit_falls_back_to_the_image_environment(monkeypatch):
+    """DT2: a container image has no .git, so the manifest takes the commit from the environment."""
+    from flipwise import experiment
+
+    def no_git(*args, **kwargs):
+        raise FileNotFoundError("git")
+
+    monkeypatch.setattr(experiment.subprocess, "run", no_git)
+    monkeypatch.setenv("FLIPWISE_GIT_COMMIT", "abc123")
+    assert experiment._git_commit() == {"commit": "abc123", "dirty": None}
+    monkeypatch.delenv("FLIPWISE_GIT_COMMIT")
+    assert experiment._git_commit() == {"commit": None, "dirty": None}

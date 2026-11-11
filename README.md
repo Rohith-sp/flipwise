@@ -97,7 +97,7 @@ Stack: pandas, numpy, PyYAML and matplotlib. Optional: plotly, via `uv sync --ex
 | `flipwise dashboard --runs results/compare_<hash>` | Write a static, offline `dashboard.html` from saved CSVs |
 | `flipwise dc-serve --dc-id 0 --port 8101` | Run one datacentre as an HTTP service (deployment track) |
 | `bash scripts/local_cluster.sh --config configs/base.yaml --policy decision_flip` | DT1: start three local datacentre services, run with `--mode remote`, stop them on exit |
-| `docker compose up --build --abort-on-container-exit` | DT2: the same run in four containers |
+| `docker compose up --build --abort-on-container-exit --exit-code-from coordinator` | DT2: the same run in four containers (`GIT_COMMIT` baked in; `bash scripts/docker_check.sh` is the acceptance test) |
 
 ## 5. Repository layout
 
@@ -173,7 +173,7 @@ Items 5–6 never hold back items 1–4.
 
 kgCO2 stays labelled **relative** until power parameters are cited (blocker B3).
 
-**Where items 1–4 stand:** done. Run `flipwise smoke`, `scripts/check_p1.py`, `flipwise compare`, `flipwise dashboard`; first results are in PRD §10.11. Item 5 (DT1) is done; item 6 (DT2 Docker) is open.
+**Where items 1–4 stand:** done. Run `flipwise smoke`, `scripts/check_p1.py`, `flipwise compare`, `flipwise dashboard`; first results are in PRD §10.11. Item 5 (DT1) is done; item 6 (DT2 Docker) is built and checked on Linux, with a clean-clone and a Windows run still to do.
 
 #### Deployment track in Phase 2: local split, then Docker
 
@@ -190,7 +190,7 @@ Build order (PRD §18), chosen so nothing is throwaway:
 | 7 | `flipwise run --mode remote` with the real simulator (needs build phase 3) | Toy simulation identical in-process and remote (R-DEP-1) |
 | 8 | **Stretch, DT2:** `Dockerfile` + `docker-compose.yml` (`dc-delhi`, `dc-mumbai`, `dc-chennai`, `coordinator`) | `docker compose up` from a clean clone gives the same outputs |
 
-**Status (11 Nov):** steps 1–7 are done, so **DT1 is complete**: `dcservice.py`, `flipwise dc-serve`, `HttpDatacentre`, `--mode remote`, `local_cluster.sh` and `.ps1`, and the crash test (R-DEP-3). R-DEP-1 holds on the toy for every policy, and on the dev week for `decision_flip` (F19). **Next: step 8, DT2 Docker.**
+**Status (11 Nov):** steps 1–7 are done, so **DT1 is complete**: `dcservice.py`, `flipwise dc-serve`, `HttpDatacentre`, `--mode remote`, `local_cluster.sh` and `.ps1`, and the crash test (R-DEP-3). R-DEP-1 holds on the toy for every policy, and on the dev week for `decision_flip` (F19). Step 8, DT2 Docker, is built (`Dockerfile`, `docker-compose.yml`, `scripts/docker_check.sh`): R-DEP-1, 2 and 3 hold in Compose on Linux (F20). **Left: a clean-clone run and a Windows run.**
 
 PRD §13.5 is the contract, so steps 4–8 can run in parallel with the simulator work. Steps 2–3 are shared. Docker needs Docker Desktop with WSL2 on Windows laptops; on Linux, Docker Engine is enough.
 

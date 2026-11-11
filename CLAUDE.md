@@ -4,7 +4,7 @@ Flipwise: an offline, deterministic discrete-event simulator that tests **when**
 
 ## Source of truth
 
-- `docs/prd.md` (v0.8.8) is authoritative: formulas, data rules, requirement IDs (R-*), decisions (D*), open items (B*/O*). If code and PRD disagree, flag it; don't silently pick one.
+- `docs/prd.md` (v0.8.9) is authoritative: formulas, data rules, requirement IDs (R-*), decisions (D*), open items (B*/O*). If code and PRD disagree, flag it; don't silently pick one.
 - `docs/explanation.md` is the plain-language version; `docs/project_journey.md` records how and why the project got to its current state (update it after major decisions). `README.md` is the short overview and roadmap.
 - A design change means editing the PRD (and its changelog) and `docs/decisions.md` in the same change.
 - `docs/HANDOFF.md` is the current state and next steps: read it first in a new session, and update it before ending one. `docs/decisions.md` lists every decision and finding by phase, with why; check it before reopening a settled choice.
@@ -42,7 +42,9 @@ uv run flipwise compare --config configs/base.yaml --jobs 7   # all policies, de
 uv run flipwise dashboard --runs results/compare_<hash>
 uv run python scripts/check_p1.py                         # P1 on real data
 bash scripts/local_cluster.sh --config configs/base.yaml --policy fcfs   # DT1 (Linux bash / Git Bash)
-docker compose up --build --abort-on-container-exit                      # DT2
+export GIT_COMMIT=$(git rev-parse HEAD)   # PowerShell: $env:GIT_COMMIT = git rev-parse HEAD
+docker compose up --build --abort-on-container-exit --exit-code-from coordinator   # DT2
+bash scripts/docker_check.sh [toy|dev|crash|all]                         # DT2 acceptance (R-DEP-1/2/3)
 ```
 
 Before finishing any code change: ruff check, ruff format, and the relevant tests pass. Report failures with their output; don't claim success otherwise.
@@ -76,7 +78,7 @@ Before finishing any code change: ruff check, ruff format, and the relevant test
 
 ## Current status
 
-EL Phase 1 done; Phase 2 in progress. Build phases 1–7 done, including the full data pipeline on real Indian data (`validate: OK` on 29 Oct). Indian generation constructed from Grid-India data, B4 resolved: `scripts/download_india.py` → `scripts/build_india_generation.py` (needs `uv sync --extra india-data`) → `ingest india`). Toy `smoke` matches `expected.yaml`. Build phases 5–7 done: every policy, P1 on the dev week (`scripts/check_p1.py`), `compare`, `sweep`, `report`, `dashboard`. Build phase 8: validation and the threshold freeze are done (PRD §14.5, evidence in `docs/validation/`); next, the test set once, then sensitivity sweeps and ablations. Design notes: `docs/design_phases_5_7.md`. Deployment track: DT1 local split is **complete** (`dc-serve`, `--mode remote`, `local_cluster.sh`/`.ps1`, crash test, overhead; the scripted driver was dropped, D53); DT2 Docker is required for Phase 2 (D52) and is next, before the test run; DT3 AWS comes after the test results. Open blockers: B1 (mentor confirms scope), B2 (NESO redistribution terms; coverage answered), B3 (power values; until resolved, report kgCO2 as relative). Update this section when a phase completes.
+EL Phase 1 done; Phase 2 in progress. Build phases 1–7 done, including the full data pipeline on real Indian data (`validate: OK` on 29 Oct). Indian generation constructed from Grid-India data, B4 resolved: `scripts/download_india.py` → `scripts/build_india_generation.py` (needs `uv sync --extra india-data`) → `ingest india`). Toy `smoke` matches `expected.yaml`. Build phases 5–7 done: every policy, P1 on the dev week (`scripts/check_p1.py`), `compare`, `sweep`, `report`, `dashboard`. Build phase 8: validation and the threshold freeze are done (PRD §14.5, evidence in `docs/validation/`); next, the test set once, then sensitivity sweeps and ablations. Design notes: `docs/design_phases_5_7.md`. Deployment track: DT1 local split is **complete** (`dc-serve`, `--mode remote`, `local_cluster.sh`/`.ps1`, crash test, overhead; the scripted driver was dropped, D53); DT2 Docker is **built and passes R-DEP-1/2/3 on Linux** (D56, F20); left for DT2: a clean-clone run and one Windows/Docker Desktop run, then the test run; DT3 AWS comes after the test results. Open blockers: B1 (mentor confirms scope), B2 (NESO redistribution terms; coverage answered), B3 (power values; until resolved, report kgCO2 as relative). Update this section when a phase completes.
 
 ## graphify
 

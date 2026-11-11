@@ -1,0 +1,10 @@
+# Allow-list: nothing enters the image unless listed here, so data, results, secrets and git
+# history can never leak into a layer (PRD §13.5 DT2). Data is mounted at run time instead.
+*
+!pyproject.toml
+!uv.lock
+!README.md
+!src/
+!configs/
+!tests/fixtures/toy/
+**/__pycache__
