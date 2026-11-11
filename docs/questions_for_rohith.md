@@ -4,9 +4,9 @@
 
 Validation is finished and thresholds are frozen (PRD v0.8.6). These decisions are yours now. **You don't need the run logs:** everything from the 300 runs is in `docs/validation/` (start with its README), and findings are in `docs/decisions.md` (F9, F12–F15, D46–D48) and PRD §14.5. All figures are from 12 validation replicates at job sampling 0.1, and kgCO2 is relative until B3 is resolved.
 
-Please settle question 1 before running the test set. Record each answer in `docs/decisions.md`, and in the PRD if the design changes.
+All four are closed (10 Nov). Still open: B1 (mentor confirms scope) and B3 (cited power values; kgCO2 stays relative until then).
 
-## 1. Do we accept `INTERVAL_TOO_WIDE` above its 10 % flag? (before the test run)
+## 1. Do we accept `INTERVAL_TOO_WIDE` above its 10 % flag? [Answered: A, D49]
 
 At the frozen `w_max` = 2, θ is switched off on 28.4 % of `decision_flip`'s comparisons, and all 12 replicates are above the flag.
 
@@ -23,13 +23,13 @@ Widening clears the flag on average but doesn't lower emissions. The gaps betwee
 
 Changing `w_max` after the test run would mean tuning after seeing test results, so this has to be decided first.
 
-## 2. When do we run the test set, and at what sampling?
+## 2. When do we run the test set, and at what sampling? [Answered: 0.1, once, D50]
 
 The PRD allows one run only, after the freeze (§14.5), and it hasn't been run. `configs/base.yaml` has it at sampling 0.1 (D46). The final 1.0 is about 10× the jobs and was judged too slow for a laptop.
 
 Recommended: stay at 0.1 and say so in the report. Use 1.0 only if we get a bigger machine. Choose before running, since the one run is the claim.
 
-## 3. How should the report state the claim?
+## 3. How should the report state the claim? [Answered: recommended wording, D51]
 
 `decision_flip` is clearly better than `place_once` (−146 kg, CI −234 to −60), but it can't be told apart on emissions from the other re-planners:
 
@@ -43,9 +43,9 @@ Its measured advantage is cost: 58 % fewer full re-scorings and 61 % fewer moves
 
 Recommended: claim "about the same carbon at much lower re-planning cost", not "lowest emissions". Does this fit what the mentor expects (B1)?
 
-## 4. What comes first for the Phase 2 review?
+## 4. What comes first for the Phase 2 review? [Answered: deployment first, D52]
 
-The local-split demo isn't ready: deployment steps 5–7 are missing (scripted driver, `local_cluster.sh`, `--mode remote`). Step 4 is done. The rest of build phase 8 (test set, sensitivity sweeps, ablations A0–A6) is also open.
+*Status at asking (5 Nov): the local-split demo wasn't ready. Since then step 6 (`local_cluster`) and step 7 (`--mode remote`) are built and step 5 was dropped (D53, D54); DT1 is complete and only Docker (DT2) remains.* The rest of build phase 8 (test set, sensitivity sweeps, ablations A0–A6) is also open.
 
 Recommended: deployment steps 5–7 first, since the review expects the demo. What is the review date, and is that order right?
 
