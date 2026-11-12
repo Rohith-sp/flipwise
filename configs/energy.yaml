@@ -19,9 +19,18 @@ emission_factors:
     other: 0.0                    # [Open] PRD §6.2.2: 0 by default
 
 power:
-  # Placeholders for the Phase 2 review only (PRD §7.2, v0.8); B3 is still open, so every kgCO2
-  # from these values is relative. 0.3 kW is on the high side for a fleet of mostly P100 and T4.
-  p_gpu_kw: 0.3
+  # PRD §7.2, D58. kgCO2 is reported as a bracket: `nameplate` (requested GPUs at datasheet power,
+  # an upper bound) and `measured` (datasheet power x each job's measured GPU use from Alibaba's
+  # pai_sensor_table, a lower bound because idle draw is left out). The scheduler always scores
+  # with nameplate power. `power_mode` in configs/base.yaml picks the evaluator's end.
+  mode: measured
+  # kW per GPU, NVIDIA datasheet board power: Tesla V100 SXM2 300 W (V100M32 assumed the same),
+  # Tesla P100 250 W, Tesla T4 70 W. MISC (K40m, K80, M60; the trace does not say which): 150 W,
+  # from NVIDIA's K80 board spec (150 W cap per GPU, 300 W per two-GPU board) and the M60 (300 W
+  # two-GPU board); the K40m (about 235 W) is not separated, so MISC may be low.
+  gpu_kw_by_type: {V100: 0.30, V100M32: 0.30, P100: 0.25, T4: 0.07, MISC: 0.15}
+  p_gpu_kw: 0.30   # any other type; NONE jobs request no GPU, so it never applies to them
+  # [Assumption] kW per core. The trace names no CPU model; 10 W is in the range of server CPU
+  # TDP / cores (Green Algorithms method, Lannelongue et al. 2021). Swept by the 0.5/1.5 multipliers.
   p_cpu_kw: 0.01
-  label: relative
   pue: 1.0

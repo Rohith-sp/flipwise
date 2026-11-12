@@ -37,7 +37,7 @@ Three limits apply throughout:
 
 - **Nothing real is scheduled.** We replay history in a simulator.
 - **Running jobs are never moved** (no migration). Only jobs still waiting can be re-planned.
-- **Emissions are relative.** The GPU and CPU power values are placeholders until we cite them (blocker B3), so kgCO2 numbers compare policies with each other; they are not absolute.
+- **Emissions are a bracket.** GPU power comes from NVIDIA datasheets per GPU type, and how hard each job really used its GPUs comes from Alibaba's own measurements. Because an idle GPU's draw is unknown, kgCO2 is given as a range: `measured` (lower bound) to `nameplate` (upper bound). CPU power per core is still an assumption (10 W). Until 12 Nov every kgCO2 figure was relative, using a placeholder of 0.3 kW for every GPU.
 
 ## 2. Step 1: the inputs we prepare
 
@@ -74,7 +74,7 @@ A **scenario** is one self-contained world to simulate. `scenario.py` (`build_re
 3. **Map trace time to Indian time.** Trace clock hours are lined up with IST clock hours, so daytime job submissions meet the Indian solar midday.
 4. **Add deadlines.** `deadline = arrival + 4 h + 2 × r_q90`. It uses only the estimate, so it tells the scheduler nothing new about the real runtime.
 5. **Set up three datacentres.** dc0 Delhi NCR (region 1), dc1 Mumbai (region 2), dc2 Chennai (region 3), each with GPU, CPU and memory capacity sized from the trace's cluster totals so the offered load is about 70 % (`rho = 0.7`).
-6. **Attach carbon** truth and the forecast vintages for those weeks, and the power model: `power = GPUs × p_gpu_kw + CPU cores × p_cpu_kw`.
+6. **Attach carbon** truth and the forecast vintages for those weeks, and the power model (PRD §7.2, D58). The scheduler scores with **nameplate** power: `GPUs requested × datasheet kW of that GPU type + CPU cores requested × 0.01 kW` (V100 0.30, P100 0.25, T4 0.07, older MISC GPUs 0.15 kW). The evaluator charges either the same (`nameplate`, upper bound) or the **measured** power: `GPUs requested × datasheet kW × share actually used + cores actually used × 0.01 kW`, with the use measured by Alibaba (`pai_sensor_table`, summed per job by `flipwise ingest usage`). Power multiplies every option of a job equally, so it never changes a decision, only the kgCO2.
 
 Validation uses 12 replicates (3 trace weeks × 4 carbon Mondays in July and August 2023); the test set uses 16 (4 × 4, September 2023 to January 2024). The train, validation and test periods never overlap, in jobs or in carbon (`configs/base.yaml`, `splits`).
 
@@ -373,7 +373,7 @@ The claim the team agreed (D51) is: *about the same carbon as the other re-plann
 | Phase 2 (partial results) | Toy check, P1, one comparison table, dashboard, local split, Docker | Done, except one Docker run on Windows |
 | Phase 3 (final) | Full results, sweeps, ablations, paper | Test results in; sweeps and ablations open |
 
-Open blockers: B1, the mentor confirms the scope; B3, cited power values, so kgCO2 can be absolute.
+Open blockers: B1, the mentor confirms the scope. B3 is mostly resolved (D58): kgCO2 is a cited bracket, with CPU power per core still assumed.
 
 ## 13. Glossary
 

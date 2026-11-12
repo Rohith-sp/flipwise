@@ -6,7 +6,7 @@ cd "$(dirname "$0")/.."
 
 OSS=https://aliopentrace.oss-cn-beijing.aliyuncs.com/v2020GPUTraces
 mkdir -p data/raw/v2020
-for f in pai_job_table pai_task_table pai_machine_spec; do
+for f in pai_job_table pai_task_table pai_machine_spec pai_sensor_table; do
   [ -f "data/raw/v2020/$f.tar.gz" ] || curl -fL -o "data/raw/v2020/$f.tar.gz" "$OSS/$f.tar.gz"
   [ -f "data/raw/v2020/$f.csv" ] || tar -xzf "data/raw/v2020/$f.tar.gz" -C data/raw/v2020
 done

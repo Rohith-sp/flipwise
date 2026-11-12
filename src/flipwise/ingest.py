@@ -11,7 +11,15 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 
-from flipwise.trace import ARCHIVE_SHA256, read_jobs, read_tasks, sha256_file, verify_archives
+from flipwise.errors import ChecksumError
+from flipwise.trace import (
+    ARCHIVE_SHA256,
+    SENSOR_SHA256,
+    read_jobs,
+    read_tasks,
+    sha256_file,
+    verify_archives,
+)
 
 JOB_SCHEMA = [
     "job_id",
@@ -171,13 +179,96 @@ def ingest_alibaba(
     return manifest
 
 
+SENSOR_COLUMNS = ["job_name", "task_name", "worker_name", "inst_id", "machine", "gpu_name",
+                  "cpu_usage", "gpu_wrk_util"]  # fmt: skip
+
+
+def build_usage(jobs: pd.DataFrame, sensor: pd.DataFrame) -> pd.DataFrame:
+    """Measured use per job (PRD §7.2, D58): GPUs and cores in use, averaged over each instance's
+    life and summed over the job's instances (Alibaba reports both in percent: 100 = one).
+
+    Jobs without sensor rows take their GPU type's ratio of used to requested: the mean for GPUs
+    (capped at 1, so bounded) and the median for cores, whose ratio is heavy-tailed (some jobs use
+    hundreds of times their request). Every job gets a value; `source` says which.
+    """
+    s = sensor.groupby("job_name", sort=True).agg(
+        gpu_used=("gpu_wrk_util", "sum"), cpu_used=("cpu_usage", "sum")
+    )
+    s = s / 100
+    out = jobs[["job_id", "gpu_req", "cpu_req", "gpu_type"]].merge(
+        s, left_on="job_id", right_index=True, how="left"
+    )
+    have = out["gpu_used"].notna() & out["cpu_used"].notna()
+    gpu_ratio = (out["gpu_used"] / out["gpu_req"]).where(out["gpu_req"] > 0).clip(upper=1.0)
+    cpu_ratio = (out["cpu_used"] / out["cpu_req"]).where(out["cpu_req"] > 0)
+    by_type = pd.DataFrame({"type": out["gpu_type"], "g": gpu_ratio.where(have),
+                            "c": cpu_ratio.where(have)}).groupby("type")  # fmt: skip
+    fill_g = out["gpu_type"].map(by_type["g"].mean()).fillna(0.0) * out["gpu_req"]
+    fill_c = out["gpu_type"].map(by_type["c"].median()).fillna(0.0) * out["cpu_req"]
+    return pd.DataFrame(
+        {
+            "job_id": out["job_id"],
+            "gpu_used": out["gpu_used"].where(have, fill_g).astype(float),
+            "cpu_used": out["cpu_used"].where(have, fill_c).astype(float),
+            "source": np.where(have, "sensor", "type_fill"),
+        }
+    )
+
+
+def ingest_usage(raw_dir: Path, jobs_path: Path, out_dir: Path, manifest_dir: Path) -> dict:
+    """Verify `pai_sensor_table`, build `job_usage.csv` for every canonical job, write manifest."""
+    checksums = {}
+    for name, expected in SENSOR_SHA256.items():
+        path = raw_dir / name
+        if not path.exists():
+            raise ChecksumError(f"missing archive {path}")
+        got = sha256_file(path)
+        if got != expected:
+            raise ChecksumError(f"{name}: sha256 {got} != expected {expected}")
+        checksums[name] = got
+    csv_path = raw_dir / "pai_sensor_table.csv"
+    if not csv_path.exists():
+        raise ChecksumError(f"extract {raw_dir / 'pai_sensor_table.tar.gz'} first")
+    sensor = pd.read_csv(csv_path, header=None, usecols=[0, 6, 7], names=["job_name",
+                         "cpu_usage", "gpu_wrk_util"])  # fmt: skip
+    jobs = pd.read_csv(jobs_path)
+    usage = build_usage(jobs, sensor)
+    out_dir.mkdir(parents=True, exist_ok=True)
+    manifest_dir.mkdir(parents=True, exist_ok=True)
+    out_path = out_dir / "job_usage.csv"
+    usage.to_csv(out_path, index=False, lineterminator="\n")
+    manifest = {
+        **_base_manifest(),
+        "source": "https://github.com/alibaba/clusterdata/tree/master/cluster-trace-gpu-v2020",
+        "archives_sha256": checksums,
+        "jobs_sha256": sha256_file(jobs_path),
+        "sensor_rows": len(sensor),
+        "output": {
+            "path": out_path.name,
+            "rows": len(usage),
+            "sha256": sha256_file(out_path),
+            "from_sensor": int((usage["source"] == "sensor").sum()),
+            "from_type_fill": int((usage["source"] == "type_fill").sum()),
+        },
+    }
+    (manifest_dir / "job_usage.json").write_text(json.dumps(manifest, indent=2) + "\n")
+    return manifest
+
+
 def git_head(repo: Path) -> str:
     return subprocess.run(
         ["git", "-C", str(repo), "rev-parse", "HEAD"], capture_output=True, text=True, check=True
     ).stdout.strip()
 
 
-__all__ = ["ARCHIVE_SHA256", "build_jobs", "ingest_alibaba", "git_head"]
+__all__ = [
+    "ARCHIVE_SHA256",
+    "build_jobs",
+    "build_usage",
+    "ingest_alibaba",
+    "ingest_usage",
+    "git_head",
+]
 
 
 # ---- NESO forecast-vintage archive (PRD §6.2, §6.7) ----------------------------------------

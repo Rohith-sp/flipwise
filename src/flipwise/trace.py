@@ -33,6 +33,10 @@ ARCHIVE_SHA256 = {
     "pai_task_table.tar.gz": "cd1d6dc3215d2a8607ccf6b6dd952b5db776df86926c73259fea7c1499ac40e5",
     "pai_machine_spec.tar.gz": "cc0d38a4045af1b1af8179de8b1b54b1ddd995e6160d6d061a6b1000f1276c2d",
 }
+# Only `ingest usage` needs it (PRD §7.2, D58), so it is checked there, not with the archives above.
+SENSOR_SHA256 = {
+    "pai_sensor_table.tar.gz": "9a0b82e8bdf3949281e4ba1423d9b4b34847e52799eecb138966de46da69c7a0",
+}
 
 
 def sha256_file(path: Path, chunk_bytes: int = 1 << 20) -> str:

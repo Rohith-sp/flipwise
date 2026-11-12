@@ -134,12 +134,20 @@ def sampling_key(job_id: str, seed: int) -> float:
 
 
 def _load_power(cfg: dict, root: Path) -> tuple[PowerModel, str]:
+    """Power model of PRD §7.2 (D58). `power_mode` in the experiment config overrides the energy
+    file's `mode`, so `--set power_mode=nameplate` gives the other end of the bracket."""
     path = root / _req(cfg, "energy", "config")
     power = _req(yaml.safe_load(path.read_text()), "power", str(path))
     p_gpu, p_cpu = power.get("p_gpu_kw"), power.get("p_cpu_kw")
     if p_gpu is None or p_cpu is None:
         raise ConfigError(f"{path}: set power.p_gpu_kw and power.p_cpu_kw (blocker B3)")
-    return PowerModel(float(p_gpu), float(p_cpu)), str(power.get("label", "absolute"))
+    by_type = {str(k): float(v) for k, v in (power.get("gpu_kw_by_type") or {}).items()}
+    mode = str(cfg.get("power_mode", power.get("mode", "nameplate")))
+    try:
+        model = PowerModel(float(p_gpu), float(p_cpu), by_type, mode)
+    except ValueError as e:
+        raise ConfigError(f"{path}: {e}") from None
+    return model, mode
 
 
 def load_or_fit_residuals(cfg: dict, root: Path = Path(".")) -> tuple[Residuals, dict]:
@@ -219,6 +227,19 @@ def build_replicate(
     chosen = chosen[[sampling_key(j, seed) < replicate.sampling for j in chosen["job_id"]]]
     if chosen.empty:
         raise ConfigError(f"replicate {replicate.name}: no jobs in trace slice")
+    power, power_label = _load_power(cfg, root)
+    usage_path = root / data["usage"] if data.get("usage") else None
+    if power.mode == "measured":
+        if usage_path is None or not usage_path.exists():
+            raise ConfigError("measured power needs data.usage: run `flipwise ingest usage`")
+        usage = pd.read_csv(usage_path, dtype={"job_id": str}).set_index("job_id")
+        missing = ~chosen["job_id"].isin(usage.index)
+        if missing.any():
+            raise ConfigError(f"{usage_path}: no usage for {int(missing.sum())} jobs; re-run "
+                              "`flipwise ingest usage` after `ingest alibaba`")  # fmt: skip
+        used = usage.loc[chosen["job_id"], ["gpu_used", "cpu_used"]].to_numpy()
+    else:
+        used = [(None, None)] * len(chosen)
 
     # Capacity from target load over the whole sampled slice (PRD §8.1), before any exclusion.
     rho, n_dc = float(params["rho"]), len(regions)
@@ -237,7 +258,7 @@ def build_replicate(
     end_s = c0_s + int(cfg["horizon_days"]) * 86400
     slack_s, k_slack = int(params["slack_base_s"]), float(params["k_slack"])
     jobs, excluded, sources = [], 0, {"user": 0, "class": 0, "global": 0}
-    for r in chosen.itertuples(index=False):
+    for r, (gpu_used, cpu_used) in zip(chosen.itertuples(index=False), used, strict=True):
         if r.gpu_req > cap_gpu or r.cpu_req > cap_cpu or r.mem_req_gb > cap_mem:
             excluded += 1  # fits no datacentre, and all three are equal (PRD §8.1)
             continue
@@ -250,13 +271,14 @@ def build_replicate(
                 cpu_req=float(r.cpu_req), mem_req_gb=float(r.mem_req_gb), r_q05_s=q05,
                 r_q50_s=q50, r_q90_s=q90, r_q95_s=q95,
                 deadline_s=arrival_s + slack_s + int(k_slack * q90),
-                runtime_actual_s=int(r.runtime_actual_s),
+                runtime_actual_s=int(r.runtime_actual_s), gpu_type=str(r.gpu_type),
+                gpu_used=None if gpu_used is None else float(gpu_used),
+                cpu_used=None if cpu_used is None else float(cpu_used),
             )
         )  # fmt: skip
     jobs.sort(key=lambda j: (j.arrival_s, j.job_id))
 
     residuals, residual_report = load_or_fit_residuals(cfg, root)
-    power, power_label = _load_power(cfg, root)
     start_s = c0_s + min(shift_s, 0)
     # A day of earlier captures guarantees a vintage is already visible when the run starts.
     lead_in_s = start_s - 86400
@@ -273,6 +295,8 @@ def build_replicate(
         "jobs": len(jobs), "excluded_no_fit": excluded, "cap_gpu": cap_gpu, "cap_cpu": cap_cpu,
         "cap_mem_gb": cap_mem, "runtime_source": sources, "residuals": residual_report,
         "power_label": power_label,
+        "power": {"p_gpu_kw": power.p_gpu_kw, "p_cpu_kw": power.p_cpu_kw,
+                  "gpu_kw_by_type": dict(sorted(power.gpu_kw_by_type.items()))},
     }  # fmt: skip
     # Inputs by content, never by path, so the hash is the same on every machine (R-FAIR-1).
     h = hashlib.sha256(canonical_json({"params": params, "report": report}).encode())
@@ -280,6 +304,8 @@ def build_replicate(
                              "by_region": residuals.by_region}).encode())  # fmt: skip
     for p in (root / data[k] for k in ("jobs", "forecast", "coverage", "truth")):
         h.update(sha256_file(p).encode())
+    if power.mode == "measured":
+        h.update(sha256_file(usage_path).encode())  # type: ignore[arg-type]
     return Scenario(
         name=f"{replicate.name}_{replicate.carbon_monday}",
         jobs=jobs,

@@ -6,7 +6,7 @@ Set-Location (Join-Path $PSScriptRoot "..")
 
 $oss = "https://aliopentrace.oss-cn-beijing.aliyuncs.com/v2020GPUTraces"
 New-Item -ItemType Directory -Force -Path "data\raw\v2020" | Out-Null
-foreach ($f in "pai_job_table", "pai_task_table", "pai_machine_spec") {
+foreach ($f in "pai_job_table", "pai_task_table", "pai_machine_spec", "pai_sensor_table") {
     $tgz = "data\raw\v2020\$f.tar.gz"
     if (-not (Test-Path $tgz)) { Invoke-WebRequest -Uri "$oss/$f.tar.gz" -OutFile $tgz }
     # tar.exe ships with Windows 10 1803+ and Windows 11.

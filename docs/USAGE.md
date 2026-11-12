@@ -48,7 +48,7 @@ If `validate` fails, stop: runs on different data cannot be compared with the te
 | `report` | Rebuild tables and figures from saved logs only |
 | `dashboard` | A static `dashboard.html` from saved results |
 | `validate` | Check config, data checksums, coverage and the train/validation/test split |
-| `ingest`, `build-forecasts` | Rebuild `data/processed/` from raw data (not needed day to day) |
+| `ingest`, `build-forecasts` | Rebuild `data/processed/` from raw data (not needed day to day). `ingest usage` builds `job_usage.csv` from Alibaba's `pai_sensor_table` (406 MB download), needed for `measured` power |
 | `dc-serve` | Run one datacentre as an HTTP service (used by the local split and Docker) |
 
 ## 2. Five-minute demo on the toy scenario
@@ -126,7 +126,7 @@ uv run python scripts/check_p1.py        # prints "P1: HOLDS"
 
 Separately, when the uncertainty interval is too wide to be informative (`w_ab` above `w_max × Ŝ_a`), the noise margin θ is switched off for that comparison and the row's `reason` is `INTERVAL_TOO_WIDE`. The share of such comparisons is `fallback_share` in `metrics.json`; the team accepted it at the frozen `w_max` = 2 and reports it with the results (D49).
 
-**Emissions are relative.** Until the power values are cited (blocker B3), every kgCO2 figure compares policies with each other and is not an absolute number. The `power_label` column says so.
+**Emissions are a bracket.** kgCO2 comes as a bracket (PRD §7.2, D58): `measured` (base; datasheet GPU power × each job's measured use from Alibaba's sensor table, a lower bound because idle draw is left out) and `nameplate` (requested GPUs at datasheet power, an upper bound; `--set power_mode=nameplate`). Decisions are the same under both; only the emissions differ. CPU power per core is still an assumption (10 W). The `power_label` column says which end a run used.
 
 ## 4. Real data: the dev week and comparisons
 
@@ -294,6 +294,6 @@ A remote run gets its own `run_id` (the mode is part of it), so the two folders 
 
 - **Same inputs, same outputs.** A fixed config and seed give byte-identical `events.log`, `jobs.csv` and `decisions.csv`. Do not add wall-clock time or unseeded randomness to the simulation.
 - **No tuning on the test period.** Thresholds are frozen and the test split has been run; its results are in `docs/test_results/`.
-- **kgCO2 is relative** until B3 is resolved. Say so in anything you show.
+- **kgCO2 is a bracket**, `measured` (lower) to `nameplate` (upper); say which end you show. CPU power per core is an assumption.
 - **Do not commit** `data/raw/`, `data/processed/`, `results/`, `.venv`, `.env`, `*.pem` or AWS credentials.
 - After any design change, update `docs/prd.md` and `docs/decisions.md` together, and `docs/HANDOFF.md` before ending a session.

@@ -70,6 +70,10 @@ class Job:
     deadline_s: int
     # Hidden from policies (PRD §8.7): only the datacentre and the evaluator read it.
     runtime_actual_s: int
+    gpu_type: str = "NONE"  # known to the scheduler: it sets the nameplate power (§7.2)
+    # Measured use (GPUs, cores), for the evaluator's `measured` power only (D58); hidden.
+    gpu_used: float | None = None
+    cpu_used: float | None = None
     # Dynamic state.
     state: JobState = JobState.NOT_ARRIVED
     dc_id: int | None = None

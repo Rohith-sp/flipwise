@@ -4,7 +4,7 @@ import pandas as pd
 import pytest
 
 from flipwise.errors import ChecksumError
-from flipwise.ingest import build_jobs
+from flipwise.ingest import build_jobs, build_usage
 from flipwise.trace import ARCHIVE_SHA256, JOB_COLUMNS, TASK_COLUMNS, verify_archives
 
 NAN = math.nan
@@ -209,3 +209,27 @@ def test_india_forecasts_from_error_paths_r_ing_6():
     assert list(fc["capture_utc"]) == [0, 2 * s]
     assert list(fc["forecast_g_per_kwh"]) == [600.0, 0.0]
     assert counts == {"error_rows_without_truth": 1}
+
+
+def test_usage_sums_instances_and_fills_by_gpu_type_d58():
+    """D58: sensor values are percent (100 = one GPU or core), summed over a job's instances.
+    A job with no sensor rows takes its type's mean GPU share and median CPU ratio."""
+    jobs = pd.DataFrame({
+        "job_id": ["a", "b", "c", "d"],
+        "gpu_req": [2.0, 1.0, 4.0, 0.0],
+        "cpu_req": [8.0, 4.0, 8.0, 2.0],
+        "gpu_type": ["T4", "T4", "T4", "NONE"],
+    })  # fmt: skip
+    sensor = pd.DataFrame({
+        "job_name": ["a", "a", "b"],
+        "cpu_usage": [300.0, 100.0, 1200.0],
+        "gpu_wrk_util": [50.0, 30.0, 150.0],
+    })  # fmt: skip
+    u = build_usage(jobs, sensor).set_index("job_id")
+    assert u.loc["a", "gpu_used"] == pytest.approx(0.8) and u.loc["a", "cpu_used"] == 4.0
+    assert u.loc["b", "gpu_used"] == pytest.approx(1.5)  # measured value kept as reported
+    assert list(u["source"]) == ["sensor", "sensor", "type_fill", "type_fill"]
+    # T4 shares: a 0.4, b 1.5 capped to 1 -> mean 0.7; CPU ratios a 0.5, b 3.0 -> median 1.75.
+    assert u.loc["c", "gpu_used"] == pytest.approx(0.7 * 4)
+    assert u.loc["c", "cpu_used"] == pytest.approx(1.75 * 8)
+    assert u.loc["d", "gpu_used"] == 0.0 and u.loc["d", "cpu_used"] == 0.0  # no NONE samples

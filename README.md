@@ -171,7 +171,7 @@ Policies in Phase 2: `fcfs`, `place_once`, `periodic(T)`, `fixed_savings(g)`, `d
 
 Items 5–6 never hold back items 1–4.
 
-kgCO2 stays labelled **relative** until power parameters are cited (blocker B3).
+kgCO2 is reported as a bracket, `measured` (lower) to `nameplate` (upper), from datasheet GPU power and Alibaba's measured use (B3 mostly resolved, D58). Results before 12 Nov used a placeholder and are relative.
 
 **Where items 1–4 stand:** done. Run `flipwise smoke`, `scripts/check_p1.py`, `flipwise compare`, `flipwise dashboard`; first results are in PRD §10.11. Item 5 (DT1) is done; item 6 (DT2 Docker) is built and checked on Linux, including from a clean clone, with one Windows run still to do.
 
@@ -227,7 +227,7 @@ Optional, only after the main results exist: X1 (Global–Local DRO planner) and
 | B1 | Mentor confirms decision-flip is the core contribution and DRO is extension X1 | Before Phase 2 work |
 | B2 | Archive coverage for the three GB error-source regions and NESO redistribution terms | Build phase 2 |
 | ~~B4~~ | Resolved (v0.7): Grid-India daily reports × Grid-India SCADA shape; CEA v19.0 factors | — |
-| B3 | Cited power values: MISC GPU, CPU per core, utilisation factor `f` | Before absolute kgCO2 (build phase 8) |
+| B3 | Mostly resolved (D58): datasheet GPU power and measured use give a bracket. Still open: CPU power per core (assumed 10 W), idle GPU draw | — |
 | O1 | Confirm the principal meant the CEA CO2 Baseline Database | Report |
 | O7 | Check that the name `flipwise` is free on PyPI | Before publishing the package |
 | O8 | AWS account and spending limit for DT3 (credits, free tier, or a member's account) | Before DT3 |

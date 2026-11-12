@@ -8,6 +8,7 @@ data:
   coverage: data/processed/capture_coverage.csv
   gb_error_paths: data/processed/gb_error_paths.csv
   gb_truth: data/processed/gb_truth.csv
+  usage: data/processed/job_usage.csv               # measured use per job (ingest usage, D58)
   manifests: data/manifests
 
 # Indian regional grids (PRD v0.5 §6.2.1): dc0 Delhi NCR (NR), dc1 Mumbai (WR), dc2 Chennai (SR).
@@ -19,6 +20,8 @@ policies: configs/policies.yaml
 horizon_days: 15             # 7-day arrival slice + 8 days to finish (PRD §8.6)
 # energy parameters, including the Phase 2 placeholder powers (PRD §7.2)
 energy: configs/energy.yaml
+# Evaluator power (PRD §7.2, D58): measured (lower bound, base) or nameplate (upper bound).
+power_mode: measured
 # Trace day 0 is 1970-01-01 00:00 UTC+8, so day d starts at origin + d * 86400. Trace timestamps
 # keep their weekday in UTC+8 (PRD §6.1), which makes days 25, 32, ... Mondays (PRD §14.2).
 trace_day_origin_s: -28800

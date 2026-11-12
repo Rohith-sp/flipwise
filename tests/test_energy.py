@@ -28,3 +28,25 @@ def test_negative_inputs_raise():
         energy_kwh(1.0, -1)
     with pytest.raises(ValueError):
         emissions_kg(1.0, 0, 60, lambda _k: -1.0)
+
+
+def test_power_bracket_d58():
+    """D58: nameplate charges datasheet power per GPU type; measured scales GPU power by the
+    measured share (capped at 1) and charges the cores actually used."""
+    pm = PowerModel(0.3, 0.01, {"T4": 0.07, "P100": 0.25}, mode="measured")
+    assert pm.power_kw(2, 4, "T4") == pytest.approx(2 * 0.07 + 4 * 0.01)
+    assert pm.power_kw(1, 0, "MISSING") == pytest.approx(0.3)  # unknown type: p_gpu_kw
+    # 2 P100 requested, 0.5 GPU in use on average, 3 cores used.
+    assert pm.actual_kw(2, 8, "P100", 0.5, 3) == pytest.approx(2 * 0.25 * 0.25 + 3 * 0.01)
+    assert pm.actual_kw(1, 0, "P100", 4.0, 0) == pytest.approx(0.25)  # share capped at 1
+    assert pm.actual_kw(0, 2, "NONE", 0.0, 1.5) == pytest.approx(0.015)  # CPU-only job
+    nameplate = PowerModel(0.3, 0.01, {"P100": 0.25})
+    assert nameplate.actual_kw(2, 8, "P100", 0.5, 3) == nameplate.power_kw(2, 8, "P100")
+    assert nameplate.actual_kw(2, 8, "P100", None, None) == nameplate.power_kw(2, 8, "P100")
+
+
+def test_measured_power_refuses_missing_usage_d58():
+    with pytest.raises(ValueError, match="gpu_used"):
+        PowerModel(0.3, 0.01, mode="measured").actual_kw(1, 1, "T4", None, 1.0)
+    with pytest.raises(ValueError, match="power mode"):
+        PowerModel(0.3, 0.01, mode="typo")

@@ -1,0 +1,19 @@
+{
+  "created_utc": "2026-11-12T10:59:19Z",
+  "python": "3.12.15",
+  "pandas": "3.1.0",
+  "numpy": "2.5.4",
+  "source": "https://github.com/alibaba/clusterdata/tree/master/cluster-trace-gpu-v2020",
+  "archives_sha256": {
+    "pai_sensor_table.tar.gz": "9a0b82e8bdf3949281e4ba1423d9b4b34847e52799eecb138966de46da69c7a0"
+  },
+  "jobs_sha256": "61c5d74a7b25ee1429169e707ac925dc195d98ade4ee5af72268dbfee95970ab",
+  "sensor_rows": 3033232,
+  "output": {
+    "path": "job_usage.csv",
+    "rows": 732355,
+    "sha256": "0ffc512117abcae267cc36a58400af0118fd78cb505ccceecebc32f79f1b210e",
+    "from_sensor": 575928,
+    "from_type_mean": 156427
+  }
+}

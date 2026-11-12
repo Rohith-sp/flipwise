@@ -31,6 +31,7 @@ Source: <https://github.com/alibaba/clusterdata/tree/master/cluster-trace-gpu-v2
 | `pai_job_table.tar.gz` | `5aad7f7caac501136d14ed6a48e40546f825d7b0617a3a4f337e2348fe0a6cb0` |
 | `pai_task_table.tar.gz` | `cd1d6dc3215d2a8607ccf6b6dd952b5db776df86926c73259fea7c1499ac40e5` |
 | `pai_machine_spec.tar.gz` | `cc0d38a4045af1b1af8179de8b1b54b1ddd995e6160d6d061a6b1000f1276c2d` |
+| `pai_sensor_table.tar.gz` (406 MB; measured use per instance, for `ingest usage`, D58) | `9a0b82e8bdf3949281e4ba1423d9b4b34847e52799eecb138966de46da69c7a0` |
 
 Manual download: `https://aliopentrace.oss-cn-beijing.aliyuncs.com/v2020GPUTraces/<archive>`, then `tar -xzf <archive> -C data/raw/v2020` (`tar` is built into Windows 10+).
 

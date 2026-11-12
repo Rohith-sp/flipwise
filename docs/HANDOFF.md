@@ -47,7 +47,7 @@ The four post-freeze questions were answered on 10 Nov (D49–D52 in `decisions.
 | Item | Question | Who |
 |---|---|---|
 | B1 | Does the mentor confirm the scope, including the v0.8 method changes? | Mentor |
-| B3 | Cited power values; until then every kgCO2 figure is relative, not absolute | Team |
+| B3 | Mostly resolved (12 Nov, D58): kgCO2 is a bracket, `measured` to `nameplate`. Still open: a CPU model for the PAI machines (10 W per core assumed). `docs/validation/` and `docs/test_results/` still hold the old relative kgCO2; their decisions are unchanged (verified on the dev week), so only the kgCO2 needs recomputing | Team |
 
 ## Things that will catch you out
 

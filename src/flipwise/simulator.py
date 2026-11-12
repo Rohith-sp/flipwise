@@ -270,7 +270,7 @@ class Simulator:
             r_q90_s=j.r_q90_s,
             r_q95_s=j.r_q95_s,
             deadline_s=j.deadline_s,
-            power_kw=self.scenario.power.power_kw(j.gpu_req, j.cpu_req),
+            power_kw=self.scenario.power.power_kw(j.gpu_req, j.cpu_req, j.gpu_type),
             state=j.state,
             dc_id=j.dc_id,
             release_slot=j.release_slot,
@@ -468,7 +468,9 @@ def job_outcome(job: Job, scenario: Scenario) -> dict:
     done = job.state == JobState.COMPLETED
     row: dict = {"energy_kwh": None, "kg_co2": None}
     if done and dc is not None:
-        p = scenario.power.power_kw(job.gpu_req, job.cpu_req)
+        p = scenario.power.actual_kw(
+            job.gpu_req, job.cpu_req, job.gpu_type, job.gpu_used, job.cpu_used
+        )
         row["energy_kwh"] = energy_kwh(p, job.runtime_actual_s, dc.pue)
         row["kg_co2"] = emissions_kg(
             p,

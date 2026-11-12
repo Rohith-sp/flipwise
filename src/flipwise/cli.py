@@ -16,6 +16,14 @@ def _cmd_ingest_alibaba(args: argparse.Namespace) -> int:
     return 0
 
 
+def _cmd_ingest_usage(args: argparse.Namespace) -> int:
+    from flipwise.ingest import ingest_usage
+
+    m = ingest_usage(args.raw, args.jobs, args.out, args.manifests)
+    print(json.dumps(m["output"], indent=2))
+    return 0
+
+
 def _cmd_ingest_carbon(args: argparse.Namespace) -> int:
     import datetime as dt
 
@@ -243,6 +251,13 @@ def build_parser() -> argparse.ArgumentParser:
     a.add_argument("--manifests", type=Path, default=Path("data/manifests"))
     a.add_argument("--missing-gpu-policy", choices=["zero", "drop"], default="zero")
     a.set_defaults(func=_cmd_ingest_alibaba)
+
+    u = ing.add_parser("usage", help="pai_sensor_table → measured use per job (§7.2, D58)")
+    u.add_argument("--raw", type=Path, default=Path("data/raw/v2020"))
+    u.add_argument("--jobs", type=Path, default=Path("data/processed/jobs_v2020.csv"))
+    u.add_argument("--out", type=Path, default=Path("data/processed"))
+    u.add_argument("--manifests", type=Path, default=Path("data/manifests"))
+    u.set_defaults(func=_cmd_ingest_usage)
 
     c = ing.add_parser("carbon", help="NESO archive → GB forecast-error paths (§6.2.3)")
     c.add_argument("--archive", type=Path,
