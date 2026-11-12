@@ -4,7 +4,7 @@
 
 Experiential Learning project, V semester, RV College of Engineering (Team ATLAS, theme: SDG 9 · Industry, Innovation and Infrastructure).
 
-[How it works](docs/DECISION_FLIP.md) · [Walkthrough](docs/WALKTHROUGH.md) · [Usage and demo](docs/USAGE.md) · [Specification](docs/prd.md) · [Decisions](docs/decisions.md)
+[How it works](docs/DECISION_FLIP.md) · [Walkthrough](docs/WALKTHROUGH.md) · [Demo](docs/DEMO.md) · [Usage](docs/USAGE.md) · [Specification](docs/prd.md) · [Decisions](docs/decisions.md)
 
 ---
 
@@ -81,7 +81,7 @@ Open **http://localhost:8100**. With the three datacentres as Docker containers:
 docker compose --profile live up --build dc-delhi dc-mumbai dc-chennai live
 ```
 
-Pages: Overview, Head-to-head (decision-flip against any policy, with every check the screen avoided), Job tracker (submit a job and follow each policy's decisions), Scheduler, Datacentres, Policy comparison, Scale projection, Test results, Architecture. A demo script is in [docs/USAGE.md §8a](docs/USAGE.md).
+Pages: Overview, Head-to-head (decision-flip against any policy, with every check the screen avoided), Job tracker (submit a job and follow each policy's decisions), Scheduler, Datacentres, Policy comparison, Scale projection, Test results, Architecture. Demo script: [docs/DEMO.md](docs/DEMO.md); what each page shows: [docs/WEB_EXPLAINER.md](docs/WEB_EXPLAINER.md).
 
 ### Experiments
 
@@ -144,7 +144,9 @@ Dockerfile, docker-compose.yml   one image: three datacentre services, coordinat
 |---|---|
 | [docs/DECISION_FLIP.md](docs/DECISION_FLIP.md) | The algorithm, step by step, with formulas and a worked example |
 | [docs/WALKTHROUGH.md](docs/WALKTHROUGH.md) | The whole system from data to results, with a toy scenario traced minute by minute |
-| [docs/USAGE.md](docs/USAGE.md) | Every command, the live demo and a demo script |
+| [docs/DEMO.md](docs/DEMO.md) | Step-by-step live demo script: commands, what to click, what to say |
+| [docs/WEB_EXPLAINER.md](docs/WEB_EXPLAINER.md) | Every page and component of the live dashboard, and how to read it |
+| [docs/USAGE.md](docs/USAGE.md) | Every command, including PowerShell forms |
 | [docs/prd.md](docs/prd.md) | The specification: formulas, requirements, data rules |
 | [docs/decisions.md](docs/decisions.md) | Every design decision and finding, with reasons |
 | [docs/HANDOFF.md](docs/HANDOFF.md) | Current development state and next steps |
