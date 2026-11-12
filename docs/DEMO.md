@@ -16,11 +16,24 @@ Run these once on the presenting laptop. All commands run from the repository ro
 |---|---|---|
 | Go to the repo | `cd "~/Desktop/projects/5TH SEM EL/flipwise"` | `cd "C:\5TH SEM EL\flipwise"` |
 | Install | `uv sync` | same |
-| Check code | `uv run pytest -q` (expect 260 passed) | same |
+| Check code | `uv run pytest -q` (expect 273 passed) | same |
 | Check data | `uv run flipwise validate --config configs/base.yaml` (expect `validate: OK`) | same |
 | Build the Docker image | `export GIT_COMMIT=$(git rev-parse HEAD)` then `docker compose --profile live build` | `$env:GIT_COMMIT = git rev-parse HEAD` then `docker compose --profile live build` |
 
 Then rehearse the whole script below once.
+
+### Two ways to run every act
+
+Every act below can be run either way. The dashboard and the four URLs are identical in both; only how the three datacentres are started differs.
+
+| | Local processes | Docker |
+|---|---|---|
+| What runs | The scheduler and three datacentre services as separate Python processes on this laptop | The scheduler and three datacentres as four separate containers |
+| Start | one `uv run flipwise live ... --services local` command | one `docker compose --profile live up ...` command |
+| Stop | Ctrl-C (stops all four processes) | Ctrl-C, then `docker compose --profile live down` |
+| Use when | Fastest to start; no Docker needed | Shows real containers on a private network |
+
+Pick one per act; the exact commands are given in each act.
 
 ### 15 minutes before
 
@@ -43,13 +56,29 @@ Point at: three datacentres (Delhi, Mumbai, Chennai) → the scheduler in the mi
 
 ## 2. Act 1: the idea on six jobs (2 minutes)
 
-**Terminal:**
+**Terminal, local processes:**
 
 ```bash
-uv run flipwise live --scenario tests/fixtures/toy --speed 120
+uv run flipwise live --scenario tests/fixtures/toy --speed 120 --services local
 ```
 
-**Browser:** http://localhost:8100. The clock reads *Mon 03 Jul 2023 05:30 IST*.
+**Terminal, Docker** (Linux / Git Bash):
+
+```bash
+FLIPWISE_LIVE_ARGS="--scenario tests/fixtures/toy --speed 120" \
+  docker compose --profile live up --build dc-delhi dc-mumbai dc-chennai live
+```
+
+Docker on Windows PowerShell:
+
+```powershell
+$env:FLIPWISE_LIVE_ARGS = "--scenario tests/fixtures/toy --speed 120"
+docker compose --profile live up --build dc-delhi dc-mumbai dc-chennai live
+```
+
+(Drop `--services local` from the local command, and you get everything in one process; same dashboard.)
+
+**Browser:** http://localhost:8100 (datacentre pages on :8101–:8103). The clock reads *Mon 03 Jul 2023 05:30 IST*.
 
 1. **Overview.** Point at the three datacentre cards and the carbon chart: *Delhi is cleanest right now (100), Chennai 200, Mumbai 300.*
    > "So every carbon-aware policy packs the first jobs into Delhi."
@@ -59,27 +88,29 @@ uv run flipwise live --scenario tests/fixtures/toy --speed 120
 4. Click **+1 h** twice more so every job finishes. **Policy comparison table** (Overview): decision_flip ends at about **1.50 kg**, place_once (never re-plans) at about **2.31 kg**.
    > "Re-planning at the right moment matters: the plan made on the old forecast was worse than no carbon awareness at all."
 
-Stop the server with **Ctrl-C**.
+Stop with **Ctrl-C**. For Docker, also run `docker compose --profile live down`, and clear the toy setting before Act 2: `unset FLIPWISE_LIVE_ARGS` (PowerShell: `Remove-Item Env:FLIPWISE_LIVE_ARGS`).
 
 ---
 
 ## 3. Act 2: a real week, real services (2 minutes)
 
-**Terminal (one command: the scheduler starts the three datacentre services itself):**
+**Terminal, local processes** (one command: the scheduler starts the three datacentre services itself; same on Linux and Windows):
 
 ```bash
 uv run flipwise live --config configs/base.yaml --services local
 ```
 
-It prints four URLs: the scheduler at **http://localhost:8100** and one page per datacentre, **http://localhost:8101** (Delhi NCR), **:8102** (Mumbai), **:8103** (Chennai). Open all four side by side. Ctrl-C stops everything.
+It prints four URLs. Ctrl-C stops all four processes.
 
-*Or in Docker (three datacentres as separate containers; the same four URLs):*
+**Terminal, Docker** (three datacentres and the scheduler as four containers; same on Linux and Windows):
 
 ```bash
 docker compose --profile live up --build dc-delhi dc-mumbai dc-chennai live
 ```
 
-Wait for the `live` container to print its line (10–20 s while it builds the week), then reload **http://localhost:8100**.
+Wait for the `live` container to print its line (10–20 s while it builds the week), then reload the page. Stop with Ctrl-C, then `docker compose --profile live down`.
+
+**Either way, the same four URLs:** the scheduler at **http://localhost:8100** and one page per datacentre, **http://localhost:8101** (Delhi NCR), **:8102** (Mumbai), **:8103** (Chennai). Open all four side by side.
 
 *Without separate services, in one process:* `uv run flipwise live --config configs/base.yaml`
 
@@ -139,11 +170,14 @@ Wait for the `live` container to print its line (10–20 s while it builds the w
 
 > "In short: same carbon as re-checking everything, half the re-planning work, and with the noise margin at zero it provably makes the same decisions. In Phase 3 we scale the tests up to the full trace and add a learned runtime model, because most deadline misses come from jobs that run longer than expected."
 
-Stop: **Ctrl-C** in the Docker terminal, then
+Stop:
 
-```bash
-docker compose --profile live down
-```
+- Local processes: **Ctrl-C** in the terminal (stops the scheduler and all three datacentres).
+- Docker: **Ctrl-C** in the terminal, then
+
+  ```bash
+  docker compose --profile live down
+  ```
 
 ---
 
