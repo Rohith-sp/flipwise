@@ -209,7 +209,7 @@ Data split: runtime fit on trace days 0–20 · residual fit on carbon data from
 
 **Phase 3 deliverables:** final test results with bootstrap intervals, the **worse-regime table** (every setting where a simpler baseline beats decision-flip), the full dashboard including the θ sweep, the reproducibility package, the Docker setup, an AWS run matching the in-process output, and the paper/report. B3 must be resolved before any absolute kgCO2 is reported.
 
-Optional, only after the main results exist: X1 (Global–Local DRO planner) and X9 (live Streamlit viewer).
+Optional, only after the main results exist: X1 (Global–Local DRO planner) and the machine-learning extensions (D61): X10 learned runtime quantiles (first; 93 % of deadline misses come from runtime underestimation), X11 a learned Indian carbon forecaster, X12 an advisory learned trigger (ablation only). The scheduling rules stay rule-based and provable; ML improves their inputs.
 
 ### Hypotheses under test
 

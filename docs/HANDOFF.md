@@ -2,7 +2,7 @@
 
 Current state of the work, for a teammate or a new Claude Code session. Keep it short and overwrite it as things change; history belongs in `decisions.md` and `project_journey.md`.
 
-**Last updated:** 11 Nov 2026 · **PRD version: 0.9.2**
+**Last updated:** 11 Nov 2026 · **PRD version: 0.9.3**
 
 **First-time setup (optional, for the graph):** `uv tool install graphifyy`, then `uv tool run --from graphifyy python scripts/build_graph.py`. Open `graphify-out/graph.html` in a browser to explore. The output is generated and not committed. The project's Claude Code hooks call `graphify`, so install it if you use Claude Code here.
 
@@ -40,6 +40,8 @@ To explore the code, use `graphify query "<question>"` if the graph is built.
    uv run flipwise sweep --config configs/base.yaml --sweep configs/sweeps/pred_error_eps.yaml --split validation --policies place_once,pred_error --jobs 5
    ```
 To rebuild the review outputs: `uv run flipwise compare --config configs/base.yaml --jobs 7`, `uv run flipwise sweep --config configs/base.yaml --sweep configs/sweeps/theta.yaml --policies fcfs,place_once,fixed_savings,decision_flip --jobs 4`, then `uv run flipwise dashboard --runs results/compare_<hash> --sweep results/sweep_<hash>`. Finished runs are reused; a dev week takes about 8 minutes with 7 jobs.
+
+4. **Phase 3, machine learning (D61, PRD 4.2 X10 to X12):** after the main Phase 3 runs, add learned runtime quantiles (X10) as an input to the same rules, then a learned Indian carbon forecaster (X11); an advisory learned trigger (X12) only as an ablation. Needs a PRD 12.1 edit to admit one ML library first.
 
 ## Waiting on a decision
 

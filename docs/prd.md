@@ -5,7 +5,7 @@
 | Field | Value |
 |---|---|
 | Document status | Implementation-ready draft. Supersedes v0.8.7 (5 Nov 2026), v0.8.6 (5 Nov 2026), v0.8.5 (4 Nov 2026), v0.8.4 (4 Nov 2026), v0.8.3 (4 Nov 2026), v0.8.2 (4 Nov 2026), v0.8.1 (4 Nov 2026), v0.8 (2 Nov 2026), v0.7 (29 Oct 2026), v0.6, v0.5.1 and v0.5 (29 Oct 2026), v0.4 (28 Oct 2026), v0.3 (24 Oct 2026), v0.2 (24 Oct 2026) and v0.1 (23 Oct 2026). Changes are listed in the changelog below. |
-| Version | 0.9.2 |
+| Version | 0.9.3 |
 | Revised | 5 November 2026 |
 | Project name | **Flipwise** (Python package and CLI `flipwise`) [Decision]: it re-evaluates decision flips wisely. Renamed from FlipSim on 25 Oct 2026. Availability of the name on GitHub and PyPI is [Open], not yet checked. |
 | Project context | RV College of Engineering, Experiential Learning, V Semester, AY 2026–27; SDG 9 |
@@ -17,6 +17,7 @@
 
 | Version | Date | Changes |
 |---|---|---|
+| 0.9.3 | 12 Nov 2026 | Machine-learning extensions planned for EL Phase 3 (4.2, X10 to X12, D61): learned runtime quantiles first, then a learned Indian carbon forecaster, then an advisory learned trigger. The policies stay rule-based; no ML code yet. |
 | 0.9.2 | 12 Nov 2026 | Live demo mode (13.6, D60): `flipwise live` paces the simulator on the wall clock for several policies at once, accepts submitted jobs and serves a JSON/SSE API and a static dashboard. For showing only; `Simulator.run` and every result are unchanged. |
 | 0.9.1 | 12 Nov 2026 | Power model resolves most of B3 (7.2, D58, F22, F24): GPU power per type from NVIDIA datasheets, measured GPU and CPU use per job from Alibaba's `pai_sensor_table`, and emissions reported as a bracket between `nameplate` (upper) and `measured` (lower). The scheduler keeps the uniform v0.8 scoring scale, so decisions are unchanged. New `flipwise ingest usage` and `data/processed/job_usage.csv`. CPU power per core stays an assumption. |
 | 0.9 | 12 Nov 2026 | Test set run once (D57, F21; 14.5): 16 replicates × 7 policies at sampling 0.1, commit `6cf8b8a`, results in `docs/test_results/`. The validation advantage of `decision_flip` over `place_once` did not repeat (−55 kg, CI −128 to +12), and it is not distinguishable on emissions from the other re-planners. Its cost advantage held against `fixed_savings` and `periodic` (54 % fewer full re-scorings, 60–63 % fewer moves) but not on re-scorings against `pred_error`. The claim (D51) is unchanged and is stated with these limits. |
@@ -134,6 +135,11 @@ The 50 % figure in H1 is a pre-registered threshold for calling the screen usefu
 | X7 | Forecast-vintage data from the Jul–Oct 2026 archive partitions | Coverage audit of those months |
 | X8 | Probabilistic flip estimate by Monte Carlo sampling | MVP interval method evaluated first |
 | X9 | Optional live Streamlit viewer over result CSVs (EL Phase 3), separate entry point, never imported by the simulator | Static dashboard (4.1 item 9) exists; evaluators ask for live interaction |
+| X10 | ML-1: learned runtime quantiles. Gradient-boosted quantile regression (q05, q50, q90, q95) from features known at submission (user, GPU/CPU/memory request, GPU type, task count, workload tag, hour, weekday, the user's recent runtimes), replacing the per-user percentile tables of 6.5 | Main results exist; PRD 12.1 admits one ML library (scikit-learn or LightGBM) |
+| X11 | ML-2: learned Indian carbon forecaster with its own quantiles (lagged intensity, hour, weekday, fuel mix), replacing the borrowed GB error paths of 6.2.4 | X10 evaluated; forecast accuracy reported against the synthetic forecasts |
+| X12 | ML-3: learned re-plan trigger (classifier: will a full re-score lead to a move?) as an advisory filter after the screen; reported only as an ablation, since it can skip a needed move and so loses P1 | X10 done |
+
+**Machine-learning extensions [Proposed, v0.9.3, D61].** The policies stay rule-based: their value is a provable trigger (P1) and an explanation for every decision. ML goes into their *inputs*, where measured weaknesses are (F15, F21): 93 % of deadline misses are jobs that outran `r_q90`, `r_q90` covers 86.8 % against a nominal 90 %, and wide runtime spread switches θ off on 23 to 28 % of comparisons. Order: X10, then X11, then X12. Rules for all three: train only on the fit periods of 14.3 (runtime: trace days 0 to 21; carbon: before 1 Jul 2023), tune on validation, test once; fixed seeds and saved model files with checksums so runs stay byte-identical (R-SIM-1); inputs only from `SchedulerView` (8.7). Each is evaluated as an ablation against the current estimates on miss rate, kgCO₂, full re-scores, moves and the share of comparisons with θ active.
 
 The deployment track (DT1 local split, DT2 Docker, DT3 AWS) is not an extension: it is planned work with its own requirements (13.5, 15.1) and roadmap stages (18). It does not change any research result.
 
