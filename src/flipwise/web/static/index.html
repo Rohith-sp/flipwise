@@ -1,0 +1,279 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Flipwise · carbon-aware scheduling, live</title>
+<link rel="stylesheet" href="/static/styles.css">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%2316a34a'/%3E%3Cpath d='M9 20l5-8 4 6 5-9' stroke='white' stroke-width='3' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E">
+</head>
+<body>
+<div class="shell">
+  <aside class="side" aria-label="Sections">
+    <div class="brand">
+      <div class="brand-mark" aria-hidden="true"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 16l5-8 4 6 7-10"/></svg></div>
+      <div><b>Flipwise</b><span>carbon-aware ML scheduling</span></div>
+    </div>
+    <nav class="nav" id="nav">
+      <a href="#overview"><span class="num">01</span>Overview</a>
+      <a href="#how"><span class="num">02</span>How it works</a>
+      <a href="#flip"><span class="num">03</span>Decision-flip</a>
+      <a href="#arena"><span class="num">04</span>Live arena</a>
+      <a href="#results"><span class="num">05</span>Results</a>
+      <a href="#scale"><span class="num">06</span>At scale</a>
+      <a href="#data"><span class="num">07</span>The data</a>
+      <a href="#limits"><span class="num">08</span>Limits &amp; next</a>
+    </nav>
+    <div class="side-foot">Offline, deterministic simulator · 3 Indian grids · Alibaba GPU trace v2020<br>Every number on these pages is computed, not typed.</div>
+  </aside>
+
+  <main id="main">
+    <!-- 01 OVERVIEW -->
+    <section class="page" id="p-overview" aria-labelledby="h-overview">
+      <div class="page-head">
+        <div class="eyebrow">01 · Overview</div>
+        <h1 id="h-overview">Run ML jobs where and when the grid is cleaner, without re-planning all the time</h1>
+        <p class="lede">A global scheduler receives GPU jobs and places each one at one of three Indian datacentres (Delhi NCR, Mumbai, Chennai) and a start time up to 24 h later, using carbon-intensity <em>forecasts</em>. Forecasts keep changing, so a plan that was best an hour ago may not be best now. The research question: <b>when is it worth re-planning a waiting job?</b> <b>Decision-flip</b> is our answer: a cheap screen that skips re-planning when it provably cannot pay off, and a noise margin that ignores gains smaller than the forecast's own uncertainty.</p>
+      </div>
+      <div class="grid g4" id="ov-tiles"></div>
+      <div class="grid g2" style="margin-top:var(--s4)">
+        <div class="card">
+          <h3>What decision-flip buys</h3>
+          <p>Against <code>fixed_savings</code>, which re-scores every waiting job at every forecast update and moves it when the gain clears a threshold, decision-flip reaches <b>statistically the same emissions</b> with a fraction of the planner work and far fewer plan changes. Fewer plan changes mean fewer data transfers, fewer lost queue positions, and users who can predict where their job runs.</p>
+          <div id="ov-work" class="chart"></div>
+        </div>
+        <div class="card">
+          <h3>What it does not do</h3>
+          <div class="callout warn"><b>No policy saves energy.</b> Every policy runs exactly the same jobs for the same time, so energy is identical (see the Results table). What changes is <em>when and where</em> that energy is drawn, and so how much CO₂ it carries.</div>
+          <p style="margin-top:var(--s3)">The carbon prize itself is modest on Indian grids: the three regions are coal-heavy and share a national daily shape, so even a perfect-information oracle (<code>pig</code>) only gets a few percent below carbon-blind scheduling. Decision-flip's case is <b>efficiency and stability at the same carbon</b>, and that case gets stronger as the number of datacentres and jobs grows (section 06).</p>
+        </div>
+      </div>
+      <div class="section-title"><h2>How to present with this dashboard</h2></div>
+      <div class="grid g4">
+        <a class="card" href="#how" style="text-decoration:none"><h4>1 · Architecture</h4><p class="small">Click each block to see what it does and which file implements it. Step through the life of one job.</p></a>
+        <a class="card" href="#flip" style="text-decoration:none"><h4>2 · The idea</h4><p class="small">Drag the sliders and watch one re-planning decision go through the two stages.</p></a>
+        <a class="card" href="#arena" style="text-decoration:none"><h4>3 · Live demo</h4><p class="small">All seven schedulers run live in the backend on the same ~940 jobs. Watch re-plans happen.</p></a>
+        <a class="card" href="#results" style="text-decoration:none"><h4>4 · Evidence</h4><p class="small">Held-out test set (16 replicates), every metric with 95% confidence intervals, plus the scale study.</p></a>
+      </div>
+    </section>
+
+    <!-- 02 HOW IT WORKS -->
+    <section class="page" id="p-how" aria-labelledby="h-how">
+      <div class="page-head">
+        <div class="eyebrow">02 · How it works</div>
+        <h1 id="h-how">Two schedulers, one information boundary</h1>
+        <p class="lede">The <b>global scheduler</b> (our work) decides <em>which datacentre</em> and <em>which release time</em>. Each datacentre's <b>local scheduler</b> then decides <em>which queued job starts next</em> on its GPUs. The global scheduler sees only forecasts and estimates; the real carbon and real runtimes are hidden from it and used only to score the outcome.</p>
+      </div>
+      <div class="grid" style="grid-template-columns: minmax(0,1fr) 380px; gap: var(--s4)">
+        <div class="card">
+          <div class="arch" id="arch">
+            <div class="arch-col">
+              <h4>Inputs</h4>
+              <button class="node" data-node="trace"><b>Job trace</b><span>Alibaba PAI GPU trace v2020: arrivals, GPU/CPU/mem requests</span><code>trace.py · ingest.py</code></button>
+              <button class="node" data-node="estimates"><b>Runtime estimates</b><span>Per-user runtime quantiles q05…q95, fitted on trace days 0–21</span><code>estimates.py</code></button>
+              <button class="node" data-node="forecast"><b>Carbon forecasts</b><span>Indian truth + real NESO forecast-error paths, a new vintage ~every 30 min</span><code>carbon.py</code></button>
+              <button class="node" data-node="truth"><b>Carbon truth</b><span>Grid-India fuel mix × CEA emission factors. Evaluator only</span><code>carbon.py · energy.py</code></button>
+            </div>
+            <div class="arch-col">
+              <h4>Global scheduler · the coordinator</h4>
+              <div class="node-group">
+                <span class="gl">Simulator · owns the clock</span>
+                <button class="node" data-node="sim"><b>Discrete-event loop</b><span>Arrival → carbon update → release → start → complete, in a fixed priority order</span><code>simulator.py</code></button>
+                <button class="node" data-node="view"><b>SchedulerView</b><span>The information boundary: forecasts and estimates only</span><code>simulator.py</code></button>
+                <button class="node" data-node="planner"><b>Planner</b><span>Candidates (datacentre × 30-min slot), wait estimate, Ŝ score, feasibility, lower bound</span><code>planner.py</code></button>
+                <button class="node" data-node="policy"><b>Policy</b><span>When to re-plan and what to accept. The only thing that differs between the 7 schedulers</span><code>policies.py</code></button>
+              </div>
+              <div class="flowline">↓ DatacentreClient: enqueue · remove · dispatch · complete · state ↓</div>
+              <button class="node" data-node="client"><b>Transport</b><span>In-process objects, or HTTP to separate processes or Docker containers. Byte-identical results</span><code>datacentre.py · dcservice.py</code></button>
+            </div>
+            <div class="arch-col">
+              <h4>Datacentres · local schedulers</h4>
+              <div class="node-group local">
+                <span class="gl">dc0 · Delhi NCR · NR grid</span>
+                <button class="node" data-node="local"><b>FIFO queue, first-fit dispatch</b><span>Starts every queued job that fits, front to back</span><code>datacentre.py</code></button>
+              </div>
+              <div class="node-group local"><span class="gl">dc1 · Mumbai · WR grid</span><button class="node" data-node="local"><b>Same local scheduler</b><span>Own GPUs, own queue</span></button></div>
+              <div class="node-group local"><span class="gl">dc2 · Chennai · SR grid</span><button class="node" data-node="local"><b>Same local scheduler</b><span>Own GPUs, own queue</span></button></div>
+              <button class="node" data-node="eval"><b>Evaluator</b><span>Actual start × actual runtime × carbon truth → kg CO₂, waits, misses</span><code>metrics.py · reporting.py</code></button>
+            </div>
+          </div>
+        </div>
+        <div class="detail">
+          <div class="card" id="arch-detail" aria-live="polite"></div>
+          <div class="card">
+            <h3>Life of one job</h3>
+            <div class="steps" id="steps"></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="section-title"><h2>Your questions, answered</h2></div>
+      <div class="grid g2">
+        <div class="card">
+          <h3>Does the local scheduler matter? Is it FCFS?</h3>
+          <p>It is <b>not FCFS</b>. It is a FIFO queue with <b>first-fit dispatch</b>: every time something changes, it walks the queue front to back and starts <em>every</em> job that fits in the free GPUs/CPUs/memory. A small job can therefore start ahead of a big job that is blocked. There is no reservation, so a very large job can wait while small ones keep slipping past (a known weakness; EASY backfilling would fix it).</p>
+          <p>For the research result it matters little: <b>all seven policies share the same local scheduler</b>, so it cannot explain differences between them. For a real product it matters a lot, but you would not write it: Slurm or Kubernetes already is the local scheduler, and Flipwise would sit in front of them.</p>
+        </div>
+        <div class="card">
+          <h3>Real processes or separate databases?</h3>
+          <p><b>Real processes.</b> A datacentre here is not storage; it is an actor that owns a queue and decides what starts. Separate databases would only model its state, not its behaviour. Flipwise already has this: <code>flipwise dc-serve</code> runs one datacentre as an HTTP service, and the coordinator talks to it through the same <code>DatacentreClient</code> interface. Requirement R-DEP-1 checks that results are <b>byte-identical</b> to the in-process run.</p>
+          <p>In the <a href="#arena">Live arena</a>, choose <b>Datacentres: real processes</b>. The backend starts 3 <code>dc-serve</code> processes per scheduler, and each datacentre panel shows its PID, port, request count and latency. Separate terminals add nothing beyond theatre: the process list is the proof.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- 03 DECISION FLIP -->
+    <section class="page" id="p-flip" aria-labelledby="h-flip">
+      <div class="page-head">
+        <div class="eyebrow">03 · Decision-flip</div>
+        <h1 id="h-flip">Re-plan only when the answer could actually flip</h1>
+        <p class="lede">At every forecast update each waiting job has an incumbent plan with estimated emissions <b>Ŝ<sub>a</sub></b>. Re-scoring it means evaluating every datacentre × every 30-minute start slot in the next 24 h, including queue projections: expensive, and mostly pointless. Decision-flip puts two checks in front of a move.</p>
+      </div>
+      <div class="card">
+        <div class="calc">
+          <div>
+            <h3>Try one decision</h3>
+            <p class="small">Values in kg CO₂ for one job. Defaults are typical of the test runs.</p>
+            <div id="calc-sliders"></div>
+            <div class="seg" role="group" aria-label="Policy">
+              <button data-mode="df" aria-pressed="true">decision_flip</button>
+              <button data-mode="fs" aria-pressed="false">fixed_savings</button>
+            </div>
+          </div>
+          <div>
+            <div class="scale-bar" id="calc-bar" aria-hidden="true"></div>
+            <div class="funnel" id="calc-funnel"></div>
+          </div>
+        </div>
+      </div>
+      <div class="grid g2" style="margin-top:var(--s4)">
+        <div class="card">
+          <h3>The rules</h3>
+          <div class="eq">g<sub>min</sub> = max(g<sub>abs</sub>, g<sub>rel</sub>·Ŝ<sub>a</sub>) + κ<sub>switch</sub> + κ<sub>queue</sub> + λ<sub>ovh</sub></div>
+          <p class="small">The benefit gate: the least a move must save to be worth it. Frozen on validation data: g<sub>rel</sub> = 0.05 (decision-flip), 0.01 (fixed_savings); κ and λ are 0 in the current runs (moves are free; see Limits).</p>
+          <div class="eq"><b>Stage 1</b> · skip if Ŝ<sub>a</sub> − LB &lt; g<sub>min</sub></div>
+          <p class="small">LB = the cheapest emissions <em>any</em> alternative could reach: the cleanest forecast window of the job's runtime at any datacentre before its deadline, ignoring queues. If even that cannot clear the gate, no real alternative can, so the full re-score is skipped. This is provably safe: at θ = 0, decision-flip makes exactly the decisions of fixed_savings with the same gate (property P1, checked on real data).</p>
+          <div class="eq"><b>Stage 2</b> · move if Ŝ<sub>a</sub> − Ŝ<sub>b</sub> ≥ g<sub>min</sub> + θ·w<sub>ab</sub> and the gain is &gt; 0</div>
+          <p class="small">w<sub>ab</sub> = the paired uncertainty of the comparison: forecast-error quantiles over each option's wait range, plus runtime uncertainty. θ = 0.1. If the interval is malformed or wider than w<sub>max</sub> = 2 × Ŝ<sub>a</sub>, the margin is switched off (θ<sub>eff</sub> = 0) rather than blocking every move.</p>
+          <div class="eq">Throttles shared by all re-planners: cooldown 1,800 s per job, at most 3 moves per job.</div>
+        </div>
+        <div class="card">
+          <h3>Where re-planning effort goes (test set, per replicate)</h3>
+          <p class="small">Every replan opportunity ends in one of these outcomes. Grey is work skipped cheaply; pink is a full re-score that changed nothing; amber is an actual move.</p>
+          <div id="flip-funnel" class="chart"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 04 ARENA -->
+    <section class="page" id="p-arena" aria-labelledby="h-arena">
+      <div class="page-head">
+        <div class="eyebrow">04 · Live arena</div>
+        <h1 id="h-arena">All schedulers, live, on the same jobs</h1>
+        <p class="lede">Press <b>Start</b>: the backend builds one scenario from the real trace and carbon data, then runs every selected policy in its own OS process on the <em>unchanged</em> simulator, paced to one shared demo clock. Lanes move in lock-step: the clock never runs ahead of the slowest scheduler, so at high speed the expensive policies set the pace. Each scheduler sees the same arrivals and the same forecast updates; only its re-planning rule differs. Click any job chip to follow it across schedulers.</p>
+      </div>
+      <div class="card">
+        <div class="controls">
+          <label class="field">Jobs<select id="a-preset"></select></label>
+          <div class="field" style="flex:1;min-width:300px"><span class="small">Schedulers running in the backend</span><div class="checks" id="a-policies"></div></div>
+          <label class="field">Datacentres<select id="a-mode"><option value="inproc">in-process (fast)</option><option value="process">real processes (dc-serve, max 3 schedulers)</option></select></label>
+          <button class="primary" id="a-start">Start</button>
+        </div>
+        <p class="err" id="a-err" role="alert"></p>
+      </div>
+      <div id="arena-live" hidden>
+        <div class="clockbar" style="margin-top:var(--s4)">
+          <span class="live-dot" id="a-dot" aria-hidden="true"></span>
+          <div class="clock" id="a-clock">--</div>
+          <button id="a-play" aria-label="Play or pause">Play</button>
+          <div class="seg" role="group" aria-label="Speed" id="a-speed"></div>
+          <button id="a-jump" title="Skip ahead 6 simulated hours">+6 h</button>
+          <div class="progress" title="Arrival window progress; the amber tick is the last arrival" aria-hidden="true"><i id="a-prog"></i><b id="a-lastarr"></b></div>
+          <label class="field" style="flex-direction:row;align-items:center;gap:8px">Watch<select id="a-watch-add"></select></label>
+        </div>
+        <div class="grid" style="margin-top: var(--s4)">
+          <div class="card">
+            <div class="row"><h3 style="margin:0">Scoreboard</h3><span class="small">all running schedulers · CO₂ counts completed jobs, against carbon truth</span></div>
+            <div class="table-wrap score" style="margin-top:var(--s3)"><table id="a-score"></table></div>
+          </div>
+          <div class="card carbon-strip">
+            <div class="row"><h3 style="margin:0">Grid carbon intensity</h3><span class="small">left of "now": truth so far · right: the latest forecast the schedulers see (dotted)</span></div>
+            <div id="a-carbon" class="chart"></div>
+          </div>
+        </div>
+        <div class="lanes" id="a-lanes" style="margin-top:var(--s4)"></div>
+      </div>
+      <div class="empty" id="arena-empty" style="margin-top:var(--s4)">Pick the jobs and schedulers, then press Start. A medium run takes about 3 minutes of wall time at 1 h/s.</div>
+    </section>
+
+    <!-- 05 RESULTS -->
+    <section class="page" id="p-results" aria-labelledby="h-results">
+      <div class="page-head">
+        <div class="eyebrow">05 · Results</div>
+        <h1 id="h-results">Every metric, every scheduler</h1>
+        <p class="lede">Means over replicates (a replicate = one week of jobs × one carbon week) with 95% confidence intervals. The <b>test set</b> was run once, after thresholds were frozen on validation data, and never tuned on. <code>pig</code> sees the future (an oracle), so it is a reference, not a competitor, and is excluded from "best".</p>
+      </div>
+      <div class="row" style="margin-bottom:var(--s3)">
+        <div class="seg" role="group" aria-label="Data split" id="r-split">
+          <button data-split="test" aria-pressed="true">Test set (held out)</button>
+          <button data-split="validation" aria-pressed="false">Validation set</button>
+        </div>
+        <span class="small" id="r-meta"></span>
+      </div>
+      <div class="table-wrap" style="max-height:72vh"><table id="r-table"></table></div>
+      <div class="grid g2" style="margin-top:var(--s4)">
+        <div class="card">
+          <h3>Decision-flip minus each baseline</h3>
+          <p class="small">Paired differences per replicate, mean and 95% CI. A bar whose interval crosses zero is not a significant difference.</p>
+          <div class="seg" role="group" aria-label="Metric" id="r-forest-metric"></div>
+          <div id="r-forest" class="chart"></div>
+        </div>
+        <div class="card">
+          <h3>How to read this honestly</h3>
+          <div id="r-honest"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 06 SCALE -->
+    <section class="page" id="p-scale" aria-labelledby="h-scale">
+      <div class="page-head">
+        <div class="eyebrow">06 · At scale</div>
+        <h1 id="h-scale">What happens with more datacentres</h1>
+        <p class="lede">A global router for a company would sit in front of many datacentres, not three. We grow the federation from 3 to 12 datacentres and grow the job load with it, so every datacentre stays about as busy as before. Every full re-score must then evaluate more datacentres × slots for more waiting jobs.</p>
+      </div>
+      <div id="scale-body"></div>
+    </section>
+
+    <!-- 07 DATA -->
+    <section class="page" id="p-data" aria-labelledby="h-data">
+      <div class="page-head">
+        <div class="eyebrow">07 · The data</div>
+        <h1 id="h-data">Real jobs, real Indian grids, real forecast errors</h1>
+        <p class="lede">Nothing is synthetic except the combination. Jobs come from Alibaba's production GPU cluster trace; carbon truth is built from Grid-India generation by fuel and CEA emission factors; forecast errors are real errors of the GB national forecaster (NESO), scaled onto Indian truth because India publishes no regional carbon forecast.</p>
+      </div>
+      <div id="data-body"><div class="empty">Loads the demo scenario (a few seconds)…</div></div>
+    </section>
+
+    <!-- 08 LIMITS -->
+    <section class="page" id="p-limits" aria-labelledby="h-limits">
+      <div class="page-head">
+        <div class="eyebrow">08 · Limits &amp; next steps</div>
+        <h1 id="h-limits">What this does not show yet</h1>
+      </div>
+      <div class="grid g2">
+        <div class="card"><h3>Moves are free in the model</h3><p>κ<sub>switch</sub> and κ<sub>queue</sub> are 0, so re-planning costs nothing in the results. In reality a move can mean shipping datasets between regions and losing a queue position. Giving moves a realistic cost should hurt the policies that move most, and it is the experiment most likely to separate decision-flip from <code>fixed_savings</code> on carbon too.</p></div>
+        <div class="card"><h3>The carbon prize is small here</h3><p>The three grids are all coal-heavy and share one national within-day shape (Grid-India publishes only daily regional fuel mixes), so they move together. Even the oracle gets only a few percent. A grid that differs (solar-heavy Rajasthan or Karnataka, or a hydro-rich region) would test spatial shifting properly.</p></div>
+        <div class="card"><h3>Power values are placeholders</h3><p>Blocker B3: 0.3 kW per GPU and 0.01 kW per CPU core, PUE 1. Treat kg CO₂ as relative between policies, not as an absolute footprint.</p></div>
+        <div class="card"><h3>From simulator to product</h3><p>The sound first product is not a live router. It is the simulator as a <b>savings estimator</b> run on a company's own job logs, then an <b>advisory</b> plugin for an existing multi-cluster layer (Kueue MultiKueue, Karmada, Slurm federation) that recommends a placement. Real-time forecasts, data gravity, and trust come before autonomy.</p></div>
+        <div class="card"><h3>Next experiments</h3><p>Sensitivity sweeps (θ, g<sub>rel</sub>, forecast-error scale α) and ablations of the screen and the width terms on validation data; a move-cost sweep; a divergent grid; the DT3 cloud deployment.</p></div>
+        <div class="card"><h3>Integrity rules the dashboard keeps</h3><p>The live arena uses validation-period data (trace days 25–28, carbon week of 3 Jul 2023), never the test set. The tables are read from the saved result files. The live lanes run the unchanged simulator, so they make the same decisions as <code>flipwise run</code>.</p></div>
+      </div>
+    </section>
+  </main>
+</div>
+<div class="tip" id="tip" role="tooltip"></div>
+<aside class="drawer" id="drawer" aria-label="Job details" aria-hidden="true"><button class="close ghost" id="drawer-close" aria-label="Close">Close</button><div id="drawer-body"></div></aside>
+<script type="module" src="/static/js/app.js"></script>
+</body>
+</html>
