@@ -2,7 +2,7 @@
 
 Current state of the work, for a teammate or a new Claude Code session. Keep it short and overwrite it as things change; history belongs in `decisions.md` and `project_journey.md`.
 
-**Last updated:** 11 Nov 2026 · **PRD version: 0.9.3**
+**Last updated:** 12 Nov 2026 · **PRD version: 0.9.3**
 
 **First-time setup (optional, for the graph):** `uv tool install graphifyy`, then `uv tool run --from graphifyy python scripts/build_graph.py`. Open `graphify-out/graph.html` in a browser to explore. The output is generated and not committed. The project's Claude Code hooks call `graphify`, so install it if you use Claude Code here.
 
@@ -27,6 +27,7 @@ To explore the code, use `graphify query "<question>"` if the graph is built.
 ## Next steps
 
 1. **Finish DT2:** one run on Windows with Docker Desktop (set `$env:GIT_COMMIT`; PowerShell has no twin of `docker_check.sh` yet, so run the `docker compose up` commands from its header by hand, or use Git Bash). The clean-clone run is done. Commands: `export GIT_COMMIT=$(git rev-parse HEAD)`, then `docker compose up --build --abort-on-container-exit --exit-code-from coordinator`.
+0a. **Live demo mode (D60): done and merged 12 Nov.** `uv run flipwise live --config configs/base.yaml`, dashboard at http://localhost:8100 (or `docker compose --profile live up --build dc-delhi dc-mumbai dc-chennai live`); demo script in `docs/USAGE.md` §8a. Rehearse once on the presenting laptop. The algorithm alone is explained in `docs/DECISION_FLIP.md`.
 1a. **Re-measuring kgCO₂ (D59): done 12 Nov.** All 392 runs kept decisions byte-identical; the bracket tables are in `docs/power_bracket/` (F25). Quote kgCO₂ as measured–nameplate ranges from there.
 2. **Ablations and sensitivity sweeps were started on 12 Nov and interrupted by a shutdown.** Resume with `bash scripts/run_ablations.sh` (validation split only; finished runs are reused; progress in `results/sweeps_progress.txt`; expect several hours). Sweep configs are in `configs/sweeps/` (`ablation_*.yaml`, `sens_*.yaml`, `kappa.yaml`). Not runnable without new code: σ spread scaling, region set {WR, SR, ER}, interval scaling, energy multipliers, α (needs forecasts rebuilt). When done: export with `scripts/export_validation.py --compare ... --sweep ... --out docs/ablations`, and record findings in `decisions.md`. Rest of roadmap phase 8: the sensitivity sweeps and ablations A0–A6 (PRD §14), on **validation** data, not the test split. Check which of A2–A6 already have config switches before starting (`screen` and `width` exist in `configs/policies.yaml`; A5 `feasibility = point` and A6 may not). Then roadmap phase 9: the report figures, limitations (including F21) and the reproducibility package.
 3. Reproducing validation is optional: the commands are below and take about 6 hours with 5 jobs on 8 threads. Check the results against `docs/validation/runs.csv`.
