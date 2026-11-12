@@ -246,7 +246,7 @@ For the review, a live mode followed (D60): several policies on one clock in rea
 **Next:**
 1. Build phase 8, the rest: sensitivity sweeps and ablations (the test set is done, F21; its kgCO₂ is re-measured with cited power, F25).
 2a. Rehearse the live demo (`docs/USAGE.md` §8a).
-2. Finish DT2: one Windows run (the Docker build and the clean-clone run are done).
+2. DT2 is done; the team waived the Windows run (12 Nov).
 3. DT3 AWS after the test results.
 
 **Still open:**

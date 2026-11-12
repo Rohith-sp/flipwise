@@ -123,7 +123,7 @@ Details: [docs/test_results/](docs/test_results/README.md), [docs/power_bracket/
 
 ## Quick start
 
-Requires [uv](https://docs.astral.sh/uv/) (it installs Python 3.12). Works on Linux and Windows 11.
+Requires [uv](https://docs.astral.sh/uv/) (it installs Python 3.12). Tested on Linux; the commands also have Windows forms.
 
 ```bash
 uv sync                      # install
