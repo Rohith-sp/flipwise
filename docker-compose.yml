@@ -51,6 +51,28 @@ services:
       ${FLIPWISE_RUN_ARGS:---scenario tests/fixtures/toy --policy decision_flip}
 
 # No published ports and no outside access: the services are reachable only from the coordinator.
+  # Live demo (PRD §13.6): the dashboard at http://localhost:8100, the scheduler talking to the
+  # three datacentre containers above. Start only what it needs:
+  #   docker compose --profile live up --build dc-delhi dc-mumbai dc-chennai live
+  # FLIPWISE_LIVE_ARGS picks the scenario, e.g. "--scenario tests/fixtures/toy".
+  live:
+    image: flipwise:${FLIPWISE_TAG:-dev}
+    profiles: [live]
+    networks: [fw, public]
+    ports: ["8100:8100"]
+    depends_on:
+      dc-delhi: {condition: service_healthy}
+      dc-mumbai: {condition: service_healthy}
+      dc-chennai: {condition: service_healthy}
+    volumes:
+      - ./data:/app/data:ro,z
+    command: >-
+      live --mode remote --host 0.0.0.0 --port 8100
+      --dc-urls http://dc-delhi:8101,http://dc-mumbai:8101,http://dc-chennai:8101
+      ${FLIPWISE_LIVE_ARGS:---config configs/base.yaml}
+
 networks:
   fw:
     internal: true
+  # Only the live dashboard is published; the datacentres stay on the internal network.
+  public: {}

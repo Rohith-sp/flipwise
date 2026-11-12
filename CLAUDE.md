@@ -45,6 +45,8 @@ bash scripts/local_cluster.sh --config configs/base.yaml --policy fcfs   # DT1 (
 export GIT_COMMIT=$(git rev-parse HEAD)   # PowerShell: $env:GIT_COMMIT = git rev-parse HEAD
 docker compose up --build --abort-on-container-exit --exit-code-from coordinator   # DT2
 bash scripts/docker_check.sh [toy|dev|crash|all]                         # DT2 acceptance (R-DEP-1/2/3)
+uv run flipwise live --config configs/base.yaml   # live demo dashboard on :8100 (PRD §13.6; showing only)
+docker compose --profile live up --build dc-delhi dc-mumbai dc-chennai live   # same, datacentres in Docker
 ```
 
 Before finishing any code change: ruff check, ruff format, and the relevant tests pass. Report failures with their output; don't claim success otherwise.

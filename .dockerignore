@@ -7,4 +7,5 @@
 !src/
 !configs/
 !tests/fixtures/toy/
+!docs/test_results/summary.csv
 **/__pycache__
