@@ -70,7 +70,7 @@ function lane(p, v, i0) {
   else chips.push(`<span class="chip k-OTHER" style="cursor:default">${esc(v.state)}</span>`);
   const done = v.kg_co2 != null;
   return `<div class="lane"><div class="nm"><i class="pdot" style="background:${colourOf(p)}"></i>${esc(p)}<div class="sm">${v.datacentre ? esc(shortRegion(v.datacentre)) : "not placed"}</div></div>
-    <div><div class="chips">${chips.join("")}</div><div class="sm" style="margin-top:4px">${v.moves} moves, ${v.decisions.length} decisions${v.deadline_missed ? ", deadline missed" : ""}</div></div>
+    <div><div class="chips">${chips.join("")}</div><div class="sm" style="margin-top:4px">${v.moves} ${v.moves === 1 ? "move" : "moves"}, ${v.decisions.length} ${v.decisions.length === 1 ? "decision" : "decisions"}${v.deadline_missed ? ", deadline missed" : ""}</div></div>
     <div class="kg">${num(done ? v.kg_co2 : v.estimated_kg, 3)} kg<small>${done ? "measured" : "estimate"}</small></div></div>`;
 }
 const badgeCls = (k) => (["MOVE", "KEEP", "SCREEN_FAIL", "PLACE", "RESCUE", "FALLBACK", "RESCUE_NOOP"].includes(k) ? k : k.startsWith("RESCUE") ? "RESCUE" : "OTHER");

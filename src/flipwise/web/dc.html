@@ -4,16 +4,17 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Flipwise datacentre</title>
+<link rel="icon" type="image/svg+xml" href="/static/img/logo.svg">
 <link rel="stylesheet" href="/static/vendor/tabler.min.css">
 <link rel="stylesheet" href="/static/css/app.css">
 </head>
 <body>
 <div class="dc-page" id="dc-root">
   <header class="fw-head dc-head">
-    <div class="fw-title">
+    <div class="dc-brand"><svg class="fw-mark" width="30" height="30" viewBox="0 0 32 32" aria-hidden="true"><rect width="32" height="32" rx="8" fill="#1D4ED8"/><path d="M8 20.5C8 12.5 13 8 23.5 8c0 8.5-4 13.5-11.5 13.5-1.5 0-2.8-.3-4-1z" fill="#fff"/><path d="M9 23c3-6 7-9.5 11-11.5" fill="none" stroke="#1D4ED8" stroke-width="1.6" stroke-linecap="round"/><path d="M20 26h5m-2.5-2.5L25 26l-2.5 2.5" fill="none" stroke="#93C5FD" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg><div class="fw-title">
       <h1 id="dc-name">Datacentre</h1>
       <p class="fw-muted" id="dc-sub">Datacentre service</p>
-    </div>
+    </div></div>
     <div class="fw-controls">
       <span class="fw-clock" id="dc-clock" title="Simulated time sent by the scheduler (IST)">--</span>
       <span class="fw-pill" id="dc-conn" role="status"><span class="fw-dot"></span><span id="dc-conn-text">Connecting</span></span>
@@ -74,6 +75,7 @@
       </section>
     </div>
   </main>
+  <footer class="fw-foot"><span><b>Flipwise</b> &middot; carbon-aware re-planning simulator for Indian grids</span><span>RVCE EL, V semester &middot; times in IST, emissions in kg CO2</span></footer>
 </div>
 <script src="/static/vendor/echarts.min.js"></script>
 <script type="module" src="/static/js/dc.js"></script>

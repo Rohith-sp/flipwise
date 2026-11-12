@@ -52,7 +52,7 @@ function kpis(st, hist) {
     { id: "resc", label: "Full re-scores", value: int(m.full_rescores), delta: f ? pct(m.full_rescores, f.full_rescores, "work") : "", note: "expensive checks run", f: (p) => p.full_rescores },
     { id: "mv", label: "Jobs moved", value: int(m.moves), delta: f ? pct(m.moves, f.moves, "churn") : "", note: "plan changes accepted", f: (p) => p.moves },
     { id: "scr", label: "Checks stopped by screen", value: stop == null ? "--" : `${(stop * 100).toFixed(0)}%`, delta: "", note: `${int(m.screen_skips)} of ${int(m.screen_skips + m.full_rescores)} checks`, f: shareOf },
-    { id: "done", label: "Jobs completed", value: int(m.jobs_completed), delta: "", note: `${int(m.deadline_misses)} deadline misses, ${int(m.jobs_arrived)} arrived`, f: (p) => p.jobs_completed },
+    { id: "done", label: "Jobs completed", value: int(m.jobs_completed), delta: "", note: `${int(m.deadline_misses)} deadline ${m.deadline_misses === 1 ? "miss" : "misses"}, ${int(m.jobs_arrived)} arrived`, f: (p) => p.jobs_completed },
   ];
   const host = root.querySelector("#kpis");
   if (!host.children.length) host.innerHTML = tiles.map((t) => `<section class="fw-card kpi"><div class="lab">${t.label}</div><div class="val" data-v="${t.id}"></div><div class="delta" data-d="${t.id}"></div><div class="note" data-n="${t.id}"></div><div class="spark" id="sp-${t.id}"></div></section>`).join("");
