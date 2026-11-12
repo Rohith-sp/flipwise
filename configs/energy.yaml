@@ -29,7 +29,11 @@ power:
   # from NVIDIA's K80 board spec (150 W cap per GPU, 300 W per two-GPU board) and the M60 (300 W
   # two-GPU board); the K40m (about 235 W) is not separated, so MISC may be low.
   gpu_kw_by_type: {V100: 0.30, V100M32: 0.30, P100: 0.25, T4: 0.07, MISC: 0.15}
-  p_gpu_kw: 0.30   # any other type; NONE jobs request no GPU, so it never applies to them
+  # The scheduler scores every job with p_gpu_kw and p_cpu_kw (the v0.8 scale), never with the
+  # table above: absolute thresholds (tie tolerance, frozen g_abs and kappa) were set at this
+  # scale, so keeping it leaves every decision as in the frozen runs (F24). Also used for any GPU
+  # type missing from the table.
+  p_gpu_kw: 0.30
   # [Assumption] kW per core. The trace names no CPU model; 10 W is in the range of server CPU
   # TDP / cores (Green Algorithms method, Lannelongue et al. 2021). Swept by the 0.5/1.5 multipliers.
   p_cpu_kw: 0.01

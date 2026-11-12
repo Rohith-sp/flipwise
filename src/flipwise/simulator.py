@@ -270,7 +270,7 @@ class Simulator:
             r_q90_s=j.r_q90_s,
             r_q95_s=j.r_q95_s,
             deadline_s=j.deadline_s,
-            power_kw=self.scenario.power.power_kw(j.gpu_req, j.cpu_req, j.gpu_type),
+            power_kw=self.scenario.power.power_kw(j.gpu_req, j.cpu_req),
             state=j.state,
             dc_id=j.dc_id,
             release_slot=j.release_slot,

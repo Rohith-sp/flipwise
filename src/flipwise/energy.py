@@ -14,13 +14,17 @@ POWER_MODES = ("nameplate", "measured")
 class PowerModel:
     """Allocated power per job (PRD §7.2, D58).
 
-    `nameplate`: requested GPUs at datasheet power per type, plus requested cores. `measured`:
-    datasheet power scaled by the job's measured GPU use, plus measured cores; it leaves out idle
-    draw, so the two bracket real consumption. The scheduler always uses `power_kw` (nameplate):
-    it may know the request and GPU type, never how hard a job will use them (§8.7).
+    The scheduler scores with `power_kw`: one uniform kW per GPU and per core, the v0.8 scale.
+    Power multiplies every candidate of a job alike, so only absolute thresholds see it: the
+    1e-9 kg tie tolerance and the frozen `g_abs` and κ values, which were derived from scores at
+    this scale. Keeping it fixed keeps every decision identical to the frozen runs (F24).
+
+    The evaluator charges `actual_kw`. `nameplate`: requested GPUs at datasheet power per type,
+    plus requested cores. `measured`: datasheet power scaled by the job's measured GPU use, plus
+    measured cores; it leaves out idle draw, so the two bracket real consumption.
     """
 
-    p_gpu_kw: float  # per GPU, for any type not in gpu_kw_by_type (the toy uses only this)
+    p_gpu_kw: float  # per GPU: the scheduler's scoring scale; also any type not in the table
     p_cpu_kw: float  # per core
     gpu_kw_by_type: Mapping[str, float] = field(default_factory=dict)
     mode: str = "nameplate"
@@ -32,8 +36,11 @@ class PowerModel:
     def gpu_kw(self, gpu_type: str | None) -> float:
         return float(self.gpu_kw_by_type.get(gpu_type or "", self.p_gpu_kw))
 
-    def power_kw(self, gpu_req: float, cpu_req: float, gpu_type: str | None = None) -> float:
-        """Nameplate power: what the scheduler scores with."""
+    def power_kw(self, gpu_req: float, cpu_req: float) -> float:
+        """The scheduler's scoring power (uniform scale, see the class docstring)."""
+        return gpu_req * self.p_gpu_kw + cpu_req * self.p_cpu_kw
+
+    def nameplate_kw(self, gpu_req: float, cpu_req: float, gpu_type: str | None) -> float:
         return gpu_req * self.gpu_kw(gpu_type) + cpu_req * self.p_cpu_kw
 
     def actual_kw(
@@ -47,7 +54,7 @@ class PowerModel:
         """Evaluator power. In `measured` mode a missing measurement is an error, not a guess:
         `ingest usage` already filled every job (D58)."""
         if self.mode == "nameplate":
-            return self.power_kw(gpu_req, cpu_req, gpu_type)
+            return self.nameplate_kw(gpu_req, cpu_req, gpu_type)
         if gpu_used is None or cpu_used is None:
             raise ValueError("measured power needs gpu_used and cpu_used for every job")
         share = min(1.0, gpu_used / gpu_req) if gpu_req > 0 else 0.0
