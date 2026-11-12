@@ -42,7 +42,7 @@ To rebuild the review outputs: `uv run flipwise compare --config configs/base.ya
 
 ## Waiting on a decision
 
-The four post-freeze questions in `docs/questions_for_rohith.md` were answered on 10 Nov (D49–D52). What remains:
+The four post-freeze questions were answered on 10 Nov (D49–D52 in `decisions.md`). What remains:
 
 | Item | Question | Who |
 |---|---|---|
@@ -52,7 +52,6 @@ The four post-freeze questions in `docs/questions_for_rohith.md` were answered o
 ## Things that will catch you out
 
 - **Data:** only `data/processed/` exists here; `data/raw/` is gone. Checksums match the manifests, and `flipwise validate` passes.
-- **`docs/design_phases_5_7.md` is design notes, not the spec.** It lists where PRD v0.8 differs from it. Where they disagree, follow the PRD.
 - **Trace days count from 1970-01-01 UTC+8**, so day 25 is a Monday and the first job arrives on day 6.6.
 - **Results in `results/` are reused by `run_id`, which does not cover code.** After changing simulator, planner or policy code, delete `results/` or the old runs come back as if current. Check `git.commit` in a run's `manifest.json`.
 - **A real `fixed_savings` week takes about 8 minutes.** Most of it is rebuilding wait profiles, which is why the screen matters.

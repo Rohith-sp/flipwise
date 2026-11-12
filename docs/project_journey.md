@@ -10,7 +10,7 @@ The folder held three documents and no code:
 
 - `docs/prd.md` (v0.3): the full specification. The research question was **when** a carbon-aware scheduler should re-plan a job that hasn't started yet. The proposed answer was the **decision-flip trigger**: a cheap screen plus a noise-adjusted gate. The simulated world was three datacentres in Great Britain fed by NESO carbon forecasts.
 - `docs/explanation.md`: the same idea in plain language, partly out of date compared with the PRD.
-- `docs/helpfullinks.txt`: dataset, paper and tool links.
+- `docs/helpfullinks.md`: dataset, paper and tool links.
 
 There was no git repository and no README.
 

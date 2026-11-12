@@ -11,7 +11,7 @@ All runs: 12 replicates (3 trace weeks × 4 carbon Mondays), job sampling 0.1, c
 | `dashboard.html` | Timeline, Pareto, results table, θ sweep | Phase 2 review; opens with no server |
 | `summary.csv` | Every metric, per replicate and policy, at the frozen settings | Report tables |
 | `paired.csv` | Each policy against `place_once`, with 95 % CI | Main comparison |
-| `pairwise.csv` | `decision_flip` against every other policy, with 95 % CI | The claim (question 3 in `questions_for_rohith.md`) |
+| `pairwise.csv` | `decision_flip` against every other policy, with 95 % CI | The claim (D51 in `docs/decisions.md`) |
 | `sweep_means.csv` | Each swept setting: means, miss limit, gap to frozen with 95 % CI | Threshold choices |
 | `sweep_replicates.csv` | The same settings, per replicate | Any other test on sweeps |
 | `figures/sweep_*.png` | Emissions against re-scorings and moves, per sweep (PRD §14.5) | Report |
