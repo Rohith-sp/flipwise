@@ -1,0 +1,242 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1800" height="1180" viewBox="0 0 1800 1180" font-family="Inter, Segoe UI, Helvetica, Arial, sans-serif">
+  <title>Flipwise system architecture</title>
+  <defs>
+    <marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="#64748B"/></marker>
+    <marker id="ab" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="#1D4ED8"/></marker>
+    <marker id="ag" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="#15803D"/></marker>
+    <filter id="sh" x="-5%" y="-5%" width="110%" height="115%"><feDropShadow dx="0" dy="2" stdDeviation="3" flood-color="#0F172A" flood-opacity="0.07"/></filter>
+  </defs>
+  <rect width="1800" height="1180" fill="#F8FAFC"/>
+
+  <!-- Header -->
+  <text x="48" y="64" font-size="32" font-weight="700" fill="#0F172A">Flipwise · system architecture</text>
+  <text x="48" y="96" font-size="17" fill="#475569">Offline, deterministic simulation of carbon-aware scheduling across three Indian datacentres, with the datacentres as separate services</text>
+
+  <!-- Column labels -->
+  <g font-size="13" font-weight="700" fill="#64748B" letter-spacing="1.2">
+    <text x="48" y="146">INPUT DATA</text>
+    <text x="388" y="146">DATA PIPELINE</text>
+    <text x="748" y="146">SCHEDULER · COORDINATOR</text>
+    <text x="1388" y="146">DATACENTRE SERVICES</text>
+  </g>
+
+  <!-- ===== Input data ===== -->
+  <g filter="url(#sh)">
+    <rect x="48" y="162" width="300" height="104" rx="12" fill="#FFFFFF" stroke="#E2E8F0"/>
+    <rect x="48" y="282" width="300" height="104" rx="12" fill="#FFFFFF" stroke="#E2E8F0"/>
+    <rect x="48" y="402" width="300" height="104" rx="12" fill="#FFFFFF" stroke="#E2E8F0"/>
+  </g>
+  <rect x="48" y="162" width="6" height="104" rx="3" fill="#7C3AED"/>
+  <rect x="48" y="282" width="6" height="104" rx="3" fill="#0F766E"/>
+  <rect x="48" y="402" width="6" height="104" rx="3" fill="#C2410C"/>
+  <text x="70" y="192" font-size="17" font-weight="700" fill="#0F172A">Alibaba GPU trace v2020</text>
+  <text x="70" y="216" font-size="14" fill="#475569">732k jobs · requests · real runtimes</text>
+  <text x="70" y="238" font-size="14" fill="#475569">sensor table: measured GPU use</text>
+  <text x="70" y="312" font-size="17" font-weight="700" fill="#0F172A">Indian grid, 2023</text>
+  <text x="70" y="336" font-size="14" fill="#475569">Grid-India generation by fuel</text>
+  <text x="70" y="358" font-size="14" fill="#475569">× CEA emission factors</text>
+  <text x="70" y="432" font-size="17" font-weight="700" fill="#0F172A">NESO forecast archive</text>
+  <text x="70" y="456" font-size="14" fill="#475569">every published GB forecast</text>
+  <text x="70" y="478" font-size="14" fill="#475569">→ real forecast-error paths</text>
+
+  <!-- ===== Data pipeline ===== -->
+  <rect x="388" y="162" width="320" height="344" rx="14" fill="#FFFFFF" stroke="#CBD5E1" filter="url(#sh)"/>
+  <text x="408" y="192" font-size="13" font-weight="600" fill="#64748B">flipwise ingest · build-forecasts · validate</text>
+  <g font-size="14">
+    <rect x="408" y="206" width="280" height="58" rx="9" fill="#F1F5F9"/>
+    <text x="422" y="230" font-weight="700" fill="#0F172A">Jobs and measured use</text>
+    <text x="422" y="252" fill="#475569" font-family="Consolas, monospace" font-size="13">jobs_v2020.csv · job_usage.csv</text>
+    <rect x="408" y="272" width="280" height="58" rx="9" fill="#F1F5F9"/>
+    <text x="422" y="296" font-weight="700" fill="#0F172A">Carbon truth A(r, k)</text>
+    <text x="422" y="318" fill="#475569" font-family="Consolas, monospace" font-size="13">Σ G·EF / Σ G per half hour</text>
+    <rect x="408" y="338" width="280" height="58" rx="9" fill="#F1F5F9"/>
+    <text x="422" y="362" font-weight="700" fill="#0F172A">Forecasts F(r, k, v)</text>
+    <text x="422" y="384" fill="#475569" font-family="Consolas, monospace" font-size="13">max(0, A + α·s_r·E)</text>
+    <rect x="408" y="404" width="280" height="84" rx="9" fill="#F1F5F9"/>
+    <text x="422" y="428" font-weight="700" fill="#0F172A">Frozen estimates</text>
+    <text x="422" y="450" fill="#475569">runtime q05–q95 per user</text>
+    <text x="422" y="472" fill="#475569">forecast error e05/e95 per lead time</text>
+  </g>
+  <g stroke="#94A3B8" stroke-width="2" fill="none" marker-end="url(#a)">
+    <path d="M348 214 H402"/><path d="M348 334 H402"/><path d="M348 454 C375 454 375 367 402 367"/>
+  </g>
+
+  <!-- Scenario -->
+  <rect x="388" y="530" width="320" height="140" rx="14" fill="#FFFFFF" stroke="#CBD5E1" filter="url(#sh)"/>
+  <text x="408" y="560" font-size="17" font-weight="700" fill="#0F172A">Scenario (one replicate)</text>
+  <g font-size="14" fill="#475569">
+    <text x="408" y="586">7-day job slice · 10 % sample</text>
+    <text x="408" y="608">deadline = arrival + 4 h + 2·q90</text>
+    <text x="408" y="630">3 datacentres sized for 70 % load</text>
+    <text x="408" y="652">15 days of carbon and forecasts</text>
+  </g>
+  <path d="M548 506 V524" stroke="#94A3B8" stroke-width="2" marker-end="url(#a)"/>
+
+  <!-- ===== Coordinator ===== -->
+  <rect x="748" y="162" width="600" height="508" rx="16" fill="#EEF4FF" stroke="#1D4ED8" stroke-width="2.5"/>
+  <text x="772" y="196" font-size="19" font-weight="700" fill="#1E3A8A">Coordinator</text>
+  <text x="772" y="220" font-size="14" fill="#1E40AF">owns the simulated clock · deterministic event order (time, priority, seq)</text>
+
+  <!-- events -->
+  <g font-size="12.5" font-weight="600">
+    <rect x="772" y="236" width="128" height="34" rx="17" fill="#FFFFFF" stroke="#93C5FD"/><text x="836" y="258" text-anchor="middle" fill="#1E3A8A">job arrives</text>
+    <rect x="910" y="236" width="128" height="34" rx="17" fill="#1D4ED8"/><text x="974" y="258" text-anchor="middle" fill="#FFFFFF">forecast · 30 min</text>
+    <rect x="1048" y="236" width="128" height="34" rx="17" fill="#FFFFFF" stroke="#93C5FD"/><text x="1112" y="258" text-anchor="middle" fill="#1E3A8A">slot released</text>
+    <rect x="1186" y="236" width="138" height="34" rx="17" fill="#FFFFFF" stroke="#93C5FD"/><text x="1255" y="258" text-anchor="middle" fill="#1E3A8A">job finishes</text>
+  </g>
+
+  <!-- policies row -->
+  <text x="772" y="302" font-size="13" font-weight="700" fill="#475569" letter-spacing="0.8">POLICIES (same planner, different trigger)</text>
+  <g font-size="12.5" font-weight="600">
+    <rect x="772" y="312" width="74" height="28" rx="6" fill="#FFFFFF" stroke="#CBD5E1"/><text x="809" y="331" text-anchor="middle" fill="#334155">fcfs</text>
+    <rect x="852" y="312" width="92" height="28" rx="6" fill="#FFFFFF" stroke="#CBD5E1"/><text x="898" y="331" text-anchor="middle" fill="#334155">place_once</text>
+    <rect x="950" y="312" width="78" height="28" rx="6" fill="#FFFFFF" stroke="#CBD5E1"/><text x="989" y="331" text-anchor="middle" fill="#334155">periodic</text>
+    <rect x="1034" y="312" width="88" height="28" rx="6" fill="#FFFFFF" stroke="#CBD5E1"/><text x="1078" y="331" text-anchor="middle" fill="#334155">pred_error</text>
+    <rect x="1128" y="312" width="106" height="28" rx="6" fill="#FFFFFF" stroke="#CBD5E1"/><text x="1181" y="331" text-anchor="middle" fill="#334155">fixed_savings</text>
+    <rect x="1240" y="312" width="84" height="28" rx="6" fill="#FFFFFF" stroke="#CBD5E1"/><text x="1282" y="331" text-anchor="middle" fill="#334155">pig (oracle)</text>
+  </g>
+
+  <!-- decision-flip flow -->
+  <rect x="772" y="352" width="552" height="174" rx="12" fill="#FFFFFF" stroke="#1D4ED8" stroke-width="2"/>
+  <text x="790" y="378" font-size="15" font-weight="700" fill="#1D4ED8">decision_flip, at every forecast, for each waiting job</text>
+  <g>
+    <rect x="790" y="392" width="156" height="98" rx="10" fill="#ECFDF3" stroke="#86EFAC"/>
+    <text x="868" y="414" text-anchor="middle" font-size="14" font-weight="700" fill="#14532D">1 · Screen</text>
+    <text x="868" y="436" text-anchor="middle" font-size="12.5" fill="#166534">best possible saving</text>
+    <text x="868" y="454" text-anchor="middle" font-size="12.5" fill="#166534" font-family="Consolas, monospace">Ŝa − LB ≥ g_min ?</text>
+    <text x="868" y="476" text-anchor="middle" font-size="12" fill="#166534">no → skip (≈70 %)</text>
+    <rect x="970" y="392" width="156" height="98" rx="10" fill="#FFF7ED" stroke="#FDBA74"/>
+    <text x="1048" y="414" text-anchor="middle" font-size="14" font-weight="700" fill="#7C2D12">2 · Full re-score</text>
+    <text x="1048" y="436" text-anchor="middle" font-size="12.5" fill="#9A3412">≤147 options, queues,</text>
+    <text x="1048" y="454" text-anchor="middle" font-size="12.5" fill="#9A3412">deadline check</text>
+    <text x="1048" y="476" text-anchor="middle" font-size="12" fill="#9A3412" font-family="Consolas, monospace">best Ŝb</text>
+    <rect x="1150" y="392" width="156" height="98" rx="10" fill="#EFF6FF" stroke="#93C5FD"/>
+    <text x="1228" y="414" text-anchor="middle" font-size="14" font-weight="700" fill="#1E3A8A">3 · Noise-aware gate</text>
+    <text x="1228" y="436" text-anchor="middle" font-size="12" fill="#1E40AF" font-family="Consolas, monospace">Ŝa − Ŝb ≥</text>
+    <text x="1228" y="454" text-anchor="middle" font-size="12" fill="#1E40AF" font-family="Consolas, monospace">g_min + θ·w_ab</text>
+    <text x="1228" y="476" text-anchor="middle" font-size="12" fill="#1E40AF">→ MOVE, else KEEP</text>
+  </g>
+  <g stroke="#64748B" stroke-width="2" marker-end="url(#a)"><path d="M946 441 H964"/><path d="M1126 441 H1144"/></g>
+  <text x="790" y="514" font-size="12.5" fill="#475569">g_min = 5 % of the plan's CO₂ · θ = 0.1 · w_ab from forecast, wait and runtime uncertainty</text>
+
+  <!-- planner + boundary -->
+  <rect x="772" y="538" width="270" height="110" rx="12" fill="#FFFFFF" stroke="#CBD5E1"/>
+  <text x="790" y="564" font-size="15" font-weight="700" fill="#0F172A">Planner</text>
+  <g font-size="13" fill="#475569">
+    <text x="790" y="586">candidates: site × half hour</text>
+    <text x="790" y="606">queue-wait projection</text>
+    <text x="790" y="626">CO₂ score Ŝ with [L, U]</text>
+  </g>
+  <rect x="1054" y="538" width="270" height="110" rx="12" fill="#FFFFFF" stroke="#94A3B8" stroke-dasharray="6 5"/>
+  <text x="1072" y="564" font-size="15" font-weight="700" fill="#0F172A">SchedulerView</text>
+  <g font-size="13" fill="#475569">
+    <text x="1072" y="586">information boundary</text>
+    <text x="1072" y="606">sees forecasts and guesses only</text>
+    <text x="1072" y="626">never truth or real runtimes</text>
+  </g>
+
+  <path d="M708 600 H742" stroke="#94A3B8" stroke-width="2" marker-end="url(#a)"/>
+
+  <!-- ===== Datacentres ===== -->
+  <rect x="1388" y="162" width="364" height="508" rx="16" fill="#FFFFFF" stroke="#CBD5E1" filter="url(#sh)"/>
+  <g font-size="12" font-weight="600">
+    <rect x="1408" y="178" width="96" height="26" rx="13" fill="#F1F5F9"/><text x="1456" y="196" text-anchor="middle" fill="#334155">in-process</text>
+    <rect x="1512" y="178" width="110" height="26" rx="13" fill="#F1F5F9"/><text x="1567" y="196" text-anchor="middle" fill="#334155">local services</text>
+    <rect x="1630" y="178" width="102" height="26" rx="13" fill="#DBEAFE"/><text x="1681" y="196" text-anchor="middle" fill="#1E3A8A">Docker</text>
+  </g>
+  <!-- DC cards -->
+  <g>
+    <rect x="1408" y="220" width="324" height="104" rx="10" fill="#FFFFFF" stroke="#1E3A8A" stroke-width="2"/>
+    <text x="1426" y="246" font-size="16" font-weight="700" fill="#1E3A8A">Delhi NCR · Northern grid</text>
+    <text x="1426" y="268" font-size="12.5" fill="#475569">capacity · FIFO queue · running jobs</text>
+    <rect x="1426" y="282" width="288" height="10" rx="5" fill="#E2E8F0"/><rect x="1426" y="282" width="190" height="10" rx="5" fill="#1E3A8A"/>
+    <text x="1426" y="312" font-size="12" fill="#64748B">dc-delhi :8101</text>
+
+    <rect x="1408" y="334" width="324" height="104" rx="10" fill="#FFFFFF" stroke="#C2410C" stroke-width="2"/>
+    <text x="1426" y="360" font-size="16" font-weight="700" fill="#9A3412">Mumbai · Western grid</text>
+    <text x="1426" y="382" font-size="12.5" fill="#475569">capacity · FIFO queue · running jobs</text>
+    <rect x="1426" y="396" width="288" height="10" rx="5" fill="#E2E8F0"/><rect x="1426" y="396" width="70" height="10" rx="5" fill="#C2410C"/>
+    <text x="1426" y="426" font-size="12" fill="#64748B">dc-mumbai :8101</text>
+
+    <rect x="1408" y="448" width="324" height="104" rx="10" fill="#FFFFFF" stroke="#0F766E" stroke-width="2"/>
+    <text x="1426" y="474" font-size="16" font-weight="700" fill="#115E59">Chennai · Southern grid</text>
+    <text x="1426" y="496" font-size="12.5" fill="#475569">capacity · FIFO queue · running jobs</text>
+    <rect x="1426" y="510" width="288" height="10" rx="5" fill="#E2E8F0"/><rect x="1426" y="510" width="160" height="10" rx="5" fill="#0F766E"/>
+    <text x="1426" y="540" font-size="12" fill="#64748B">dc-chennai :8101</text>
+  </g>
+  <text x="1408" y="582" font-size="13" font-weight="700" fill="#334155">HTTP / JSON API</text>
+  <text x="1408" y="604" font-size="12.5" fill="#475569" font-family="Consolas, monospace">/enqueue /remove /dispatch</text>
+  <text x="1408" y="624" font-size="12.5" fill="#475569" font-family="Consolas, monospace">/complete /state /health</text>
+  <text x="1408" y="650" font-size="12" fill="#64748B">no clock of their own · running jobs never move</text>
+
+  <!-- coordinator <-> DC -->
+  <g stroke="#1D4ED8" stroke-width="2.5" fill="none">
+    <path d="M1350 384 H1384" marker-end="url(#ab)"/>
+    <path d="M1386 404 H1352" marker-end="url(#ab)"/>
+  </g>
+  <text x="1368" y="374" font-size="11" font-weight="700" fill="#1D4ED8" text-anchor="middle">HTTP</text>
+  <text x="1368" y="424" font-size="11" font-weight="700" fill="#1D4ED8" text-anchor="middle">JSON</text>
+
+  <!-- ===== Bottom row ===== -->
+  <text x="48" y="724" font-size="13" font-weight="700" fill="#64748B" letter-spacing="1.2">EVALUATION AND RESULTS</text>
+  <text x="1048" y="724" font-size="13" font-weight="700" fill="#64748B" letter-spacing="1.2">LIVE DEMO</text>
+
+  <g filter="url(#sh)">
+    <rect x="48" y="740" width="300" height="200" rx="14" fill="#FFFFFF" stroke="#E2E8F0"/>
+    <rect x="368" y="740" width="300" height="200" rx="14" fill="#FFFFFF" stroke="#E2E8F0"/>
+    <rect x="688" y="740" width="320" height="200" rx="14" fill="#FFFBEB" stroke="#FCD34D"/>
+  </g>
+  <text x="68" y="772" font-size="17" font-weight="700" fill="#0F172A">Evaluator</text>
+  <g font-size="14" fill="#475569">
+    <text x="68" y="800">true carbon × real runtime</text>
+    <text x="68" y="824">kgCO₂ as a cited range:</text>
+    <text x="68" y="848">measured GPU use … datasheet</text>
+    <text x="68" y="872">deadline misses, waits, moves</text>
+    <text x="68" y="896">full re-scores (the cost)</text>
+  </g>
+  <text x="388" y="772" font-size="17" font-weight="700" fill="#0F172A">Experiment runner</text>
+  <g font-size="14" fill="#475569">
+    <text x="388" y="800">compare · sweep · report</text>
+    <text x="388" y="824">7 policies on identical replicates</text>
+    <text x="388" y="848">paired bootstrap 95 % CIs</text>
+    <text x="388" y="872">thresholds frozen on validation</text>
+    <text x="388" y="896">test set run once</text>
+  </g>
+  <text x="708" y="772" font-size="17" font-weight="700" fill="#78350F">Result (16 test weeks)</text>
+  <text x="708" y="812" font-size="26" font-weight="700" fill="#0F172A">−54 % full re-scores</text>
+  <text x="708" y="848" font-size="26" font-weight="700" fill="#0F172A">−60 % job moves</text>
+  <text x="708" y="880" font-size="14" fill="#57534E">vs re-checking everything, same carbon;</text>
+  <text x="708" y="902" font-size="14" fill="#57534E">θ = 0: identical decisions, −62 % checks</text>
+  <g stroke="#94A3B8" stroke-width="2" marker-end="url(#a)"><path d="M348 840 H362"/><path d="M668 840 H682"/></g>
+  <path d="M900 670 V700 H330 V734" stroke="#94A3B8" stroke-width="2" fill="none" marker-end="url(#a)"/>
+
+  <!-- live -->
+  <rect x="1048" y="740" width="704" height="200" rx="14" fill="#F0FDF4" stroke="#86EFAC" filter="url(#sh)"/>
+  <text x="1068" y="772" font-size="17" font-weight="700" fill="#14532D">flipwise live → dashboard at localhost:8100</text>
+  <g font-size="13" font-weight="600">
+    <rect x="1068" y="790" width="200" height="132" rx="10" fill="#FFFFFF" stroke="#BBF7D0"/>
+    <text x="1084" y="814" fill="#14532D">Paced simulation</text>
+    <g font-weight="400" fill="#475569"><text x="1084" y="838">policies side by side</text><text x="1084" y="860">one real-time clock</text><text x="1084" y="882">time skip</text><text x="1084" y="904">submit your own job</text></g>
+    <rect x="1290" y="790" width="200" height="132" rx="10" fill="#FFFFFF" stroke="#BBF7D0"/>
+    <text x="1306" y="814" fill="#14532D">JSON API + stream</text>
+    <g font-weight="400" fill="#475569" font-family="Consolas, monospace" font-size="12.5"><text x="1306" y="838">/status /history</text><text x="1306" y="860">/jobs /activity</text><text x="1306" y="882">/lanes /control</text><text x="1306" y="904">/stream (SSE)</text></g>
+    <rect x="1512" y="790" width="220" height="132" rx="10" fill="#FFFFFF" stroke="#BBF7D0"/>
+    <text x="1528" y="814" fill="#14532D">Dashboard pages</text>
+    <g font-weight="400" fill="#475569"><text x="1528" y="838">Overview · Head-to-head</text><text x="1528" y="860">Job tracker · Scheduler</text><text x="1528" y="882">Datacentres · Comparison</text><text x="1528" y="904">Scale · Results · Arch.</text></g>
+  </g>
+  <g stroke="#15803D" stroke-width="2" marker-end="url(#ag)"><path d="M1268 856 H1284"/><path d="M1490 856 H1506"/></g>
+  <path d="M1300 670 V734" stroke="#15803D" stroke-width="2" stroke-dasharray="6 5" marker-end="url(#ag)"/>
+  <text x="1310" y="706" font-size="12.5" fill="#15803D">same coordinator, paced in real time</text>
+
+  <!-- Footer invariants -->
+  <rect x="48" y="980" width="1704" height="152" rx="14" fill="#FFFFFF" stroke="#E2E8F0"/>
+  <text x="72" y="1014" font-size="15" font-weight="700" fill="#0F172A">Guarantees built into the design</text>
+  <g font-size="14" fill="#334155">
+    <circle cx="78" cy="1045" r="4" fill="#1D4ED8"/><text x="92" y="1050">Deterministic: same config and seed give byte-identical logs, in-process, as local services and in Docker</text>
+    <circle cx="78" cy="1073" r="4" fill="#1D4ED8"/><text x="92" y="1078">Fair: every policy shares one scenario, planner, feasibility check and dispatcher; only the trigger differs</text>
+    <circle cx="78" cy="1101" r="4" fill="#1D4ED8"/><text x="92" y="1106">Honest: no policy sees the future; train, validation and test periods never overlap; the test set is run once</text>
+    <circle cx="968" cy="1045" r="4" fill="#15803D"/><text x="982" y="1050">Data: Alibaba GPU trace · Grid-India + CEA · NESO forecast errors</text>
+    <circle cx="968" cy="1073" r="4" fill="#15803D"/><text x="982" y="1078">Stack: Python 3.12 · pandas · numpy · stdlib HTTP · ECharts</text>
+    <circle cx="968" cy="1101" r="4" fill="#15803D"/><text x="982" y="1106">Running jobs are never migrated</text>
+  </g>
+</svg>

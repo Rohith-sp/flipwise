@@ -1,311 +1,162 @@
 # Flipwise
 
-**Efficient Re-Evaluation of Pending Workloads in Carbon-Aware Datacentre Scheduling**
+**When should a carbon-aware scheduler change its mind?** Flipwise is a deterministic simulator and a scheduling policy, *decision-flip*, for re-evaluating waiting GPU jobs across three Indian datacentres only when a better placement could actually exist.
 
-An offline research simulator that tests *when* a carbon-aware scheduler should re-plan a job that is still waiting to run.
+Experiential Learning project, V semester, RV College of Engineering (Team ATLAS, theme: SDG 9 · Industry, Innovation and Infrastructure).
 
-RV College of Engineering · Experiential Learning, V Semester, AY 2026–27 · UN SDG 9 (Industry, Innovation and Infrastructure)
-
-> Status: **EL Phase 1 (pitch) complete. Now on EL Phase 2 (partial results).** Build phases 1–7 are implemented: all seven policies run on real Indian grid data, and at θ = 0 decision-flip makes the same decisions as fixed-savings with 62 % fewer full re-scorings (P1, all 12 validation weeks). Validation is done and thresholds are frozen (PRD §14.5, results in [docs/validation/](docs/validation/README.md)); the test set has been run once (12 Nov 2026, [docs/test_results/](docs/test_results/README.md)): decision-flip matches the other re-planners and `place_once` on emissions within noise, is clearly below `fcfs`, and uses 54 % fewer full re-scorings and 60 % fewer moves than `fixed_savings`. kgCO₂ is a cited range ([docs/power_bracket/](docs/power_bracket/README.md), F25): on the test set decision-flip emits 3,853 kg (measured power) to 11,862 kg (datasheet power) per replicate, and the claim holds at both ends. A live demo dashboard (`flipwise live`, http://localhost:8100) shows the policies side by side ([docs/USAGE.md](docs/USAGE.md) §8a); the algorithm alone is explained in [docs/DECISION_FLIP.md](docs/DECISION_FLIP.md). The spec is [docs/prd.md](docs/prd.md) (v0.9.3). How we got here: [docs/project_journey.md](docs/project_journey.md). Joining or resuming: start at [docs/HANDOFF.md](docs/HANDOFF.md); decisions and why are in [docs/decisions.md](docs/decisions.md).
+[How it works](docs/DECISION_FLIP.md) · [Walkthrough](docs/WALKTHROUGH.md) · [Usage and demo](docs/USAGE.md) · [Specification](docs/prd.md) · [Decisions](docs/decisions.md)
 
 ---
 
-## System architecture (EL Phase 2)
+## Highlights
 
-```mermaid
-flowchart TB
-  subgraph SRC["Raw data (data/raw, not committed)"]
-    direction LR
-    A1["Alibaba GPU trace v2020<br/>jobs · tasks · sensor table"]
-    A2["Grid-India generation by fuel<br/>× CEA emission factors"]
-    A3["NESO forecast archive<br/>real GB forecast errors"]
-  end
+- **Half the re-planning work, same carbon.** On 16 held-out test weeks, decision-flip made **54 % fewer full re-evaluations** and **60 % fewer job moves** than re-checking every waiting job at every forecast, with no measurable difference in emissions.
+- **Provably safe shortcut.** With its noise margin set to zero, decision-flip makes exactly the same decisions as the full re-check. Verified on all 12 validation weeks, with 62 % fewer checks.
+- **Real Indian conditions.** Jobs from Alibaba's GPU cluster trace; grid carbon for Delhi NCR, Mumbai and Chennai from Grid-India generation data and official CEA emission factors; forecasts built from real forecast-error histories.
+- **A distributed setup with identical results.** The three datacentres run in-process, as local services or as Docker containers, with byte-identical outputs in every mode.
+- **A live demo.** A dashboard runs the policies side by side in real time, lets you submit a job and shows every decision made about it.
 
-  subgraph ING["1 · Data pipeline: flipwise ingest · build-forecasts · validate"]
-    direction LR
-    I1["jobs_v2020.csv<br/>job_usage.csv"]
-    I2["carbon_truth.csv<br/>A(r,k) = Σ G·EF / Σ G"]
-    I3["carbon_forecast.csv<br/>F = max(0, A + α·s_r·E)"]
-    I4["Frozen estimates<br/>runtime q05…q95 per user<br/>forecast error e05/e95 per lead time"]
-  end
+## Architecture
 
-  S1["2 · Scenario (one replicate)<br/>7-day job slice, 10 % sample · deadline = arrival + 4 h + 2·q90<br/>3 datacentres sized for ρ = 0.7 · 15 days of carbon"]
+![Flipwise system architecture](docs/figures/architecture.png)
 
-  subgraph CO["Coordinator: the scheduler (owns the simulated clock)"]
-    direction LR
-    C1["3 · Event simulator<br/>arrival · release · finish ·<br/>carbon update every 30 min"]
-    C2["5 · Policy<br/>decision_flip + 6 baselines<br/>sees only SchedulerView"]
-    C3["6 · Decision-flip<br/>screen LB → full re-score →<br/>move iff gain ≥ g_min + θ·w_ab"]
-    C4["4 · Planner<br/>≤147 options · queue wait ·<br/>score Ŝ · deadline check"]
-    C1 --> C2 --> C3 --> C4
-  end
+A slide-sized version is in [`docs/figures/architecture_ppt.png`](docs/figures/architecture_ppt.png).
 
-  subgraph DC["9 · Datacentre services: in-process, local processes or Docker containers"]
-    direction LR
-    D1["dc-delhi<br/>Northern grid"]
-    D2["dc-mumbai<br/>Western grid"]
-    D3["dc-chennai<br/>Southern grid"]
-  end
+## The idea
 
-  subgraph EV["7–8 · Evaluation"]
-    direction LR
-    E1["Evaluator<br/>true carbon × real runtime<br/>kgCO₂: measured … nameplate"]
-    E2["Run outputs<br/>jobs.csv · decisions.csv<br/>events.log · metrics · manifest"]
-    E3["compare · sweep · report<br/>paired bootstrap CIs"]
-    E4["docs/validation · test_results<br/>power_bracket"]
-    E1 --> E2 --> E3 --> E4
-  end
+A scheduler places each job using the grid-carbon forecast available when it arrives. Forecasts are revised every 30 minutes, so a plan can go stale. Re-checking every waiting job at every update is expensive (up to 147 options per job, each with a queue projection) and moving jobs costs them their place in the queue; never re-checking misses real savings. At each new forecast, decision-flip does three things for a waiting job:
 
-  subgraph LV["10 · Live demo: flipwise live"]
-    direction LR
-    L1["Paced clock · several policies<br/>time skip · submitted jobs"]
-    L2["JSON API + SSE<br/>/status /jobs /activity /stream"]
-    L3["Dashboard :8100<br/>Overview · Head-to-head · Job tracker"]
-    L1 --> L2 --> L3
-  end
+1. **Screen (cheap).** It computes a lower bound on the CO₂ of *any* alternative. If even that bound cannot save at least 5 % of the job's current CO₂, it stops: no move could pay off. This skips 60–70 % of checks.
+2. **Full re-score.** Otherwise it scores every feasible option, with queue waits and a conservative deadline check.
+3. **Noise-aware gate.** It moves the job only if the saving beats the 5 % gate **plus** a margin for how uncertain the forecast, queue wait and runtime are:
 
-  SRC --> ING --> S1 --> CO
-  CO <-->|"HTTP JSON: /enqueue /remove /dispatch /complete /state"| DC
-  CO --> EV
-  CO -.->|"same scheduler, paced in real time"| LV
+```
+move  iff   Ŝ_current − Ŝ_best  ≥  g_min + θ · w_ab        (g_min = 5 % of Ŝ_current, θ = 0.1)
 ```
 
-How to read it: raw data becomes clean files and frozen estimates (1); a scenario packs one week of jobs, three datacentres and carbon (2); the coordinator replays events (3) and, at each new forecast, lets the policy decide (5–6) using the planner (4) through the `SchedulerView` information boundary; the three datacentres can run in-process, as local services or as Docker containers, with byte-identical results (9); the evaluator charges real runtimes against true carbon (7) and the experiment runner produces the statistics (8); the live mode paces the same machinery for the dashboard (10). Numbers match the stages in [docs/WALKTHROUGH.md](docs/WALKTHROUGH.md); a slide-sized version is [docs/figures/architecture_ppt.png](docs/figures/architecture_ppt.png).
+Every symbol, with a worked example, is in [docs/DECISION_FLIP.md](docs/DECISION_FLIP.md).
 
-## 1. Problem and contribution
+## Results
 
-A scheduler picks a datacentre and start time for each job using carbon-intensity forecasts. Those forecasts are revised every 30 minutes, so a job's placement can stop being the best one before the job starts. If you never re-plan, you miss savings. If you re-plan on a timer or at every update, you spend planner time, and jobs bounce around on forecast noise.
+Test set: 16 replicates (4 trace weeks × 4 carbon weeks, Sep 2023 – Jan 2024), run once with thresholds frozen on validation data. kgCO₂ is per replicate, given as a cited range: measured GPU use (lower bound) to datasheet power (upper bound).
 
-**Decision-flip-triggered re-evaluation** (the proposed policy) works in two stages. On each forecast update:
+| Policy | kgCO₂ (measured … nameplate) | Full re-scores | Moves | Deadline misses |
+|---|---|---|---|---|
+| **decision_flip** (ours) | **3,853 … 11,862** | **20,035** | **2,359** | 4.13 % |
+| fixed_savings (re-check everything) | 3,865 … 11,885 | 43,540 | 5,897 | 4.14 % |
+| periodic (every 30 min) | 3,871 … 11,862 | 43,392 | 6,337 | 4.00 % |
+| pred_error (when forecast drifts) | 3,856 … 11,904 | 14,944 | 4,122 | 4.02 % |
+| place_once (never re-plan) | 3,873 … 11,902 | 0 | 0 | 3.95 % |
+| fcfs (no carbon awareness) | 3,980 … 12,160 | 0 | 0 | 2.13 % |
+| pig (oracle, knows the future) | 3,863 … 11,767 | 0 | 0 | 3.03 % |
 
-1. **Stage 1, a cheap screen.** A lower bound on every candidate's score checks whether *any* alternative could beat the current placement by the benefit gate `g_min`. If none could, the job is skipped.
-2. **Stage 2, a full re-score.** The job moves only if the best alternative wins by `g_min + θ · w_ab`, where `w_ab` is the combined width of the forecast, runtime and queue-wait uncertainty intervals.
+- Emissions of all re-planning policies are within each other's 95 % bootstrap confidence intervals, and all are clearly below `fcfs`.
+- Even the oracle saves at most about 1–2 % over never re-planning on this data, so the value of a trigger is in how cheaply it reaches that carbon.
+- About 93 % of deadline misses are jobs that ran longer than their 90th-percentile runtime estimate; improving that estimate is the first planned extension.
 
-The key property: **at θ = 0 the policy makes exactly the same decisions as a fixed-savings gate that re-scores every job, but it makes fewer planner calls.** Any difference in emissions therefore comes from θ, and any difference in overhead comes from the screen.
+Details: [docs/test_results/](docs/test_results/README.md), [docs/power_bracket/](docs/power_bracket/README.md), [docs/validation/](docs/validation/README.md).
 
-## 2. Scope
+## Quick start
 
-- An offline, deterministic, command-line **research simulator**. It is not a production scheduler.
-- **Indian conditions.** Three *virtual* datacentres in India's datacentre hubs, each on its own regional grid: **Delhi NCR** (Northern), **Mumbai** (Western), **Chennai** (Southern), with pooled GPU, CPU and memory capacity. Time runs in IST.
-- It replays one-week slices of the Alibaba PAI GPU trace v2020. Carbon "truth" is Indian regional intensity built from generation by fuel × CEA emission factors. No archive of Indian carbon *forecasts* exists, so the forecasts the scheduler sees are Indian truth plus the **real forecast-error paths** of an archived operational forecast (NESO, Great Britain), scaled to Indian levels. Policies only see forecasts available at that moment; an evaluator scores outcomes against the truth they never see.
-- Running jobs are never migrated. Results are **modelled** operational CO2 (IT energy only), not measured reductions.
-- **Deployment track** (PRD §13.5): the same simulation can run with each virtual datacentre as a separate service: **DT1** local processes, then **DT2** Docker, then **DT3** AWS. The coordinator keeps a simulated clock, so every mode must produce byte-identical results to the normal in-process run. Research results always come from the in-process mode.
-- Out of scope: real infrastructure control, a web app (the dashboard is a static HTML file), measuring real cloud emissions, and DRO (extension X1).
-
-## 3. Datasets
-
-Raw and processed data are never committed. Download links and checksums will go in `data/README.md`. The full link list is in [docs/helpfullinks.md](docs/helpfullinks.md).
-
-| Dataset | Use | Source | Licence / terms |
-|---|---|---|---|
-| Alibaba Cluster Trace GPU v2020 (`pai_job_table`, `pai_task_table`, `pai_machine_spec`) | Job arrivals, runtimes, resource requests | [alibaba/clusterdata](https://github.com/alibaba/clusterdata/tree/master/cluster-trace-gpu-v2020) · [split-file mirror](https://github.com/qzweng/clusterdata-cluster-trace-gpu-v2020-data) | Research/study use; cite Weng et al., NSDI '22 |
-| Grid-India NLDC daily Power Supply Position reports, 13 Mar 2023 – 8 Feb 2024 | Regional daily generation by fuel (NR, WR, SR, ER) for the Indian truth (PRD §6.2.2) | [Grid-India](https://grid-india.in/) public file API, via `scripts/download_india.py` | Government of India publication |
-| Grid-India NLDC SCADA, all-India generation by fuel every 10 s (Mendeley Data) | Within-day shape of each fuel | [doi:10.17632/y58jknpgs8.2](https://data.mendeley.com/datasets/y58jknpgs8/2) | CC BY 4.0 |
-| CEA CO2 Baseline Database | Emission factor per fuel; grid-average factor for the static check | [cea.nic.in](https://cea.nic.in/) | Government of India publication |
-| NESO forecast-vintage archive, Mar 2023 – Feb 2024 | Real forecast-error paths, applied to Indian truth (PRD §6.2.4) | [nmpowell/carbon-intensity-forecast-tracking](https://github.com/nmpowell/carbon-intensity-forecast-tracking) | MIT (archive); NESO terms still to check (blocker B2) |
-
-One script downloads and extracts the three Alibaba archives, clones the NESO forecast archive (the source of forecast-error paths) at the pinned commit and runs the audit. Details, checksums and the pinned archive commit are in [data/README.md](data/README.md).
+Requires [uv](https://docs.astral.sh/uv/) (it installs Python 3.12). Works on Linux and Windows 11.
 
 ```bash
-# Linux / macOS / Git Bash
-bash scripts/download_data.sh
+uv sync                      # install
+uv run pytest -q             # 260 tests, no data needed
+uv run flipwise smoke        # toy scenario, all policies, checked against hand-computed answers
 ```
 
-```powershell
-# Windows PowerShell
-powershell -ExecutionPolicy Bypass -File scripts\download_data.ps1
-```
+Install uv first if needed: `curl -LsSf https://astral.sh/uv/install.sh | sh` (Linux/macOS) or `powershell -ExecutionPolicy ByPass -c "irm https://astral.sh/uv/install.ps1 | iex"` (Windows).
 
-`flipwise ingest` checks the archives' SHA-256 against the upstream README and exits if they don't match.
-
-## 4. Setup
-
-Requires [uv](https://docs.astral.sh/uv/); uv installs Python 3.12 itself (`.python-version`), so the system Python version does not matter. Works on Linux and Windows 11. **For a step-by-step demo of every command (toy run, comparisons, local split, Docker), see [docs/USAGE.md](docs/USAGE.md).**
-
-Install uv once:
+### Live demo
 
 ```bash
-# Linux / macOS
-curl -LsSf https://astral.sh/uv/install.sh | sh
+uv run flipwise live --scenario tests/fixtures/toy --speed 120     # 6-job toy, no data needed
+uv run flipwise live --config configs/base.yaml                    # a real week, about 7,000 jobs
 ```
 
-```powershell
-# Windows PowerShell
-powershell -ExecutionPolicy ByPass -c "irm https://astral.sh/uv/install.ps1 | iex"
-```
-
-Then, identical on both (quote the path if it contains spaces):
+Open **http://localhost:8100**. With the three datacentres as Docker containers:
 
 ```bash
-uv sync                                    # create .venv from uv.lock
-uv run ruff check . && uv run ruff format --check .   # PowerShell 5: use ';' instead of '&&'
-uv run pytest -q                           # unit, invariant and toy-scenario tests
-uv run flipwise smoke                      # toy scenario, all policies, < 5 s
-uv run python scripts/audit_v2020.py       # reproduce the PRD §6.1 trace audit
+docker compose --profile live up --build dc-delhi dc-mumbai dc-chennai live
 ```
 
-Stack: pandas, numpy, PyYAML and matplotlib. Optional: plotly, via `uv sync --extra dashboard`. Dev tools: pytest and ruff. The event engine is a custom `heapq` loop, not SimPy (see PRD §5, D3).
+Pages: Overview, Head-to-head (decision-flip against any policy, with every check the screen avoided), Job tracker (submit a job and follow each policy's decisions), Scheduler, Datacentres, Policy comparison, Scale projection, Test results, Architecture. A demo script is in [docs/USAGE.md §8a](docs/USAGE.md).
 
-### CLI
+### Experiments
+
+These need the processed data (see [Data](#data)).
 
 | Command | Purpose |
 |---|---|
-| `flipwise smoke` / `flipwise run --scenario tests/fixtures/toy --policy place_once` | Toy check against `expected.yaml` / one run → `results/<scenario>_<policy>/` (implemented) |
-| `flipwise ingest alibaba --raw data/raw/v2020 --out data/processed` | Verify checksums, build `jobs_v2020.csv` and a manifest |
-| `flipwise ingest carbon --archive <clone> --start 2023-03-13 --end 2024-01-31 --regions 1,13,7 --out data/processed` | Build forecast, truth and coverage CSVs |
-| `flipwise validate --config configs/base.yaml` | Check config, data, coverage and that calibration/test windows don't overlap |
-| `flipwise run --config configs/base.yaml --policy decision_flip` | One run → `results/<run_id>/` |
-| `flipwise compare --config configs/base.yaml --jobs 7` / `sweep` / `report` | All policies on identical inputs; parameter grids; rebuild tables from saved logs. One dev week takes about 8 minutes with 7 parallel runs on an 8-core laptop. On validation, with 5 parallel runs, one week per policy averaged 0.3 min (`fcfs`), 2.3 (`place_once`), 4.2 (`decision_flip`), 4.8 (`pred_error`), 7.9 (`periodic`), 8.0 (`fixed_savings`) and 9.4 (`pig`) at sampling 0.1; per-run times are in `docs/validation/runs.csv` (R-PERF-1) |
-| `flipwise dashboard --runs results/compare_<hash>` | Write a static, offline `dashboard.html` from saved CSVs |
-| `flipwise dc-serve --dc-id 0 --port 8101` | Run one datacentre as an HTTP service (deployment track) |
-| `bash scripts/local_cluster.sh --config configs/base.yaml --policy decision_flip` | DT1: start three local datacentre services, run with `--mode remote`, stop them on exit |
-| `docker compose up --build --abort-on-container-exit --exit-code-from coordinator` | DT2: the same run in four containers (`GIT_COMMIT` baked in; `bash scripts/docker_check.sh` is the acceptance test) |
+| `uv run flipwise validate --config configs/base.yaml` | Check data checksums, coverage and that train, validation and test periods do not overlap |
+| `uv run flipwise run --config configs/base.yaml --policy decision_flip` | One policy on one week → `results/<run_id>/` |
+| `uv run flipwise compare --config configs/base.yaml --split validation --jobs 5` | All policies on identical replicates, with paired bootstrap statistics |
+| `uv run flipwise sweep --config configs/base.yaml --sweep configs/sweeps/theta.yaml` | Parameter grid; each cell is a comparison |
+| `uv run flipwise dashboard --runs results/compare_<hash>` | Static, offline report from saved results |
+| `bash scripts/local_cluster.sh --config configs/base.yaml --policy decision_flip` | Same run with the datacentres as three local services |
+| `bash scripts/docker_check.sh` | Prove Docker gives byte-identical results, including a crash test |
 
-## 5. Repository layout
+Every documented command has a PowerShell form; see [docs/USAGE.md](docs/USAGE.md).
 
-Current (build phases 1–7):
+## Data
 
-```text
-flipwise/
-├── pyproject.toml, uv.lock, .python-version, .gitignore, README.md, CLAUDE.md
-├── configs/                   # base.yaml, energy.yaml, policies.yaml, sweeps/*.yaml
-├── data/README.md, manifests/ # raw/ and processed/ are git-ignored
-├── docs/                      # prd.md, WALKTHROUGH.md, USAGE.md, explanation.md, decisions.md, helpfullinks.md
-├── scripts/                   # download_data.sh / .ps1, audit_v2020.py
-├── src/flipwise/              # cli, config, validate, trace, ingest, carbon, energy, estimates,
-│                              # models, datacentre, simulator, planner, policies, scenario,
-│                              # metrics, experiment, reporting, figures, dashboard, smoke, errors
-└── tests/                     # fixtures/toy/ (+ expected.yaml) and test_*.py
+Raw and processed data are never committed. `bash scripts/download_data.sh` (or `scripts\download_data.ps1`) downloads and checks them; `flipwise ingest` verifies every archive's SHA-256. Details and checksums: [data/README.md](data/README.md).
+
+| Dataset | Use | Source | Terms |
+|---|---|---|---|
+| Alibaba Cluster Trace GPU v2020 | Job arrivals, requests, runtimes, measured GPU use | [alibaba/clusterdata](https://github.com/alibaba/clusterdata/tree/master/cluster-trace-gpu-v2020) | Research use; cite Weng et al., NSDI '22 |
+| Grid-India NLDC daily reports, Mar 2023 – Feb 2024 | Regional generation by fuel | [grid-india.in](https://grid-india.in/) | Government of India publication |
+| Grid-India NLDC SCADA, all-India generation by fuel | Within-day shape of each fuel | [doi:10.17632/y58jknpgs8.2](https://data.mendeley.com/datasets/y58jknpgs8/2) | CC BY 4.0 |
+| CEA CO₂ Baseline Database v19.0 | Emission factor per fuel | [cea.nic.in](https://cea.nic.in/) | Government of India publication |
+| NESO forecast archive, Mar 2023 – Feb 2024 | Real forecast-error paths | [nmpowell/carbon-intensity-forecast-tracking](https://github.com/nmpowell/carbon-intensity-forecast-tracking) | MIT (archive); NESO terms under review |
+
+## Methodology and guarantees
+
+- **Deterministic.** The same configuration and seed give byte-identical logs (`events.log`, `jobs.csv`, `decisions.csv`) in every deployment mode.
+- **Fair.** Every policy runs on the same scenario object with the same planner, feasibility check, dispatcher and deadline rescue; only the re-planning trigger and acceptance rule differ.
+- **No look-ahead.** Policies see forecasts and runtime estimates only, through an enforced information boundary; only the oracle reference sees the true future.
+- **No tuning on test data.** Estimates are fitted on early data, thresholds are frozen on validation weeks, and the test set was run exactly once.
+- **Statistics.** Paired comparisons on identical replicates with 95 % percentile bootstrap intervals (10,000 resamples).
+
+## Limitations
+
+- Forecast errors are real but British (NESO); no archive of Indian carbon forecasts exists.
+- Deadlines are not recorded in the trace; each job gets one at arrival from a fixed rule (4 h + 2 × its 90th-percentile runtime estimate).
+- CPU power per core (10 W) and idle GPU draw are assumptions, hence the kgCO₂ range.
+- Jobs are sampled at 10 % per week to fit a laptop; running jobs are never migrated.
+
+## Repository layout
+
+```
+src/flipwise/      simulator, planner, policies, energy, carbon, ingest, experiment runner,
+                   datacentre service (dcservice.py), live demo (live.py) and dashboard (web/)
+configs/           base experiment config, frozen policy thresholds, sweep grids
+scripts/           data download, local cluster, Docker checks, ablation and re-run drivers
+tests/             260 tests, including the hand-computed toy scenario (tests/fixtures/toy)
+docs/              specification, walkthrough, decisions, results (validation, test, power bracket)
+Dockerfile, docker-compose.yml   one image: three datacentre services, coordinator, live demo
 ```
 
-Target (PRD §13.1):
+## Documentation
 
-```text
-├── pyproject.toml, uv.lock, LICENSE, .gitignore
-├── Dockerfile, docker-compose.yml           # deployment track DT2
-├── configs/          base.yaml, energy.yaml, policies.yaml, sweeps/*.yaml
-├── scripts/          download/checksum scripts, local_cluster.sh (DT1), aws/ (DT3)
-├── src/flipwise/     cli, config, models, ingest, carbon, energy, estimates,
-│                     simulator, datacentre, dcservice, planner, policies,
-│                     metrics, reporting, dashboard
-├── tests/            fixtures/toy/ (6 jobs, 3 DCs, hand-checked expected.yaml) + test_*.py
-├── data/             README.md; raw/ and processed/ are git-ignored; manifests/
-└── results/          git-ignored; run outputs and dashboard.html
-```
-
-## 6. Roadmap
-
-The PRD defines nine build phases (§18). The EL reviews map onto them as follows (§18.1).
-
-| EL phase | Build phases | Deployment track | Status |
-|---|---|---|---|
-| 1. Pitch | — | — | ✅ Done |
-| **2. Partial results** | 1–6, plus a minimal part of 7 | DT1 local split, then DT2 Docker (both required, D52) | ⏳ **Current** |
-| 3. Full results and paper (final) | Rest of 5 and 7, then 8–9 | Finish DT2, then DT3 AWS | Not started |
-
-The deployment track runs in parallel, owned by one team member, and never blocks the research phases.
-
-### EL Phase 2: partial results
-
-**Precondition:** the mentor confirms that decision-flip is the core contribution and DRO is an extension (blocker B1).
-
-Work on a small slice: **one validation week** of the Alibaba trace (dev sampling 0.1) with the matching Indian truth and forecast vintages.
-
-| # | Build phase | What gets built | Exit criterion |
-|---|---|---|---|
-| 1 ✅ | Setup and audit | Repo, `pyproject.toml`, `uv.lock`, ruff, pytest; download v2020; clone the archive at a fixed commit | Checksums match; a script reproduces the PRD §6.1 audit numbers |
-| 2 ✅ | Canonical data | `ingest alibaba`, `ingest india` (truth), `ingest carbon` (error paths), `build-forecasts`, manifests, `validate` | Processed CSVs plus ingest/coverage reports; B2 and B4 answered |
-| 3 ✅ | Deterministic core | `models`, `simulator` (events, job states), `datacentre` (queue, dispatch) behind a `DatacentreClient` interface, toy fixture, `fcfs` | Toy FCFS output equals `expected.yaml` |
-| 4 ✅ | Energy and place-once | `energy`, `carbon` views, `planner` (candidates, feasibility, scoring), `place_once` | Toy emissions exact; static-factor test passes |
-| 5 ✅ | Baselines (partial) | `estimates` (runtime quantiles, wait profiles), `periodic(T)`, `fixed_savings(g)`, rescue, throttling | Baselines run on the toy scenario |
-| 6 ✅ | Decision-flip | Lower-bound screen, noise margin, interval fallbacks | Toy flip / no-flip / small-gain cases pass; P1 holds |
-| 7 ✅ | Runner | `run`, metrics, `dashboard` only | One table and `dashboard.html` |
-
-Policies in Phase 2: `fcfs`, `place_once`, `periodic(T)`, `fixed_savings(g)`, `decision_flip(g, θ)`.
-
-**Must show at the Phase 2 review:**
-1. A toy scenario whose kgCO2 is checked by hand (R-EN-1, toy `expected.yaml`), showing the simulator is correct.
-2. At θ = 0, decision-flip makes **identical decisions** to fixed-savings with fewer `stage2_calls` (P1, R-TRIG-2). This is the core claim.
-3. One comparison table for the validation week: kgCO2, deadline-miss rate and re-score count per policy.
-4. A `dashboard.html` with the timeline, Pareto and results-table tabs. The θ-sweep tab may show "no data".
-5. **DT1 local split:** three local datacentre services (`scripts/local_cluster.sh`) giving outputs identical to the in-process run, verified on the toy scenario and on the dev week (the scripted driver was dropped, D53).
-6. **Stretch, DT2 Docker:** the same run via `docker compose up`.
-
-Items 5–6 never hold back items 1–4.
-
-kgCO2 is reported as a bracket, `measured` (lower) to `nameplate` (upper), from datasheet GPU power and Alibaba's measured use (B3 mostly resolved, D58). Results before 12 Nov used a placeholder and are relative.
-
-**Where items 1–4 stand:** done. Run `flipwise smoke`, `scripts/check_p1.py`, `flipwise compare`, `flipwise dashboard`; first results are in PRD §10.11. Item 5 (DT1) is done; item 6 (DT2 Docker) is built and checked on Linux, including from a clean clone, with one Windows run still to do.
-
-#### Deployment track in Phase 2: local split, then Docker
-
-Build order (PRD §18), chosen so nothing is throwaway:
-
-| # | Step | Done when |
-|---|---|---|
-| 1 | Repo skeleton: `pyproject.toml`, uv, ruff, pytest, `src/flipwise/`, CLI stub | `uv run pytest` passes |
-| 2 | `datacentre.py`, plain Python: capacity, FIFO queue, `enqueue/remove/dispatch/complete/state` (also used by the simulator) | Unit tests: no overbooking, `MigrationError`, no backwards time |
-| 3 | `DatacentreClient` interface + `InProcDatacentre` | Simulator code can only reach datacentres through it |
-| 4 | `dcservice.py`: the 7 endpoints of PRD §13.5 on stdlib `http.server`, plus `HttpDatacentre` | Same call sequence gives identical responses through both clients (R-DEP-7) |
-| 5 | ~~Scripted driver~~ dropped (D53): the simulator exists, so step 7 does its job | n/a |
-| 6 | `scripts/local_cluster.sh`: start services on `127.0.0.1:8101–8103`, wait for `/health`, run, clean up (with a `taskkill` fallback on Windows) | Killing a service aborts the run; no orphan processes |
-| 7 | `flipwise run --mode remote` with the real simulator (needs build phase 3) | Toy simulation identical in-process and remote (R-DEP-1) |
-| 8 | **Stretch, DT2:** `Dockerfile` + `docker-compose.yml` (`dc-delhi`, `dc-mumbai`, `dc-chennai`, `coordinator`) | `docker compose up` from a clean clone gives the same outputs |
-
-**Status (11 Nov):** steps 1–7 are done, so **DT1 is complete**: `dcservice.py`, `flipwise dc-serve`, `HttpDatacentre`, `--mode remote`, `local_cluster.sh` and `.ps1`, and the crash test (R-DEP-3). R-DEP-1 holds on the toy for every policy, and on the dev week for `decision_flip` (F19). Step 8, DT2 Docker, is built (`Dockerfile`, `docker-compose.yml`, `scripts/docker_check.sh`): R-DEP-1, 2 and 3 hold in Compose on Linux (F20). **Left: one Windows run.**
-
-PRD §13.5 is the contract, so steps 4–8 can run in parallel with the simulator work. Steps 2–3 are shared. Docker needs Docker Desktop with WSL2 on Windows laptops; on Linux, Docker Engine is enough.
-
-### EL Phase 3: full results and paper (final)
-
-| Build phase | What gets built |
+| Document | Contents |
 |---|---|
-| 5 (rest) | `pred_error(ε)`, the error-magnitude trigger and key comparison for the contribution, plus the `pig` perfect-information reference |
-| 7 (rest) | `compare`, `sweep`, `report`, paired bootstrap statistics, full plots and manifests |
-| 8 | Real-trace evaluation: fit residual and runtime quantiles; validation sweeps (`g_rel`, θ, ε, T); freeze thresholds; run the test set **once** (done, 12 Nov); sensitivity sweeps (load, carbon spread, forecast-error and interval scaling, deadline slack, energy multipliers); ablations A0–A6 |
-| 9 | Analysis and packaging: report figures, limitations, a reproducibility README (a clean clone reproduces the summary tables from raw downloads) |
-| DT2 Docker (finish) | If not done in Phase 2: one image, `docker-compose.yml` with three datacentre containers and a coordinator. By Phase 3 it must also reproduce the dev-replicate outputs |
-| DT3 AWS | The DT2 image on three small EC2 instances (default `ap-south-1`, Mumbai); same outputs as in-process; latency and cost reported; budget alert first and `teardown.sh` after every session. Starts only after the main test results exist and the AWS account question (O8) is settled |
+| [docs/DECISION_FLIP.md](docs/DECISION_FLIP.md) | The algorithm, step by step, with formulas and a worked example |
+| [docs/WALKTHROUGH.md](docs/WALKTHROUGH.md) | The whole system from data to results, with a toy scenario traced minute by minute |
+| [docs/USAGE.md](docs/USAGE.md) | Every command, the live demo and a demo script |
+| [docs/prd.md](docs/prd.md) | The specification: formulas, requirements, data rules |
+| [docs/decisions.md](docs/decisions.md) | Every design decision and finding, with reasons |
+| [docs/HANDOFF.md](docs/HANDOFF.md) | Current development state and next steps |
+| [docs/project_journey.md](docs/project_journey.md) | How the project got here |
 
-Data split: runtime fit on trace days 0–20 · residual fit on carbon data from 13 Mar – 30 Jun 2023 · validation on trace days 21–41 with Jul–Aug 2023 · test on trace days 42–69 with Sep 2023 – Jan 2024. That gives 12 validation and 16 test replicates per policy.
+## Roadmap
 
-**Phase 3 deliverables:** final test results with bootstrap intervals, the **worse-regime table** (every setting where a simpler baseline beats decision-flip), the full dashboard including the θ sweep, the reproducibility package, the Docker setup, an AWS run matching the in-process output, and the paper/report. B3 must be resolved before any absolute kgCO2 is reported.
+- **EL Phase 2 (current):** simulator, seven policies, validation and test results, distributed deployment (local services and Docker), live demo.
+- **EL Phase 3:** sensitivity sweeps and ablations; a scaling study up to the full trace; a learned runtime model and a learned Indian carbon forecaster as inputs to the same rules ([decision D61](docs/decisions.md)); deployment on AWS across Indian regions.
 
-Optional, only after the main results exist: X1 (Global–Local DRO planner) and the machine-learning extensions (D61): X10 learned runtime quantiles (first; 93 % of deadline misses come from runtime underestimation), X11 a learned Indian carbon forecaster, X12 an advisory learned trigger (ablation only). The scheduling rules stay rule-based and provable; ML improves their inputs.
+## Acknowledgements
 
-### Hypotheses under test
+Job data from the Alibaba Cluster Trace Program (Weng et al., *MLaaS in the Wild*, NSDI '22). Indian generation data from Grid-India (NLDC); emission factors from the Central Electricity Authority. Forecast-error paths from the NESO carbon-intensity forecast archive collected by N. Powell. Charts by Apache ECharts; dashboard styles by Tabler.
 
-| ID | Hypothesis |
-|---|---|
-| H1 | At θ = 0, decision-flip makes ≥ 50 % fewer full re-scorings than fixed-savings, with identical decisions |
-| H2 | With θ > 0 it moves jobs less often, and emissions stay within the seed-to-seed spread |
-| H3 | The benefit of re-planning over place-once grows with carbon spread across regions and with deadline slack |
-| H4 | Carbon intervals that are too narrow increase churn; intervals that are too wide suppress useful moves |
-
-## 7. Open items
-
-| ID | Item | Needed by |
-|---|---|---|
-| B1 | Mentor confirms decision-flip is the core contribution and DRO is extension X1 | Before Phase 2 work |
-| B2 | Archive coverage for the three GB error-source regions and NESO redistribution terms | Build phase 2 |
-| ~~B4~~ | Resolved (v0.7): Grid-India daily reports × Grid-India SCADA shape; CEA v19.0 factors | — |
-| B3 | Mostly resolved (D58): datasheet GPU power and measured use give a bracket. Still open: CPU power per core (assumed 10 W), idle GPU draw | — |
-| O1 | Confirm the principal meant the CEA CO2 Baseline Database | Report |
-| O7 | Check that the name `flipwise` is free on PyPI | Before publishing the package |
-| O8 | AWS account and spending limit for DT3 (credits, free tier, or a member's account) | Before DT3 |
-
-## 8. References
-
-- **Docs:** [Decision-flip explained](docs/DECISION_FLIP.md) · [Step-by-step walkthrough](docs/WALKTHROUGH.md) · [Usage guide](docs/USAGE.md) · [PRD](docs/prd.md) · [Plain-language explanation](docs/explanation.md) · [Links](docs/helpfullinks.md)
-
-Key references (full list in PRD §19):
-
-- Weng et al., "MLaaS in the Wild," USENIX NSDI '22. [link](https://www.usenix.org/conference/nsdi22/presentation/weng)
-- Hanafy et al., "CarbonScaler," SIGMETRICS 2024 (source of the `pred_error` baseline).
-- Xu et al., "GREEN," USENIX NSDI 2025 (source of the `periodic` baseline).
-- Li, Liu, Ding, "Uncertainty-Aware Decarbonization for Datacenters," HotCarbon '24 (closest prior work to the θ margin).
-- Pinedo, *Scheduling: Theory, Algorithms, and Systems*, 6th ed., Springer, 2022. [doi](https://doi.org/10.1007/978-3-031-05921-6)
-- Central Electricity Authority, CO2 Baseline Database for the Indian Power Sector. [link](https://cea.nic.in/)
-- N. Powell, carbon-intensity-forecast-tracking (NESO forecast archive). [link](https://github.com/nmpowell/carbon-intensity-forecast-tracking)
-
-Licence: MIT, if the mentor approves (open).
+Licence: to be decided with the project mentor.
