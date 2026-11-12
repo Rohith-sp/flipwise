@@ -6,6 +6,7 @@ from __future__ import annotations
 import copy
 import dataclasses
 import heapq
+import math
 from dataclasses import dataclass, field
 
 from flipwise.carbon import CarbonTable, ForecastStore, ForecastVintage, Residuals, Truth
@@ -254,6 +255,18 @@ class Simulator:
         self._unfinished = len(self.jobs)
         self._release_checked: set[str] = set()  # rescued at release: no second check (PRD §10.2)
         self.view = policy.make_view(self)
+        self.finished = False
+        self.keep_running = False  # live mode: jobs may still be submitted after all finish
+
+    def add_job(self, job: Job) -> None:
+        """Live mode (§13.6): a job submitted now arrives at the current simulated time."""
+        if job.job_id in self.jobs:
+            raise ValueError(f"duplicate job id {job.job_id}")
+        job.arrival_s = max(job.arrival_s, self.now_s)
+        self.jobs[job.job_id] = job
+        self._unfinished += 1
+        self._push(job.arrival_s, Priority.JOB_ARRIVAL, job.job_id)
+        self._push(job.deadline_s, Priority.DEADLINE, job.job_id)
 
     # ---- state helpers -------------------------------------------------------------------
     def job_info(self, job_id: str) -> JobInfo:
@@ -355,6 +368,13 @@ class Simulator:
 
     # ---- event loop ----------------------------------------------------------------------
     def run(self) -> RunResult:
+        self.start()
+        self.advance()
+        return self.result()
+
+    def start(self) -> None:
+        """Push the initial events. `run` is `start`, `advance()`, `result`; live mode (§13.6)
+        calls `advance` with growing times instead, which processes the same events in order."""
         sc = self.scenario
         for c in sc.forecast.captures:
             if sc.start_s <= c <= sc.end_s:
@@ -372,8 +392,13 @@ class Simulator:
         first = sc.forecast.latest_capture(sc.start_s - 1)
         if first is not None:
             self.vintage = sc.forecast.at(first)
+        self.finished = False
 
-        while self._heap:
+    def advance(self, until_s: float = math.inf) -> bool:
+        """Process every event at or before `until_s`; True once the run is over."""
+        while self._heap and not self.finished:
+            if self._heap[0].time_s > until_s:
+                return False
             ev = heapq.heappop(self._heap)
             if ev.kind == "JOB_RELEASE" and ev.version != self.jobs[ev.job_id].version:
                 continue  # stale after a re-placement (R-SIM-5)
@@ -382,13 +407,20 @@ class Simulator:
             self.now_s = ev.time_s
             self.events.append(f"{ev.time_s},{ev.priority},{ev.seq},{ev.kind},{ev.job_id or ''}")
             if ev.kind == "SIM_END":
+                self.finished = True
                 break
             self._handle(ev)
             self._dispatch()
             if self.debug:
                 self._check_invariants()
-            if self._unfinished == 0:
+            if self._unfinished == 0 and not self.keep_running:
+                self.finished = True
                 break
+        self.finished = True
+        return True
+
+    def result(self) -> RunResult:
+        sc = self.scenario
         stats = getattr(self.policy, "stats", None)
         return RunResult(
             list(self.jobs.values()),

@@ -12,6 +12,7 @@ A hands-on guide to running Flipwise: the simulator, the experiment commands, th
 6. [Local split demo (DT1)](#6-local-split-demo-dt1)
 7. [Docker demo (DT2)](#7-docker-demo-dt2)
 8. [Checking that all modes agree](#8-checking-that-all-modes-agree)
+8a. [Live demo dashboard](#8a-live-demo-dashboard)
 9. [Troubleshooting](#9-troubleshooting)
 10. [Rules to keep](#10-rules-to-keep)
 
@@ -277,6 +278,51 @@ A remote run gets its own `run_id` (the mode is part of it), so the two folders 
 
 **Where the time goes.** On one Linux machine the dev week took 69 s in-process, 101 s as a local split and 130 s in Docker, with the same 58,454 datacentre calls each. The overhead is per call and depends on the host (finding F20 in `docs/decisions.md`); `manifest.json` records it for every run.
 
+## 8a. Live demo dashboard
+
+`flipwise live` runs several policies side by side on a simulated clock that moves in real time, and serves a dashboard at **http://localhost:8100** (PRD §13.6, D60). It is for showing the system: submitted jobs and wall-clock pacing make a session unrepeatable, so it never writes to `results/`. No internet is needed; the chart and style libraries are bundled.
+
+**Three ways to start it** (pick one; then open http://localhost:8100):
+
+| Mode | Linux / Git Bash | PowerShell |
+|---|---|---|
+| Toy, 6 jobs (fast, for explaining) | `uv run flipwise live --scenario tests/fixtures/toy --speed 120` | same |
+| Dev week, 7,000 real jobs, in-process datacentres | `uv run flipwise live --config configs/base.yaml` | same |
+| Validation weeks played one after another | `uv run flipwise live --config configs/base.yaml --split validation` | same |
+
+**With the three datacentres as separate services.** Local processes, one terminal each:
+
+```bash
+uv run flipwise dc-serve --dc-id 0 --port 8101
+uv run flipwise dc-serve --dc-id 1 --port 8102
+uv run flipwise dc-serve --dc-id 2 --port 8103
+uv run flipwise live --config configs/base.yaml --mode remote
+```
+
+Or in Docker (Delhi, Mumbai and Chennai as containers; only the dashboard port is published):
+
+```bash
+export GIT_COMMIT=$(git rev-parse HEAD)          # PowerShell: $env:GIT_COMMIT = git rev-parse HEAD
+docker compose --profile live up --build dc-delhi dc-mumbai dc-chennai live
+docker compose --profile live down               # afterwards
+```
+
+`FLIPWISE_LIVE_ARGS="--scenario tests/fixtures/toy --speed 120"` before the `docker compose` command switches it to the toy (PowerShell: `$env:FLIPWISE_LIVE_ARGS = "..."`). Only the first policy (decision_flip) talks to the services; the others run their datacentres in-process with the same code.
+
+**Options.** `--policies decision_flip,fixed_savings,...` (default: decision_flip, fixed_savings, periodic, pred_error, place_once; `all` adds fcfs and pig, and slows the clock), `--speed` (simulated seconds per real second; 1800 = half an hour per second), `--port`. `--split test` is refused: the test set is run once only.
+
+**Pages.** Overview · Head-to-head (decision_flip against a chosen policy: screen-skipped, re-scored and moved checks per forecast update, jobs per site) · Scheduler · Datacentres · Policy comparison · Job tracker (submit a job, follow every policy's decisions) · Scale projection · Test results · Architecture.
+
+**Demo script (about 8 minutes).**
+1. Toy mode, Overview: press **+1 h** twice. Delhi turns dirty at 06:30 and decision_flip moves three jobs to Chennai, ending at 1.50 kg against place_once's 2.31 kg (Job tracker shows each decision's numbers).
+2. Restart on the dev week with the services in Docker. Overview: the three sites fill up; Architecture shows the request counts and latency of each container.
+3. Job tracker: submit a job (for example 4 GPUs, 3 h, deadline 20 h). Press **+6 h**. Each policy's lane shows where the job went, whether it moved, and why.
+4. Head-to-head against fixed_savings: point at the grey bars (checks the screen avoided) against fixed_savings' pink ones, and the strip "re-scores saved".
+5. Scale projection: move the slider to 1 million jobs.
+6. Test results: the claim from the one test run (same carbon, 54 % fewer full re-scores, 60 % fewer moves).
+
+**Notes.** A **+6 h** skip on the dev week takes about 20–30 s (it replays history as fast as it can); the buttons show a spinner meanwhile. Early in a run the head-to-head CO₂ difference compares only the few jobs finished so far, so it evens out later. Stop a local server with Ctrl-C.
+
 ## 9. Troubleshooting
 
 | Symptom | Cause and fix |
@@ -286,6 +332,7 @@ A remote run gets its own `run_id` (the mode is part of it), so the two folders 
 | Old numbers come back after a code change | Results are reused by `run_id`, which does not cover code. Delete `results/` |
 | `ConfigError: --set ...: 'scenario' is not a section of the config` | `--set` needs `--config configs/base.yaml`; the toy scenario has no config |
 | `PermissionError: ... results/...` in a container | SELinux: add `:z` to the bind mount. Or the host folder is not writable by uid 1000 |
+| Dashboard says Disconnected | The `flipwise live` process stopped, or another program uses port 8100: start it with `--port 8200` and open that port |
 | `docker compose up` hangs on the coordinator | A service is not healthy. Run `docker compose logs dc-delhi` (or the other two) |
 | The coordinator ends with `DeploymentError` | A datacentre service died or was killed. This is the intended failure: the run aborts rather than continue with wrong numbers |
 | `ruff format --check` fails | Run `uv run ruff format .` |

@@ -4,7 +4,7 @@ Flipwise: an offline, deterministic discrete-event simulator that tests **when**
 
 ## Source of truth
 
-- `docs/prd.md` (v0.9.1) is authoritative: formulas, data rules, requirement IDs (R-*), decisions (D*), open items (B*/O*). If code and PRD disagree, flag it; don't silently pick one.
+- `docs/prd.md` (v0.9.3) is authoritative: formulas, data rules, requirement IDs (R-*), decisions (D*), open items (B*/O*). If code and PRD disagree, flag it; don't silently pick one.
 - `docs/WALKTHROUGH.md` is the step-by-step explanation (with the toy traced minute by minute) and `docs/USAGE.md` the command guide; `docs/explanation.md` is the longer plain-language version; `docs/project_journey.md` records how and why the project got to its current state (update it after major decisions). `README.md` is the short overview and roadmap.
 - A design change means editing the PRD (and its changelog) and `docs/decisions.md` in the same change.
 - `docs/HANDOFF.md` is the current state and next steps: read it first in a new session, and update it before ending one. `docs/decisions.md` lists every decision and finding by phase, with why; check it before reopening a settled choice.
@@ -45,6 +45,8 @@ bash scripts/local_cluster.sh --config configs/base.yaml --policy fcfs   # DT1 (
 export GIT_COMMIT=$(git rev-parse HEAD)   # PowerShell: $env:GIT_COMMIT = git rev-parse HEAD
 docker compose up --build --abort-on-container-exit --exit-code-from coordinator   # DT2
 bash scripts/docker_check.sh [toy|dev|crash|all]                         # DT2 acceptance (R-DEP-1/2/3)
+uv run flipwise live --config configs/base.yaml   # live demo dashboard on :8100 (PRD §13.6; showing only)
+docker compose --profile live up --build dc-delhi dc-mumbai dc-chennai live   # same, datacentres in Docker
 ```
 
 Before finishing any code change: ruff check, ruff format, and the relevant tests pass. Report failures with their output; don't claim success otherwise.

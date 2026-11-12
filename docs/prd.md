@@ -5,7 +5,7 @@
 | Field | Value |
 |---|---|
 | Document status | Implementation-ready draft. Supersedes v0.8.7 (5 Nov 2026), v0.8.6 (5 Nov 2026), v0.8.5 (4 Nov 2026), v0.8.4 (4 Nov 2026), v0.8.3 (4 Nov 2026), v0.8.2 (4 Nov 2026), v0.8.1 (4 Nov 2026), v0.8 (2 Nov 2026), v0.7 (29 Oct 2026), v0.6, v0.5.1 and v0.5 (29 Oct 2026), v0.4 (28 Oct 2026), v0.3 (24 Oct 2026), v0.2 (24 Oct 2026) and v0.1 (23 Oct 2026). Changes are listed in the changelog below. |
-| Version | 0.9.1 |
+| Version | 0.9.3 |
 | Revised | 5 November 2026 |
 | Project name | **Flipwise** (Python package and CLI `flipwise`) [Decision]: it re-evaluates decision flips wisely. Renamed from FlipSim on 25 Oct 2026. Availability of the name on GitHub and PyPI is [Open], not yet checked. |
 | Project context | RV College of Engineering, Experiential Learning, V Semester, AY 2026–27; SDG 9 |
@@ -17,6 +17,8 @@
 
 | Version | Date | Changes |
 |---|---|---|
+| 0.9.3 | 12 Nov 2026 | Machine-learning extensions planned for EL Phase 3 (4.2, X10 to X12, D61): learned runtime quantiles first, then a learned Indian carbon forecaster, then an advisory learned trigger. The policies stay rule-based; no ML code yet. |
+| 0.9.2 | 12 Nov 2026 | Live demo mode (13.6, D60): `flipwise live` paces the simulator on the wall clock for several policies at once, accepts submitted jobs and serves a JSON/SSE API and a static dashboard. For showing only; `Simulator.run` and every result are unchanged. |
 | 0.9.1 | 12 Nov 2026 | Power model resolves most of B3 (7.2, D58, F22, F24): GPU power per type from NVIDIA datasheets, measured GPU and CPU use per job from Alibaba's `pai_sensor_table`, and emissions reported as a bracket between `nameplate` (upper) and `measured` (lower). The scheduler keeps the uniform v0.8 scoring scale, so decisions are unchanged. New `flipwise ingest usage` and `data/processed/job_usage.csv`. CPU power per core stays an assumption. |
 | 0.9 | 12 Nov 2026 | Test set run once (D57, F21; 14.5): 16 replicates × 7 policies at sampling 0.1, commit `6cf8b8a`, results in `docs/test_results/`. The validation advantage of `decision_flip` over `place_once` did not repeat (−55 kg, CI −128 to +12), and it is not distinguishable on emissions from the other re-planners. Its cost advantage held against `fixed_savings` and `periodic` (54 % fewer full re-scorings, 60–63 % fewer moves) but not on re-scorings against `pred_error`. The claim (D51) is unchanged and is stated with these limits. |
 | 0.8.9 | 11 Nov 2026 | Deployment step DT2 built (13.4, 13.5, 18, D56, F19, F20): `Dockerfile`, `.dockerignore` (allow-list), `docker-compose.yml` and `scripts/docker_check.sh`. R-DEP-1 (every policy on the toy), R-DEP-2 (dev replicate) and R-DEP-3 (a killed datacentre container) hold in Compose. The manifest takes the commit from `FLIPWISE_GIT_COMMIT` when there is no `.git`. Phase 2 scope item 5 no longer mentions the scripted driver (D53). |
@@ -133,6 +135,11 @@ The 50 % figure in H1 is a pre-registered threshold for calling the screen usefu
 | X7 | Forecast-vintage data from the Jul–Oct 2026 archive partitions | Coverage audit of those months |
 | X8 | Probabilistic flip estimate by Monte Carlo sampling | MVP interval method evaluated first |
 | X9 | Optional live Streamlit viewer over result CSVs (EL Phase 3), separate entry point, never imported by the simulator | Static dashboard (4.1 item 9) exists; evaluators ask for live interaction |
+| X10 | ML-1: learned runtime quantiles. Gradient-boosted quantile regression (q05, q50, q90, q95) from features known at submission (user, GPU/CPU/memory request, GPU type, task count, workload tag, hour, weekday, the user's recent runtimes), replacing the per-user percentile tables of 6.5 | Main results exist; PRD 12.1 admits one ML library (scikit-learn or LightGBM) |
+| X11 | ML-2: learned Indian carbon forecaster with its own quantiles (lagged intensity, hour, weekday, fuel mix), replacing the borrowed GB error paths of 6.2.4 | X10 evaluated; forecast accuracy reported against the synthetic forecasts |
+| X12 | ML-3: learned re-plan trigger (classifier: will a full re-score lead to a move?) as an advisory filter after the screen; reported only as an ablation, since it can skip a needed move and so loses P1 | X10 done |
+
+**Machine-learning extensions [Proposed, v0.9.3, D61].** The policies stay rule-based: their value is a provable trigger (P1) and an explanation for every decision. ML goes into their *inputs*, where measured weaknesses are (F15, F21): 93 % of deadline misses are jobs that outran `r_q90`, `r_q90` covers 86.8 % against a nominal 90 %, and wide runtime spread switches θ off on 23 to 28 % of comparisons. Order: X10, then X11, then X12. Rules for all three: train only on the fit periods of 14.3 (runtime: trace days 0 to 21; carbon: before 1 Jul 2023), tune on validation, test once; fixed seeds and saved model files with checksums so runs stay byte-identical (R-SIM-1); inputs only from `SchedulerView` (8.7). Each is evaluated as an ablation against the current estimates on miss rate, kgCO₂, full re-scores, moves and the share of comparisons with θ active.
 
 The deployment track (DT1 local split, DT2 Docker, DT3 AWS) is not an extension: it is planned work with its own requirements (13.5, 15.1) and roadmap stages (18). It does not change any research result.
 
@@ -1042,6 +1049,17 @@ Rules:
 | **DT3 AWS** | The DT2 image pushed to ECR and run on three small EC2 instances, one per datacentre (default region `ap-south-1`, Mumbai); the coordinator runs on a fourth instance or a team laptop. Security groups allow port 8101 only from the coordinator's address. `scripts/aws/` holds `push_image.sh`, `launch.sh` and `teardown.sh`; every resource is tagged `project=flipwise`. Optional variant: spread the instances over AWS's two Indian regions (`ap-south-1` Mumbai, `ap-south-2` Hyderabad) to measure real cross-region latency. | DT2 + AWS account (O8) | R-DEP-1 and R-DEP-2 on AWS; RPC latency reported (R-DEP-5); `teardown.sh` leaves no tagged resource running (R-DEP-6) |
 
 AWS regions host the services; they do not change the carbon signal. A datacentre labelled "Chennai" uses Southern-grid carbon data whether its service runs on a laptop, in Docker or in `ap-south-1`. Reports must not present DT3 as measuring real cloud emissions.
+
+
+### 13.6 Live demo mode [Decision, v0.9.2, D60]
+
+**Purpose.** To show the system working, never to produce results. A live session is unrepeatable (jobs are submitted by hand and the clock is paced by the wall clock), so it writes nothing to `results/` and feeds neither `compare` nor the report. The research path is unchanged: `Simulator.run` is `start`, `advance()`, `result`, and live mode only decides *when* `advance(until_s)` is called. Policies still see only `SchedulerView` (§8.7). Submitted jobs get ids `USER-n` and arrive at the current simulated time (`Simulator.add_job`).
+
+**Command.** `flipwise live --scenario <dir>` (or `--config`), with `--policies` (default `decision_flip,fixed_savings,periodic,pred_error,place_once`; `all` for all seven), `--speed` (simulated seconds per real second, default 1800), `--mode inproc|remote` and `--dc-urls` (only the first policy drives remote services), `--host`, `--port` (default 8100).
+
+**Endpoints.** `GET /status`, `/clock`, `/dc/<id>`, `/jobs`, `/jobs/<id>`; `GET /history?since=<sim_time_s>` (one snapshot per simulated half hour per policy); `GET /stream` (Server-Sent Events: decisions tagged by policy and datacentre messages); `GET /health` (per-datacentre request count and mean latency, display only); `GET /results` (test-period summary from `docs/test_results/summary.csv` if present, else 404); `POST /jobs`, `POST /control` (speed, paused, skip_hours).
+
+**Dashboard.** Static files in `src/flipwise/web/`, served by the scheduler at `/` and `/static/...` with vendored JS (ECharts, Tabler). No build step, no npm, no new Python dependency; paths are resolved and confined to that directory.
 
 ---
 
