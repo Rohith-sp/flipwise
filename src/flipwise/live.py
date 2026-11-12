@@ -18,7 +18,7 @@ import json
 import threading
 import time
 from collections import Counter, deque
-from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+from http.server import BaseHTTPRequestHandler
 from pathlib import Path
 from urllib.parse import parse_qs, urlsplit
 
@@ -31,7 +31,7 @@ from flipwise.models import SLOT_S, Job, JobState, floor_to_slot
 from flipwise.policies import make_policy
 from flipwise.scenario import build_replicate, dev_replicate, load_scenario
 from flipwise.simulator import Scenario, Simulator, job_outcome
-from flipwise.webstatic import read_static
+from flipwise.webstatic import QuietHTTPServer, read_static
 
 IST = dt.timezone(dt.timedelta(hours=5, minutes=30))
 REGION_NAMES = {1: "Delhi NCR (Northern grid)", 2: "Mumbai (Western grid)",
@@ -785,7 +785,7 @@ def serve(session: LiveSession, host: str = "127.0.0.1", port: int = 8100) -> No
 
     worker = threading.Thread(target=loop, daemon=True)
     worker.start()
-    server = ThreadingHTTPServer((host, port), make_handler(session))
+    server = QuietHTTPServer((host, port), make_handler(session))
     print(
         f"live: {', '.join(session.policies)} at {session.speed:g}x on http://{host}:{port}",
         flush=True,

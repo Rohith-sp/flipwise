@@ -247,3 +247,23 @@ def test_live_services_local_starts_four_listeners_and_stops_children():
     while any(_port_open(base + i) for i in range(3)) and time.monotonic() < deadline:
         time.sleep(0.2)
     assert not any(_port_open(base + i) for i in range(3)) and not _port_open(sched)
+
+
+def test_servers_ignore_viewers_that_disconnect_mid_reply(capsys):
+    """A browser reload drops in-flight requests: no traceback, other errors still reported."""
+    from flipwise.webstatic import QuietHTTPServer
+
+    server = QuietHTTPServer(("127.0.0.1", 0), None)
+    try:
+        try:
+            raise BrokenPipeError(32, "Broken pipe")
+        except BrokenPipeError:
+            server.handle_error(None, ("127.0.0.1", 1))
+        assert "Traceback" not in capsys.readouterr().err
+        try:
+            raise ValueError("real bug")
+        except ValueError:
+            server.handle_error(None, ("127.0.0.1", 1))
+        assert "real bug" in capsys.readouterr().err
+    finally:
+        server.server_close()

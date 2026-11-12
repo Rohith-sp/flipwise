@@ -7,6 +7,8 @@ from __future__ import annotations
 
 import datetime as dt
 import mimetypes
+import sys
+from http.server import ThreadingHTTPServer
 from pathlib import Path
 from urllib.parse import unquote
 
@@ -29,3 +31,18 @@ def read_static(rel: str) -> tuple[bytes, str] | None:
 def ist_string(t_s: int) -> str:
     """A simulated Unix time as IST text. Formats the given value; never reads the wall clock."""
     return dt.datetime.fromtimestamp(t_s, _IST).strftime("%a %d %b %H:%M IST")
+
+
+# A browser that reloads or closes a page drops its open requests; the reply then has nowhere to go.
+CLIENT_GONE = (BrokenPipeError, ConnectionResetError, ConnectionAbortedError)
+
+
+class QuietHTTPServer(ThreadingHTTPServer):
+    """Threaded server that does not print a traceback when a viewer disconnects mid-reply."""
+
+    daemon_threads = True
+
+    def handle_error(self, request, client_address) -> None:  # noqa: ANN001 (socketserver API)
+        if isinstance(sys.exc_info()[1], CLIENT_GONE):
+            return
+        super().handle_error(request, client_address)

@@ -21,7 +21,7 @@ from urllib.parse import urlsplit
 from flipwise.datacentre import InProcDatacentre, Started
 from flipwise.errors import DeploymentError, MigrationError, SimulationInvariantError
 from flipwise.models import DcConfig, DcState, Request, RunningInfo
-from flipwise.webstatic import ist_string, read_static
+from flipwise.webstatic import QuietHTTPServer, ist_string, read_static
 
 PROTOCOL_VERSION = 1
 DEFAULT_TIMEOUT_S = 30.0
@@ -341,7 +341,7 @@ def make_server(
     return server
 
 
-class _Server(ThreadingHTTPServer):
+class _Server(QuietHTTPServer):
     # On Windows SO_REUSEADDR lets a second socket take a port that is already listening, so a
     # service could silently share a port with another program; there, a busy port must fail.
     allow_reuse_address = sys.platform != "win32"
