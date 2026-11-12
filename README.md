@@ -4,7 +4,7 @@
 
 Experiential Learning project, V semester, RV College of Engineering (Team ATLAS, theme: SDG 9 · Industry, Innovation and Infrastructure).
 
-[How it works](docs/DECISION_FLIP.md) · [Walkthrough](docs/WALKTHROUGH.md) · [Demo](docs/DEMO.md) · [Usage](docs/USAGE.md) · [Specification](docs/prd.md) · [Decisions](docs/decisions.md)
+[Project explainer](docs/PROJECT_EXPLAINER.md) · [How it works](docs/PROJECT_EXPLAINER.md#5-every-formula-with-worked-examples) · [Demo](docs/PROJECT_EXPLAINER.md#10-the-live-demo-and-the-website) · [Commands](docs/PROJECT_EXPLAINER.md#8-every-command-what-goes-in-what-happens-what-comes-out) · [Specification](docs/prd.md) · [Decisions](docs/decisions.md)
 
 ---
 
@@ -99,7 +99,7 @@ A scheduler places each job using the grid-carbon forecast available when it arr
 move  iff   Ŝ_current − Ŝ_best  ≥  g_min + θ · w_ab        (g_min = 5 % of Ŝ_current, θ = 0.1)
 ```
 
-Every symbol, with a worked example, is in [docs/DECISION_FLIP.md](docs/DECISION_FLIP.md).
+Every symbol, with a worked example, is in [docs/PROJECT_EXPLAINER.md §5](docs/PROJECT_EXPLAINER.md#5-every-formula-with-worked-examples).
 
 ## Results
 
@@ -149,7 +149,7 @@ Open **http://localhost:8100**. With the three datacentres as Docker containers:
 docker compose --profile live up --build dc-delhi dc-mumbai dc-chennai live
 ```
 
-Pages: Overview, Head-to-head (decision-flip against any policy, with every check the screen avoided), Job tracker (submit a job and follow each policy's decisions), Scheduler, Datacentres, Policy comparison, Scale projection, Test results, Architecture. Demo script: [docs/DEMO.md](docs/DEMO.md); what each page shows: [docs/WEB_EXPLAINER.md](docs/WEB_EXPLAINER.md).
+Pages: Overview, Head-to-head (decision-flip against any policy, with every check the screen avoided), Job tracker (submit a job and follow each policy's decisions), Scheduler, Datacentres, Policy comparison, Scale projection, Test results, Architecture. Demo script and what each page shows: [docs/PROJECT_EXPLAINER.md §10](docs/PROJECT_EXPLAINER.md#10-the-live-demo-and-the-website).
 
 ### Experiments
 
@@ -165,7 +165,7 @@ These need the processed data (see [Data](#data)).
 | `bash scripts/local_cluster.sh --config configs/base.yaml --policy decision_flip` | Same run with the datacentres as three local services |
 | `bash scripts/docker_check.sh` | Prove Docker gives byte-identical results, including a crash test |
 
-Every documented command has a PowerShell form; see [docs/USAGE.md](docs/USAGE.md).
+Every documented command has a PowerShell form; see [docs/PROJECT_EXPLAINER.md §8](docs/PROJECT_EXPLAINER.md#8-every-command-what-goes-in-what-happens-what-comes-out).
 
 ## Data
 
@@ -202,7 +202,7 @@ src/flipwise/      simulator, planner, policies, energy, carbon, ingest, experim
 configs/           base experiment config, frozen policy thresholds, sweep grids
 scripts/           data download, local cluster, Docker checks, ablation and re-run drivers
 tests/             260 tests, including the hand-computed toy scenario (tests/fixtures/toy)
-docs/              specification, walkthrough, decisions, results (validation, test, power bracket)
+docs/              specification, project explainer, decisions, results (validation, test, power bracket)
 Dockerfile, docker-compose.yml   one image: three datacentre services, coordinator, live demo
 ```
 
@@ -210,15 +210,10 @@ Dockerfile, docker-compose.yml   one image: three datacentre services, coordinat
 
 | Document | Contents |
 |---|---|
-| [docs/DECISION_FLIP.md](docs/DECISION_FLIP.md) | The algorithm, step by step, with formulas and a worked example |
-| [docs/WALKTHROUGH.md](docs/WALKTHROUGH.md) | The whole system from data to results, with a toy scenario traced minute by minute |
-| [docs/DEMO.md](docs/DEMO.md) | Step-by-step live demo script: commands, what to click, what to say |
-| [docs/WEB_EXPLAINER.md](docs/WEB_EXPLAINER.md) | Every page and component of the live dashboard, and how to read it |
-| [docs/USAGE.md](docs/USAGE.md) | Every command, including PowerShell forms |
+| [docs/PROJECT_EXPLAINER.md](docs/PROJECT_EXPLAINER.md) | The one plain-language explainer: problem, architecture, data flow, every formula with worked examples, the toy traced minute by minute, policies, every command (Linux and PowerShell), results, the live demo and website, the Phase 2 slides, limitations and Phase 3 |
 | [docs/prd.md](docs/prd.md) | The specification: formulas, requirements, data rules |
 | [docs/decisions.md](docs/decisions.md) | Every design decision and finding, with reasons |
 | [docs/HANDOFF.md](docs/HANDOFF.md) | Current development state and next steps |
-| [docs/project_journey.md](docs/project_journey.md) | How the project got here |
 
 ## Roadmap
 

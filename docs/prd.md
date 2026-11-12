@@ -10,7 +10,7 @@
 | Project name | **Flipwise** (Python package and CLI `flipwise`) [Decision]: it re-evaluates decision flips wisely. Renamed from FlipSim on 25 Oct 2026. Availability of the name on GitHub and PyPI is [Open], not yet checked. |
 | Project context | RV College of Engineering, Experiential Learning, V Semester, AY 2026–27; SDG 9 |
 | Deliverable | Offline, command-line research simulator and reproducible evaluation pipeline, plus a static, self-contained HTML results dashboard generated from result CSVs. Not a production scheduler. No web app in the MVP. From v0.4, a **deployment track** (Section 13.5) runs the same simulation with each virtual datacentre as a separate service: first as local processes, then in Docker, then on AWS. Research results always come from the in-process mode; the deployment modes must reproduce them exactly. |
-| Companion document | `explanation.md` (plain-language project explanation). Where the two disagree, this PRD is authoritative (see Section 5). `explanation.md` was updated to match v0.5 on 29 Oct 2026. |
+| Companion document | `PROJECT_EXPLAINER.md` (plain-language project explainer; replaced `explanation.md` and the other explanation files on 13 Nov 2026). Where the two disagree, this PRD is authoritative (see Section 5). |
 | Repository state at revision | Git repository exists (`https://github.com/Rohith-sp/flipwise`) with `README.md` and `docs/` only. No code yet. Initial layout in Section 13.1. |
 
 ### Changelog
@@ -878,8 +878,7 @@ Initial repository contents (first commit) [Decision, v0.3]:
 | `src/flipwise/{errors,trace,scenario,validate,smoke}.py` | Added in v0.5.1: error types; raw v2020 readers and checksums; scenario-directory loader; `flipwise validate`; toy check for `flipwise smoke` |
 | `README.md` | Sections: (1) title, one-line summary, RVCE EL V sem, SDG 9; (2) problem and contribution in 3–4 lines; (3) scope: offline research simulator, not a production scheduler; (4) datasets with links, licences and download steps; (5) setup: `uv sync`, then `uv run pytest`; (6) repo layout; (7) roadmap with the current phase marked; (8) team, mentor and references, including the PRD link |
 | `docs/prd.md` | This document |
-| `docs/explanation.md` | Plain-language explanation, updated to match this PRD first |
-| `docs/helpfullinks.md` | Converted from `helpfullinks.txt` |
+| `docs/PROJECT_EXPLAINER.md` | Plain-language explainer (replaced `explanation.md` and `helpfullinks.md`, whose links are in its references, on 13 Nov 2026) |
 | `pyproject.toml` | uv, Python 3.12, ruff, pytest (Section 12.2) |
 | `.gitignore` | `data/raw/`, `data/processed/`, `results/`, `.venv`, `.env`, `*.pem` |
 | `src/flipwise/__init__.py` | Package stub |
@@ -895,7 +894,7 @@ Target layout once the MVP modules exist:
 flipwise/
 ├── pyproject.toml, uv.lock, README.md, CLAUDE.md, LICENSE, .gitignore
 ├── Dockerfile, docker-compose.yml, .dockerignore   # DT2
-├── docs/                  # prd.md, explanation.md, helpfullinks.md
+├── docs/                  # prd.md, decisions.md, HANDOFF.md, PROJECT_EXPLAINER.md
 ├── scripts/               # download and checksum scripts
 │   ├── local_cluster.sh   # DT1: start 3 dc services + coordinator, stop them on exit
 │   └── aws/               # DT3: push image, launch, teardown (no credentials in the repo)

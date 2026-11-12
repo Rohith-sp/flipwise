@@ -1,6 +1,6 @@
 # Decision log
 
-Every design decision, grouped by the phase it was made in. For how the project got here as a story, see `project_journey.md`; for where work stands today, see `HANDOFF.md`.
+Every design decision, grouped by the phase it was made in. For how the project got here as a story, see `PROJECT_EXPLAINER.md` §14; for where work stands today, see `HANDOFF.md`.
 
 **PRD version: 0.9.3**
 

@@ -5,13 +5,13 @@ Flipwise: an offline, deterministic discrete-event simulator that tests **when**
 ## Source of truth
 
 - `docs/prd.md` (v0.9.3) is authoritative: formulas, data rules, requirement IDs (R-*), decisions (D*), open items (B*/O*). If code and PRD disagree, flag it; don't silently pick one.
-- `docs/WALKTHROUGH.md` is the step-by-step explanation (with the toy traced minute by minute) and `docs/USAGE.md` the command guide; `docs/explanation.md` is the longer plain-language version; `docs/project_journey.md` records how and why the project got to its current state (update it after major decisions). `README.md` is the short overview and roadmap.
+- `docs/PROJECT_EXPLAINER.md` is the one plain-language explainer: architecture, data flow, every formula with worked examples, the toy traced minute by minute, every command (Linux and PowerShell), results, the live demo and website, and the Phase 2 slides. How and why the project got to its current state is recorded in `docs/decisions.md` (add to it after major decisions). `README.md` is the short overview and roadmap.
 - A design change means editing the PRD (and its changelog) and `docs/decisions.md` in the same change.
 - `docs/HANDOFF.md` is the current state and next steps: read it first in a new session, and update it before ending one. `docs/decisions.md` lists every decision and finding by phase, with why; check it before reopening a settled choice.
 
 ## Reading the docs cheaply
 
-`prd.md` is about 1,150 lines and `explanation.md` about 1,200. Never read either whole. Grep for the heading, then read only that range:
+`prd.md` is about 1,400 lines and `PROJECT_EXPLAINER.md` about 1,500. Never read either whole; for the explainer, grep `^## ` or `^### ` and read the section you need. Grep for the heading, then read only that range:
 
 | Need | Grep in `docs/prd.md` |
 |---|---|
