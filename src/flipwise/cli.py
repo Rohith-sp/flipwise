@@ -177,8 +177,21 @@ def _cmd_live(args: argparse.Namespace) -> int:
     from flipwise.errors import ConfigError
     from flipwise.live import LiveSession, scenario_factory, serve
 
+    if args.split == "test":
+        raise ConfigError("live: the test set is run once only (PRD §14.3); use dev or validation")
     cfg = _experiment_config(args)
     factory = scenario_factory(cfg if args.scenario is None else None, args.scenario, args.seed)
+    replicates = None
+    if args.split == "validation":
+        from flipwise.experiment import replicates_for
+        from flipwise.scenario import build_replicate
+
+        if args.scenario is not None or args.mode == "remote":
+            raise ConfigError("live: --split validation needs --config and in-process mode")
+        replicates = [
+            (r.name, lambda r=r: build_replicate(cfg, r, args.seed))
+            for r in replicates_for(cfg, "validation")
+        ]
     remote = None
     if args.mode == "remote":
         n = len(factory().dcs)
@@ -191,7 +204,7 @@ def _cmd_live(args: argparse.Namespace) -> int:
         for i, c in enumerate(remote):
             if c.health()["dc_id"] != i:
                 raise ConfigError(f"{c.url} serves another datacentre, not dc {i}")
-    session = LiveSession(factory, cfg, _policy_list(args.policies), args.speed, remote)
+    session = LiveSession(factory, cfg, _policy_list(args.policies), args.speed, remote, replicates)
     serve(session, args.host, args.port)
     return 0
 
@@ -338,6 +351,12 @@ def build_parser() -> argparse.ArgumentParser:
         type=float,
         default=1800.0,
         help="simulated seconds per real second (1800: half an hour per second)",
+    )
+    lv.add_argument(
+        "--split",
+        default="dev",
+        choices=["dev", "validation", "test"],
+        help="dev (default) or validation, played replicate by replicate; test is refused",
     )
     lv.add_argument("--mode", choices=["inproc", "remote"], default="inproc")
     lv.add_argument("--dc-urls", default=None, metavar="URL1,URL2,URL3")

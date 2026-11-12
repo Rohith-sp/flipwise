@@ -1,4 +1,4 @@
-import { esc, num, int, badge, decisionText, colourOf, chart, shortRegion, timeOnly, istClock, REGION_COLOURS, REGION_SHORT } from "./util.js";
+import { keepLast, esc, num, int, badge, decisionText, colourOf, chart, shortRegion, timeOnly, istClock, REGION_COLOURS, REGION_SHORT } from "./util.js";
 
 const MAIN = "decision_flip", REF = "fixed_savings";
 let root = null;
@@ -78,7 +78,7 @@ function carbon(st, hist) {
   });
   chart("carbon", root.querySelector("#ch-carbon")).setOption({
     animation: false, tooltip: { trigger: "axis", valueFormatter: (v) => (v == null ? "--" : Number(v).toFixed(0) + " g/kWh"), axisPointer: { type: "line" } },
-    grid: { left: 44, right: 12, top: 10, bottom: 28 }, legend: { show: false },
+    grid: { left: 44, right: 16, top: 30, bottom: 28 }, legend: { show: false },
     xAxis: { type: "value", min: "dataMin", max: "dataMax", axisLabel: { formatter: (v) => istClock(v), color: "#4B5563" } },
     yAxis: { type: "value", name: "g/kWh", scale: true, axisLabel: { color: "#4B5563" }, splitLine: { lineStyle: { color: "#EEF0F3" } } },
     series: sers }, true);
@@ -97,7 +97,7 @@ function dcCards(dcs) {
   const host = root.querySelector("#dcs");
   host.innerHTML = dcs.map((d, i) => {
     if (!d) return `<section class="fw-card"><h2>${REGION_SHORT[i]}</h2><p class="sub">Loading</p></section>`;
-    const g = d.carbon.actual_g_per_kwh;
+    const g = keepLast("g" + i, d.carbon.actual_g_per_kwh ?? d.carbon.forecast_g_per_kwh);
     const cls = g == null ? "" : g < 600 ? "cg-green" : g < 800 ? "cg-amber" : "cg-red";
     const u = Math.round((d.gpu_utilisation || 0) * 100);
     return `<section class="fw-card"><div style="display:flex;justify-content:space-between;align-items:start"><div><h2 style="color:${REGION_COLOURS[i]}">${esc(shortRegion(d.name))}</h2>
@@ -122,7 +122,7 @@ function compare(st) {
 
 function feed(st) {
   const ds = (st.recent_decisions[MAIN] || []).slice().reverse();
-  root.querySelector("#feed").innerHTML = ds.map((d) => `<div class="row"><span class="t mono">${esc(timeOnly(d.time))}</span>${badge(d.kind)}<span>${esc(decisionText(d))}</span></div>`).join("") || '<p class="fw-muted">No decisions yet</p>';
+  root.querySelector("#feed").innerHTML = ds.map((d) => `<div class="frow"><span class="t mono">${esc(timeOnly(d.time))}</span>${badge(d.kind)}<span>${esc(decisionText(d))}</span></div>`).join("") || '<p class="fw-muted">No decisions yet</p>';
 }
 
 export function update(s) {

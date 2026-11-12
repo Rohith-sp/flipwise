@@ -117,3 +117,65 @@ def test_live_stream_feed_tags_decisions_with_policy():
     assert [e[0] for e in events] == sorted(e[0] for e in events)
     decisions = [e[2] for e in events if e[1] == "decision"]
     assert {d["policy"] for d in decisions} >= {"decision_flip", "place_once"}
+
+
+def test_live_activity_groups_decisions_per_forecast_update():
+    s = _session()
+    s.control({"skip_hours": 6})
+    for policy in ("decision_flip", "fixed_savings"):
+        rows = s.activity(policy)
+        assert rows and [r["t"] for r in rows] == sorted(r["t"] for r in rows)
+        for r in rows:
+            assert r["checked"] >= r["screen_skipped"] + r["moved"] + r["rescored_kept"]
+        assert s.activity(policy, rows[-1]["t"]) == []
+        assert s.activity(policy, rows[0]["t"]) == rows[1:]
+    flip_kinds = sum(r["screen_skipped"] for r in s.activity("decision_flip"))
+    log = sum(1 for d in s.sims["decision_flip"].decisions if d["kind"] == "SCREEN_FAIL")
+    assert flip_kinds <= log
+    with pytest.raises(KeyError):
+        s.activity("nope")
+
+
+def test_live_lanes_list_jobs_per_datacentre_capped():
+    s = _session()
+    s.submit({"runtime_h": 1, "gpus": 1})
+    s.control({"skip_hours": 1})
+    lanes = s.lanes("decision_flip")
+    assert len(lanes["datacentres"]) == 3
+    seen = [j for dc in lanes["datacentres"] for k in ("planned", "queued", "running")
+            for j in dc[k]["jobs"]]  # fmt: skip
+    assert seen and all(len(j["job_id"]) <= 8 and "moved" in j for j in seen)
+    assert any(j["user_job"] for j in seen)
+    for dc in lanes["datacentres"]:
+        assert all(len(dc[k]["jobs"]) <= 60 for k in ("planned", "queued", "running"))
+    with pytest.raises(KeyError):
+        s.lanes("nope")
+
+
+def test_live_validation_replicates_play_in_turn():
+    """Replicates follow one another; user jobs are per replicate (live-mode design, D60)."""
+    factory = scenario_factory(None, TOY)
+    reps = [("rep_a", factory), ("rep_b", factory)]
+    s = LiveSession(factory, None, ["decision_flip", "fixed_savings"], 1800.0, None, reps)
+    s.paused = True
+    assert s.clock()["replicate"] == {"name": "rep_a", "index": 1, "total": 2,
+                                      "building": False, "notes": []}  # fmt: skip
+    s.submit({"runtime_h": 1})
+    s.control({"skip_hours": 7 * 24})
+    assert s.step() is False  # all finished replicate 1: step builds replicate 2
+    info = s.clock()["replicate"]
+    assert (info["name"], info["index"]) == ("rep_b", 2)
+    assert s.user_jobs == [] and info["notes"]
+    assert s.clock()["finished"] is False
+    s.control({"skip_hours": 7 * 24})
+    assert s.step() is True and s.clock()["finished"] is True
+
+
+def test_live_cli_refuses_test_split():
+    import argparse
+
+    from flipwise.cli import _cmd_live
+    from flipwise.errors import ConfigError
+
+    with pytest.raises(ConfigError, match="once only"):
+        _cmd_live(argparse.Namespace(split="test"))

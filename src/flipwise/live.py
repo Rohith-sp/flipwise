@@ -38,6 +38,8 @@ REGION_NAMES = {1: "Delhi NCR (Northern grid)", 2: "Mumbai (Western grid)",
                 3: "Chennai (Southern grid)", 4: "Eastern grid"}  # fmt: skip
 MAX_SKIP_H = 7 * 24
 MESSAGE_LOG = 200
+LANE_CAP = 60
+_CHECK_KINDS = {"KEEP", "MOVE", "SCREEN_FAIL", "THROTTLED", "RESCUE", "RESCUE_NOOP"}
 STREAM_BUFFER = 2000
 LATENCY_WINDOW = 50
 KEEPALIVE_S = 15.0
@@ -178,24 +180,47 @@ class LiveSession:
         policies: list[str],
         speed: float = 1800.0,
         remote_clients: list | None = None,
+        replicates: list[tuple[str, object]] | None = None,
     ) -> None:
+        """`replicates` is a list of (name, build) for a validation session: each `build()` gives
+        the next shared scenario and is called outside the lock (it takes seconds)."""
         if not policies:
             raise ConfigError("live: give at least one policy")
+        if replicates and remote_clients:
+            raise ConfigError("live: --split validation cannot drive remote services")
         self.lock = threading.RLock()
+        self.cfg = cfg
         self.policies = policies
         self.feed = _Feed()
         self.messages: deque = _MessageSink(self.feed)
-        self.timed: list[TimedClient] = []
-        self.history: dict[str, list[dict]] = {p: [] for p in policies}
-        self._pending: dict[str, list[str]] = {}  # jobs not yet completed, per policy
-        self._outcome: dict[str, dict[str, tuple[int, float, bool]]] = {p: {} for p in policies}
-        self._seen_decisions: dict[str, int] = {p: 0 for p in policies}
-        self.sims: dict[str, Simulator] = {}
+        self.remote_clients = remote_clients
         self.remote_policy = policies[0] if remote_clients else None
-        for i, name in enumerate(policies):
-            scenario: Scenario = scenario_factory()
-            params = policy_params(cfg, name) if cfg is not None else {}
-            inner = remote_clients if (i == 0 and remote_clients) else None
+        self.replicates = replicates or []
+        self.rep_index = 0
+        self.building = False
+        self.notes: list[str] = []
+        self.speed = float(speed)
+        self.paused = False
+        self.closed = threading.Event()  # ends open SSE streams on shutdown
+        scenario = self.replicates[0][1]() if self.replicates else scenario_factory()
+        self._load(scenario)
+
+    def _load(self, scenario: Scenario) -> None:
+        """Install a (new) shared scenario: fresh simulators for every policy and cleared
+        per-run caches. Called at start and when a validation replicate ends."""
+        self.timed: list[TimedClient] = []
+        self.history: dict[str, list[dict]] = {p: [] for p in self.policies}
+        self._pending: dict[str, list[str]] = {}  # jobs not yet completed, per policy
+        self._outcome: dict[str, dict[str, tuple[int, float, bool]]] = {
+            p: {} for p in self.policies
+        }
+        self._seen_decisions: dict[str, int] = {p: 0 for p in self.policies}
+        self._act: dict[str, dict[int, Counter]] = {p: {} for p in self.policies}
+        self._act_seen: dict[str, int] = {p: 0 for p in self.policies}
+        self.sims: dict[str, Simulator] = {}
+        for i, name in enumerate(self.policies):
+            params = policy_params(self.cfg, name) if self.cfg is not None else {}
+            inner = self.remote_clients if (i == 0 and self.remote_clients) else None
             inner = inner or [InProcDatacentre() for _ in scenario.dcs]
             clients = inner
             if i == 0:  # the messages and health shown are those of the first policy
@@ -207,17 +232,18 @@ class LiveSession:
             sim.start()
             self.sims[name] = sim
             self._pending[name] = list(sim.jobs)
-        first = self.sims[policies[0]].scenario
-        self.start_s, self.end_s = first.start_s, first.end_s
-        self.speed = float(speed)
-        self.paused = False
-        self.closed = threading.Event()  # ends open SSE streams on shutdown
+        self.start_s, self.end_s = scenario.start_s, scenario.end_s
         self._sim_base = float(self.start_s)
         self._wall_base = time.monotonic()
+        if self.user_jobs_list():
+            self.notes.append(f"user jobs cleared when replicate {self.rep_index + 1} started")
         self.user_jobs: list[str] = []
         self.submitted: dict[str, dict] = {}
         self._next_snap_s = floor_to_slot(self.start_s) + SLOT_S
         self._snapshot(self.start_s)
+
+    def user_jobs_list(self) -> list[str]:
+        return getattr(self, "user_jobs", [])
 
     # ---- clock -----------------------------------------------------------------------------
     def _now(self) -> int:
@@ -235,7 +261,27 @@ class LiveSession:
     def step(self) -> bool:
         """Advance every policy to the paced target time; True once all have finished."""
         with self.lock:
-            return self._advance_all(min(self.target_s(), float(self.end_s)))
+            # One slot at a time: when the simulation runs slower than the paced clock, the
+            # worker must not hold the lock for minutes and starve the API.
+            goal = min(self.target_s(), float(self.end_s))
+            done = self._advance_all(min(goal, float(self._next_snap_s)))
+            done = done and goal >= self.end_s
+            more = done and self.rep_index + 1 < len(self.replicates) and not self.building
+            if more:
+                self.building = True
+        if more:
+            self._next_replicate()
+            return False
+        return done and self.rep_index + 1 >= len(self.replicates)
+
+    def _next_replicate(self) -> None:
+        try:
+            scenario = self.replicates[self.rep_index + 1][1]()  # seconds; the lock is free
+            with self.lock:
+                self.rep_index += 1
+                self._load(scenario)
+        finally:
+            self.building = False
 
     def _advance_all(self, target: float) -> bool:
         """Advance every policy to `target`, stopping at each slot boundary on the way so a long
@@ -272,7 +318,16 @@ class LiveSession:
         now = self._now()
         return {"sim_time_s": now, "sim_time": _ist(now), "start": _ist(self.start_s),
                 "end": _ist(self.end_s), "speed": self.speed, "paused": self.paused,
-                "finished": all(s.finished for s in self.sims.values())}  # fmt: skip
+                "finished": all(s.finished for s in self.sims.values())
+                and self.rep_index + 1 >= len(self.replicates),
+                "replicate": self.replicate_info()}  # fmt: skip
+
+    def replicate_info(self) -> dict | None:
+        if not self.replicates:
+            return None
+        return {"name": self.replicates[self.rep_index][0], "index": self.rep_index + 1,
+                "total": len(self.replicates), "building": self.building,
+                "notes": self.notes[-5:]}  # fmt: skip
 
     # ---- jobs ------------------------------------------------------------------------------
     def submit(self, body: dict) -> dict:
@@ -415,7 +470,8 @@ class LiveSession:
         return REGION_NAMES.get(region, f"region {region}")
 
     def _decision(self, sim: Simulator, d: dict) -> dict:
-        return {"time": _ist(d["time_s"]), "job_id": d["job_id"], "kind": d["kind"],
+        return {"time": _ist(d["time_s"]), "time_s": d["time_s"],
+                "job_id": d["job_id"], "kind": d["kind"],
                 "from": self._dc_name(sim, d["from_dc"]), "to": self._dc_name(sim, d["to_dc"]),
                 "to_slot": None if d["to_slot"] is None else _ist(d["to_slot"]),
                 "S_a_kg": _round(d["S_a"]), "S_b_kg": _round(d["S_b"]), "LB_kg": _round(d["LB"]),
@@ -452,6 +508,7 @@ class LiveSession:
         with self.lock:
             main = self.sims[self.policies[0]]
             return {"clock": self.clock(), "policies": self.policies,
+                    "replicate": self.replicate_info(),
                     "remote_policy": self.remote_policy, "carbon": self._carbon_now(main),
                     "compare": {p: self._totals(s) for p, s in self.sims.items()},
                     "user_jobs": self.user_jobs,
@@ -489,6 +546,66 @@ class LiveSession:
                     "carbon": carbon,
                     "user_jobs_here": [j.job_id for j in here
                                        if j.job_id in self.submitted]}  # fmt: skip
+
+    # ---- re-plan activity and per-datacentre job lists -----------------------------------------
+    def activity(self, policy: str, since_s: int | None = None) -> list[dict]:
+        """Re-plan work per forecast update (CARBON_UPDATE), grouped from the decision log. The
+        grouping is cached and extended incrementally; only new decisions are read."""
+        with self.lock:
+            if policy not in self.sims:
+                raise KeyError(policy)
+            sim, cache = self.sims[policy], self._act[policy]
+            caps = {c for c in sim.scenario.forecast.captures if self.start_s <= c <= self.end_s}
+            for d in sim.decisions[self._act_seen[policy] :]:
+                if d["time_s"] in caps and d["kind"] in _CHECK_KINDS:
+                    kind = d["kind"]
+                    if kind == "KEEP" and d["S_b"] is None:
+                        kind = "OTHER"  # kept without a re-score (no carbon incumbent)
+                    elif kind.startswith("RESCUE"):
+                        kind = "RESCUE"
+                    cache.setdefault(d["time_s"], Counter())[kind] += 1
+            self._act_seen[policy] = len(sim.decisions)
+            lo = -1 if since_s is None else since_s
+            out = []
+            for t in sorted(c for c in caps if lo < c <= sim.now_s):
+                c = cache.get(t, Counter())
+                out.append({"t": t, "time": _ist(t), "checked": sum(c.values()),
+                            "screen_skipped": c["SCREEN_FAIL"], "rescored_kept": c["KEEP"],
+                            "moved": c["MOVE"], "rescued": c["RESCUE"],
+                            "throttled": c["THROTTLED"]})  # fmt: skip
+            return out
+
+    def lanes(self, policy: str | None = None) -> dict:
+        """Planned, queued and running jobs at every datacentre, for one policy."""
+        with self.lock:
+            name = policy or self.policies[0]
+            if name not in self.sims:
+                raise KeyError(name)
+            sim = self.sims[name]
+
+            def chip(job_id: str) -> dict:
+                j = sim.jobs[job_id]
+                return {"job_id": job_id[:8], "gpus": j.gpu_req,
+                        "user_job": job_id in self.submitted, "moved": j.n_moves > 0}  # fmt: skip
+
+            def cap(ids: list[str]) -> dict:
+                return {"total": len(ids), "jobs": [chip(i) for i in ids[:LANE_CAP]]}
+
+            planned: dict[int, list[str]] = {d.dc_id: [] for d in sim.scenario.dcs}
+            for j in sim.jobs.values():
+                if j.state == JobState.PLACED and j.dc_id in planned:
+                    planned[j.dc_id].append(j.job_id)
+            out = []
+            for d in sim.scenario.dcs:
+                st = sim.clients[d.dc_id].state()
+                out.append({"dc_id": d.dc_id, "name": self._dc_name(sim, d.dc_id),
+                            "planned": cap(sorted(planned[d.dc_id])),
+                            "queued": cap(list(st.queue)),
+                            "running": cap([r.job_id for r in st.running]),
+                            "completed": sum(1 for j in sim.jobs.values()
+                                             if j.dc_id == d.dc_id
+                                             and j.state == JobState.COMPLETED)})  # fmt: skip
+            return {"policy": name, "time": _ist(sim.now_s), "datacentres": out}
 
 
 def scenario_factory(cfg: dict | None, scenario_dir: Path | None, seed: int = 0):
@@ -613,6 +730,17 @@ def make_handler(session: LiveSession):
                 elif parts == ["results"]:
                     code, body = results_summary()
                     self._send(code, body)
+                elif parts == ["activity"]:
+                    since = query.get("since")
+                    self._send(
+                        200,
+                        session.activity(
+                            query.get("policy") or session.policies[0],
+                            int(since) if since else None,
+                        ),
+                    )
+                elif parts == ["lanes"]:
+                    self._send(200, session.lanes(query.get("policy")))
                 elif len(parts) == 2 and parts[0] == "dc":
                     self._send(200, session.dc(int(parts[1]), query.get("policy")))
                 elif parts == ["jobs"]:
@@ -658,7 +786,8 @@ def serve(session: LiveSession, host: str = "127.0.0.1", port: int = 8100) -> No
         f"live: {', '.join(session.policies)} at {session.speed:g}x on http://{host}:{port}",
         flush=True,
     )
-    print("  GET /, /status, /history, /stream, /health, /results, /dc/<id>, /jobs/<id>;"
+    print("  GET /, /status, /history, /stream, /health, /results, /dc/<id>, /activity, /lanes,"
+          " /jobs/<id>;"
           " POST /jobs, /control", flush=True)  # fmt: skip
     try:
         server.serve_forever()
