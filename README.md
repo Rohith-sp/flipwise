@@ -18,9 +18,74 @@ Experiential Learning project, V semester, RV College of Engineering (Team ATLAS
 
 ## Architecture
 
-![Flipwise system architecture](docs/figures/architecture.png)
+```mermaid
+%%{init: {"theme": "base", "themeVariables": {"primaryColor": "#FFFFFF", "primaryTextColor": "#0F172A", "primaryBorderColor": "#CBD5E1", "lineColor": "#64748B", "clusterBkg": "#F8FAFC", "clusterBorder": "#CBD5E1", "edgeLabelBackground": "#FFFFFF", "fontSize": "15px"}, "flowchart": {"curve": "basis", "nodeSpacing": 30, "rankSpacing": 50, "padding": 14, "htmlLabels": true}}}%%
+flowchart TB
+  subgraph DATA["INPUT DATA"]
+    direction LR
+    T["<b>Alibaba GPU trace v2020</b><br/>732k jobs, runtimes, measured GPU use"]:::src
+    G["<b>Indian grid, 2023</b><br/>Grid-India generation × CEA factors"]:::src
+    N["<b>NESO forecast archive</b><br/>real forecast-error paths"]:::src
+    T ~~~ G ~~~ N
+  end
 
-A slide-sized version is in [`docs/figures/architecture_ppt.png`](docs/figures/architecture_ppt.png).
+  subgraph PIPE["DATA PIPELINE"]
+    direction LR
+    P1["<b>Carbon truth</b><br/>A(r,k) = Σ G·EF / Σ G"]:::pipe
+    P2["<b>Forecasts</b><br/>F = max(0, A + α·s_r·E)"]:::pipe
+    P3["<b>Frozen estimates</b><br/>runtime q05–q95, error e05/e95"]:::pipe
+    P4["<b>Scenario</b><br/>one week, deadlines, 3 sites at ρ = 0.7"]:::pipe
+    P1 --> P2 --> P4
+    P3 --> P4
+  end
+
+  subgraph SCHED["SCHEDULER · COORDINATOR · owns the simulated clock"]
+    direction LR
+    EV["<b>Event simulator</b><br/>arrival · forecast every 30 min · release · finish"]:::core
+    S1["<b>1 · Screen</b><br/>Ŝa − LB ≥ g_min ?"]:::df
+    S2["<b>2 · Full re-score</b><br/>planner: ≤147 options, queues, deadline"]:::df
+    S3["<b>3 · Noise-aware gate</b><br/>Ŝa − Ŝb ≥ g_min + θ·w_ab"]:::df
+    EV --> S1
+    S1 -->|may pay off| S2
+    S1 -.->|cannot: skip| EV
+    S2 --> S3
+    S3 -->|MOVE / KEEP| EV
+  end
+
+  subgraph DCS["DATACENTRE SERVICES · local processes or Docker"]
+    direction LR
+    D1["<b>Delhi NCR</b><br/>Northern grid · :8101"]:::dc1
+    D2["<b>Mumbai</b><br/>Western grid · :8102"]:::dc2
+    D3["<b>Chennai</b><br/>Southern grid · :8103"]:::dc3
+    D1 ~~~ D2 ~~~ D3
+  end
+
+  subgraph OUT["EVALUATION AND DEMO"]
+    direction LR
+    E1["<b>Evaluator</b><br/>true carbon × real runtime<br/>kgCO₂ range: measured … nameplate"]:::eval
+    E2["<b>Experiments</b><br/>7 policies, bootstrap 95 % CIs<br/>test set run once"]:::eval
+    E3["<b>Live dashboards</b><br/>scheduler :8100<br/>one per site :8101–8103"]:::live
+    E1 --> E2
+    E2 ~~~ E3
+  end
+
+  DATA ==> PIPE ==> SCHED
+  SCHED <==>|HTTP / JSON: enqueue · remove · dispatch · complete · state| DCS
+  SCHED ==> OUT
+
+  classDef src fill:#FFFFFF,stroke:#94A3B8,color:#0F172A
+  classDef pipe fill:#F1F5F9,stroke:#CBD5E1,color:#0F172A
+  classDef core fill:#FFFFFF,stroke:#93C5FD,color:#1E3A8A
+  classDef df fill:#EFF4FF,stroke:#1D4ED8,stroke-width:2px,color:#1E3A8A
+  classDef dc1 fill:#FFFFFF,stroke:#1E3A8A,stroke-width:2px,color:#1E3A8A
+  classDef dc2 fill:#FFFFFF,stroke:#C2410C,stroke-width:2px,color:#9A3412
+  classDef dc3 fill:#FFFFFF,stroke:#0F766E,stroke-width:2px,color:#115E59
+  classDef eval fill:#FFFFFF,stroke:#CBD5E1,color:#0F172A
+  classDef live fill:#F0FDF4,stroke:#15803D,stroke-width:2px,color:#14532D
+  style SCHED fill:#F5F8FF,stroke:#1D4ED8,stroke-width:2px
+```
+
+A slide-sized figure is in [`docs/figures/architecture_ppt.png`](docs/figures/architecture_ppt.png) and a detailed one in [`docs/figures/architecture.png`](docs/figures/architecture.png).
 
 ## The idea
 
