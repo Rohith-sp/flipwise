@@ -15,13 +15,12 @@ from __future__ import annotations
 
 import datetime as dt
 import json
-import mimetypes
 import threading
 import time
 from collections import Counter, deque
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
-from urllib.parse import parse_qs, unquote, urlsplit
+from urllib.parse import parse_qs, urlsplit
 
 import pandas as pd
 
@@ -32,6 +31,7 @@ from flipwise.models import SLOT_S, Job, JobState, floor_to_slot
 from flipwise.policies import make_policy
 from flipwise.scenario import build_replicate, dev_replicate, load_scenario
 from flipwise.simulator import Scenario, Simulator, job_outcome
+from flipwise.webstatic import read_static
 
 IST = dt.timezone(dt.timedelta(hours=5, minutes=30))
 REGION_NAMES = {1: "Delhi NCR (Northern grid)", 2: "Mumbai (Western grid)",
@@ -43,7 +43,6 @@ _CHECK_KINDS = {"KEEP", "MOVE", "SCREEN_FAIL", "THROTTLED", "RESCUE", "RESCUE_NO
 STREAM_BUFFER = 2000
 LATENCY_WINDOW = 50
 KEEPALIVE_S = 15.0
-WEB_DIR = Path(__file__).resolve().parent / "web"
 RESULTS_CSV = Path("docs/test_results/summary.csv")
 # kgCO2 under the D58 power bracket for the same test runs (D59, F25); optional.
 BRACKET_CSVS = {
@@ -675,16 +674,13 @@ def make_handler(session: LiveSession):
             return json.loads(self.rfile.read(n) or b"{}") if n else {}
 
         def _static(self, rel: str) -> None:
-            # Resolve and check containment: "..", encoded slashes and symlinks must not escape.
-            root = WEB_DIR.resolve()
-            target = (root / unquote(rel).lstrip("/")).resolve()
-            if not target.is_relative_to(root) or not target.is_file():
+            found = read_static(rel)
+            if found is None:
                 self._send(404, {"error": "NOT_FOUND", "path": self.path})
                 return
-            data = target.read_bytes()
+            data, ctype = found
             self.send_response(200)
-            self.send_header("Content-Type", mimetypes.guess_type(target.name)[0]
-                             or "application/octet-stream")  # fmt: skip
+            self.send_header("Content-Type", ctype)
             self.send_header("Content-Length", str(len(data)))
             self.end_headers()
             self.wfile.write(data)

@@ -290,7 +290,15 @@ A remote run gets its own `run_id` (the mode is part of it), so the two folders 
 | Dev week, 7,000 real jobs, in-process datacentres | `uv run flipwise live --config configs/base.yaml` | same |
 | Validation weeks played one after another | `uv run flipwise live --config configs/base.yaml --split validation` | same |
 
-**With the three datacentres as separate services.** Local processes, one terminal each:
+**One command with separate services.** The scheduler starts the three datacentre services itself, waits for their `/health`, and stops them on exit (Linux and Windows; no bash needed):
+
+```bash
+uv run flipwise live --config configs/base.yaml --services local
+```
+
+It prints four URLs: the scheduler, http://localhost:8100, and one dashboard per datacentre, http://localhost:8101, :8102, :8103. `--base-port N` moves the services to N, N+1, N+2; `--services local` implies remote mode for the first policy and cannot be combined with `--dc-urls`. A busy port is reported as a deployment error.
+
+**With the three datacentres as separate services, by hand.** Local processes, one terminal each:
 
 ```bash
 uv run flipwise dc-serve --dc-id 0 --port 8101

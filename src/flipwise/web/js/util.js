@@ -119,3 +119,8 @@ export function jobChips(box, kind) {
 export const axisTime = { type: "time", axisLabel: { color: "#4B5563", formatter: (v) => istClock(v / 1000) } };
 export const tsToMs = (rows, f) => rows.map((p) => [p.t * 1000, f(p)]);
 export const sentenceInt = int;
+
+// Each remote datacentre serves its own page; the published port is 8101 + dc_id (local and Docker).
+export const dcPageUrl = (dcId) => `${location.protocol}//${location.hostname}:${8101 + dcId}/`;
+export const dcLink = (d) => (d.remote
+  ? `<a class="small" href="${dcPageUrl(d.dc_id)}" target="_blank" rel="noopener">Open its own page</a>` : "");

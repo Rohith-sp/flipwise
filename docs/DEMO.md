@@ -65,28 +65,38 @@ Stop the server with **Ctrl-C**.
 
 ## 3. Act 2: a real week, real services (2 minutes)
 
-**Terminal (Docker: three datacentres as separate containers):**
+**Terminal (one command: the scheduler starts the three datacentre services itself):**
 
 ```bash
-docker compose --profile live up dc-delhi dc-mumbai dc-chennai live
+uv run flipwise live --config configs/base.yaml --services local
+```
+
+It prints four URLs: the scheduler at **http://localhost:8100** and one page per datacentre, **http://localhost:8101** (Delhi NCR), **:8102** (Mumbai), **:8103** (Chennai). Open all four side by side. Ctrl-C stops everything.
+
+*Or in Docker (three datacentres as separate containers; the same four URLs):*
+
+```bash
+docker compose --profile live up --build dc-delhi dc-mumbai dc-chennai live
 ```
 
 Wait for the `live` container to print its line (10–20 s while it builds the week), then reload **http://localhost:8100**.
 
-*Without Docker, the same in one process:* `uv run flipwise live --config configs/base.yaml`
+*Without separate services, in one process:* `uv run flipwise live --config configs/base.yaml`
 
 1. Header pill reads **Live**; the clock starts on *Mon 03 Jul 2023 00:00 IST*.
    > "This is one real week of Alibaba's GPU jobs, about 7,000, on Indian grid data for July 2023."
 2. **Architecture** page: three boxes, each with its URL (`http://dc-delhi:8101`…), request count and latency rising.
    > "The scheduler and the three datacentres are separate services talking over HTTP. We proved the results are byte-identical to running everything in one program."
-3. Optional, in a second terminal, to show the containers really exist:
+3. Submit a job on the scheduler's **Job tracker** and watch the datacentre pages: when a job is placed or moved, an `enqueue` (blue) message appears in the message log of the site it goes to, and a `remove` (amber) at the site it leaves. Each site then shows its own FIFO queue start the job (`dispatch`, green) and later `complete` (grey).
+   > "Each datacentre is its own program with its own queue. It only knows what the scheduler sends it."
+4. Optional, in a second terminal (Docker), to show the containers really exist:
 
    ```bash
    docker compose ps
    docker compose logs --tail 5 dc-mumbai
    ```
 
-4. Back to **Overview**: click **+6 h**. A spinner shows while it replays six hours of history (20–30 s).
+5. Back to **Overview**: click **+6 h**. A spinner shows while it replays six hours of history (20–30 s).
    > "The time skip replays the recorded history as fast as the computer can."
 
 ---

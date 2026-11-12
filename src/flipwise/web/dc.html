@@ -1,0 +1,81 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Flipwise datacentre</title>
+<link rel="stylesheet" href="/static/vendor/tabler.min.css">
+<link rel="stylesheet" href="/static/css/app.css">
+</head>
+<body>
+<div class="dc-page" id="dc-root">
+  <header class="fw-head dc-head">
+    <div class="fw-title">
+      <h1 id="dc-name">Datacentre</h1>
+      <p class="fw-muted" id="dc-sub">Datacentre service</p>
+    </div>
+    <div class="fw-controls">
+      <span class="fw-clock" id="dc-clock" title="Simulated time sent by the scheduler (IST)">--</span>
+      <span class="fw-pill" id="dc-conn" role="status"><span class="fw-dot"></span><span id="dc-conn-text">Connecting</span></span>
+      <a class="btn btn-sm" id="dc-back" href="#">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 6l-6 6 6 6"/></svg>
+        Scheduler dashboard</a>
+    </div>
+  </header>
+
+  <main class="fw-view" id="dc-main" tabindex="-1">
+    <section class="fw-card empty" id="dc-waiting" hidden>
+      <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#4B5563" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>
+      <h2>Waiting for the scheduler to connect</h2>
+      <p class="fw-muted" id="dc-waiting-text">This service has no configuration yet. It receives its capacity from the scheduler's first request.</p>
+    </section>
+
+    <div id="dc-ready" hidden>
+      <div class="fw-grid g5" id="dc-kpis"></div>
+
+      <div class="fw-grid g3 fw-section">
+        <section class="fw-card"><h2>GPU</h2><p class="sub" id="g-gpu-sub"></p><div class="gauge" id="g-gpu" role="img" aria-label="GPU utilisation"></div></section>
+        <section class="fw-card"><h2>CPU</h2><p class="sub" id="g-cpu-sub"></p><div class="gauge" id="g-cpu" role="img" aria-label="CPU utilisation"></div></section>
+        <section class="fw-card"><h2>Memory</h2><p class="sub" id="g-mem-sub"></p><div class="gauge" id="g-mem" role="img" aria-label="Memory utilisation"></div></section>
+      </div>
+
+      <section class="fw-card fw-section">
+        <h2>Local scheduler &middot; FIFO first-fit</h2>
+        <p class="sub">Jobs wait in arrival order; the head starts as soon as its GPUs, CPUs and memory all fit. Chips show GPUs requested.</p>
+        <div class="fw-grid g21">
+          <div>
+            <div class="dc-lab">Queue (head first) <span class="fw-muted" id="q-count"></span></div>
+            <div class="jchips" id="q-chips"></div>
+            <div class="dc-lab" style="margin-top:14px">Running <span class="fw-muted" id="r-count"></span></div>
+            <div class="jchips" id="r-chips"></div>
+          </div>
+          <div>
+            <div class="dc-lab">Last dispatch decisions</div>
+            <ul class="dc-decisions" id="dc-decisions"></ul>
+          </div>
+        </div>
+      </section>
+
+      <div class="fw-grid g11 fw-section">
+        <section class="fw-card"><h2>GPUs in use</h2><p class="sub">Sampled every simulated half hour, against capacity</p><div class="chart" id="ch-gpu" role="img" aria-label="GPUs used over simulated time"></div></section>
+        <section class="fw-card"><h2>Queue and running jobs</h2><p class="sub">Sampled every simulated half hour</p><div class="chart" id="ch-q" role="img" aria-label="Queue length and running jobs over simulated time"></div></section>
+      </div>
+
+      <section class="fw-card fw-section" id="dc-carbon">
+        <h2>Grid carbon at this site</h2>
+        <p class="sub">The service does not know carbon; this comes from the scheduler.</p>
+        <div id="carbon-body" class="fw-muted">Reading the scheduler...</div>
+      </section>
+
+      <section class="fw-card fw-section">
+        <h2>Messages from the scheduler</h2>
+        <p class="sub">Newest first; the last 200 are kept.</p>
+        <div class="tw dc-log"><table class="fw-t"><thead><tr><th>Sim time (IST)</th><th>Operation</th><th>Job</th><th>Details</th></tr></thead><tbody id="dc-log"></tbody></table></div>
+      </section>
+    </div>
+  </main>
+</div>
+<script src="/static/vendor/echarts.min.js"></script>
+<script type="module" src="/static/js/dc.js"></script>
+</body>
+</html>

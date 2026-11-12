@@ -1061,6 +1061,8 @@ AWS regions host the services; they do not change the carbon signal. A datacentr
 
 **Dashboard.** Static files in `src/flipwise/web/`, served by the scheduler at `/` and `/static/...` with vendored JS (ECharts, Tabler). No build step, no npm, no new Python dependency; paths are resolved and confined to that directory.
 
+**Datacentre dashboards and one-command launch** (D62). Each `dc-serve` process also serves a display-only dashboard: `GET /` (page), `GET /live` (JSON of its capacity, queue, running set, counters, last 200 requests and a half-hourly history, all built from the simulated times in the requests) and `GET /static/...`. These routes are not simulation requests, never read the wall clock, and leave the §13.5 API and `--mode remote` outputs unchanged. `flipwise live --services local` starts the three services as child processes (`--base-port`, default 8101), runs the session in remote mode against them and stops them on exit.
+
 ---
 
 ## 14. Metrics, experiments, calibration and fairness

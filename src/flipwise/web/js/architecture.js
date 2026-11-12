@@ -1,5 +1,5 @@
 // Architecture: how the scheduler talks to the datacentres, with live service numbers.
-import { esc, int, REGION_SHORT, REGION_COLOURS } from "./util.js";
+import { esc, int, dcLink, REGION_SHORT, REGION_COLOURS } from "./util.js";
 
 let root = null;
 export const title = ["Architecture", "One scheduler, three datacentre services, one simulated clock"];
@@ -13,7 +13,7 @@ export function mount(view) {
         <path d="M2 100h50M52 100V30h56M52 100h56M52 100v70h56"/><path d="M100 24l8 6-8 6M100 94l8 6-8 6M100 164l8 6-8 6"/></svg>
       <div id="dcs" style="display:grid;gap:10px"></div></div></section>
   <div class="fw-grid g11 fw-section">
-    <section class="fw-card"><h2>Local split</h2><p class="small" style="margin:0">Each datacentre can run as its own small HTTP service on this machine (<code>flipwise dc-serve</code>, started together by <code>scripts/local_cluster.sh</code>). The scheduler sends enqueue, dispatch, complete and state requests over HTTP; the services never read the wall clock, so remote runs match in-process runs byte for byte.</p></section>
+    <section class="fw-card"><h2>Local split</h2><p class="small" style="margin:0">Each datacentre can run as its own small HTTP service on this machine (<code>flipwise dc-serve</code>, started together by <code>flipwise live --services local</code> or <code>scripts/local_cluster.sh</code>), and each serves its own dashboard on ports 8101 to 8103. The scheduler sends enqueue, dispatch, complete and state requests over HTTP; the services never read the wall clock, so remote runs match in-process runs byte for byte.</p></section>
     <section class="fw-card"><h2>Docker</h2><p class="small" style="margin:0">The same services run as containers with <code>docker compose up</code>: one coordinator and three datacentre containers on a private network. The datacentre logic exists once, in the datacentre module; the service only wraps it, so a transport change never changes a decision.</p></section>
   </div>`;
 }
@@ -24,5 +24,5 @@ export function update(s) {
   const h = s.health, st = s.status;
   root.querySelector("#sched").textContent = `Policy timed: ${h ? h.policy : "--"} · ${st.remote_policy ? "calls services over HTTP" : "in-process calls"}`;
   root.querySelector("#dcs").innerHTML = (h ? h.datacentres : []).map((d) => `<div class="abox" style="border-color:${REGION_COLOURS[d.dc_id]}"><h3>Datacentre ${d.dc_id} &middot; ${esc(REGION_SHORT[d.dc_id] || "")}</h3>
-    <div class="small fw-muted">${esc(d.url)}</div><div class="small">${int(d.requests)} requests &middot; ${d.mean_latency_ms == null ? "--" : d.mean_latency_ms.toFixed(2)} ms mean latency</div></div>`).join("");
+    <div class="small fw-muted">${esc(d.url)}</div><div class="small">${dcLink(d)}</div><div class="small">${int(d.requests)} requests &middot; ${d.mean_latency_ms == null ? "--" : d.mean_latency_ms.toFixed(2)} ms mean latency</div></div>`).join("");
 }

@@ -173,9 +173,8 @@ def _cmd_run(args: argparse.Namespace) -> int:
 
 
 def _cmd_live(args: argparse.Namespace) -> int:
-    from flipwise.dcservice import HttpDatacentre
     from flipwise.errors import ConfigError
-    from flipwise.live import LiveSession, scenario_factory, serve
+    from flipwise.live import scenario_factory
 
     if args.split == "test":
         raise ConfigError("live: the test set is run once only (PRD §14.3); use dev or validation")
@@ -186,24 +185,47 @@ def _cmd_live(args: argparse.Namespace) -> int:
         from flipwise.experiment import replicates_for
         from flipwise.scenario import build_replicate
 
-        if args.scenario is not None or args.mode == "remote":
+        if args.scenario is not None or args.mode == "remote" or args.services:
             raise ConfigError("live: --split validation needs --config and in-process mode")
         replicates = [
             (r.name, lambda r=r: build_replicate(cfg, r, args.seed))
             for r in replicates_for(cfg, "validation")
         ]
-    remote = None
-    if args.mode == "remote":
+    if args.services == "local":
+        if args.dc_urls:
+            raise ConfigError("live: --services local starts its own services; drop --dc-urls")
+        from flipwise.localservices import local_services
+
         n = len(factory().dcs)
-        urls = [u for u in (args.dc_urls or "").split(",") if u] or [
-            f"http://127.0.0.1:{8101 + i}" for i in range(n)
-        ]
+        with local_services(n, args.base_port) as urls:
+            return _run_live(args, cfg, factory, replicates, urls)
+    return _run_live(args, cfg, factory, replicates, None)
+
+
+def _run_live(args, cfg, factory, replicates, local_urls) -> int:
+    from flipwise.dcservice import HttpDatacentre
+    from flipwise.errors import ConfigError
+    from flipwise.live import LiveSession, serve
+
+    remote = None
+    if args.mode == "remote" or local_urls:
+        n = len(factory().dcs)
+        urls = (
+            local_urls
+            or [u for u in (args.dc_urls or "").split(",") if u]
+            or [f"http://127.0.0.1:{8101 + i}" for i in range(n)]
+        )
         if len(urls) != n:
             raise ConfigError(f"--dc-urls gives {len(urls)} URLs; the scenario has {n} datacentres")
         remote = [HttpDatacentre(u) for u in urls]
         for i, c in enumerate(remote):
             if c.health()["dc_id"] != i:
                 raise ConfigError(f"{c.url} serves another datacentre, not dc {i}")
+        if local_urls:
+            host = "localhost" if args.host in ("127.0.0.1", "0.0.0.0") else args.host
+            print(f"scheduler: http://{host}:{args.port}", flush=True)
+            for i, u in enumerate(urls):
+                print(f"datacentre {i}: {u.replace('127.0.0.1', 'localhost')}/", flush=True)
     session = LiveSession(factory, cfg, _policy_list(args.policies), args.speed, remote, replicates)
     serve(session, args.host, args.port)
     return 0
@@ -360,6 +382,11 @@ def build_parser() -> argparse.ArgumentParser:
     )
     lv.add_argument("--mode", choices=["inproc", "remote"], default="inproc")
     lv.add_argument("--dc-urls", default=None, metavar="URL1,URL2,URL3")
+    lv.add_argument("--services", choices=["local"], default=None,
+                    help="local: start the datacentre services as child processes (implies "
+                    "remote mode for the first policy; stopped on exit)")  # fmt: skip
+    lv.add_argument("--base-port", type=int, default=8101,
+                    help="with --services local: dc i listens on base-port + i")  # fmt: skip
     lv.add_argument("--host", default="127.0.0.1")
     lv.add_argument("--port", type=int, default=8100)
     lv.set_defaults(func=_cmd_live)

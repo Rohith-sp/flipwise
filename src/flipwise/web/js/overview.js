@@ -1,4 +1,4 @@
-import { keepLast, esc, num, int, badge, decisionText, colourOf, chart, shortRegion, timeOnly, istClock, REGION_COLOURS, REGION_SHORT } from "./util.js";
+import { keepLast, esc, num, int, badge, dcLink, decisionText, colourOf, chart, shortRegion, timeOnly, istClock, REGION_COLOURS, REGION_SHORT } from "./util.js";
 
 const MAIN = "decision_flip", REF = "fixed_savings";
 let root = null;
@@ -86,7 +86,7 @@ function carbon(st, hist) {
 
 function services(health, st) {
   const host = root.querySelector("#services");
-  const rows = (health ? health.datacentres : []).map((d) => `<div class="svc"><div><b>Datacentre ${d.dc_id} &middot; ${REGION_SHORT[d.dc_id] || ""}</b><div class="small fw-muted">${esc(d.url)}</div></div>
+  const rows = (health ? health.datacentres : []).map((d) => `<div class="svc"><div><b>Datacentre ${d.dc_id} &middot; ${REGION_SHORT[d.dc_id] || ""}</b><div class="small fw-muted">${esc(d.url)}</div>${dcLink(d)}</div>
     <div class="small" style="text-align:right">${int(d.requests)} requests<br>${d.mean_latency_ms == null ? "--" : d.mean_latency_ms.toFixed(2)} ms mean</div></div>`).join("");
   host.innerHTML = `<div class="svc"><div><b>Scheduler &middot; ${esc(MAIN)}</b><div class="small fw-muted">owns the simulated clock</div></div><div class="small">${esc(st.remote_policy ? "calls services" : "in-process")}</div></div>${rows}`;
   root.querySelector("#msgs").innerHTML = st.recent_messages.slice().reverse().slice(0, 20).map((m) =>

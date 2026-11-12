@@ -16,7 +16,9 @@ x-dc: &dc
     args:
       GIT_COMMIT: ${GIT_COMMIT:-unknown}
   image: flipwise:${FLIPWISE_TAG:-dev}
-  networks: [fw]
+  # fw: the coordinator and live scheduler reach them; public: only so a browser can open each
+  # site's own dashboard (published below). The simulation API is unchanged by this.
+  networks: [fw, public]
   healthcheck:
     test: ["CMD", "python", "-c", "import urllib.request as u; u.urlopen('http://127.0.0.1:8101/health', timeout=2)"]
     interval: 2s
@@ -28,12 +30,15 @@ services:
   dc-delhi:
     <<: *dc
     command: ["dc-serve", "--dc-id", "0", "--host", "0.0.0.0", "--port", "8101"]
+    ports: ["8101:8101"]
   dc-mumbai:
     <<: *dc
     command: ["dc-serve", "--dc-id", "1", "--host", "0.0.0.0", "--port", "8101"]
+    ports: ["8102:8101"]
   dc-chennai:
     <<: *dc
     command: ["dc-serve", "--dc-id", "2", "--host", "0.0.0.0", "--port", "8101"]
+    ports: ["8103:8101"]
 
   coordinator:
     image: flipwise:${FLIPWISE_TAG:-dev}
@@ -50,7 +55,8 @@ services:
       --dc-urls http://dc-delhi:8101,http://dc-mumbai:8101,http://dc-chennai:8101
       ${FLIPWISE_RUN_ARGS:---scenario tests/fixtures/toy --policy decision_flip}
 
-# No published ports and no outside access: the services are reachable only from the coordinator.
+# Each datacentre also serves its own dashboard: http://localhost:8101 (Delhi NCR), :8102
+# (Mumbai), :8103 (Chennai). The coordinator and results do not depend on those ports.
   # Live demo (PRD §13.6): the dashboard at http://localhost:8100, the scheduler talking to the
   # three datacentre containers above. Start only what it needs:
   #   docker compose --profile live up --build dc-delhi dc-mumbai dc-chennai live
@@ -74,5 +80,5 @@ services:
 networks:
   fw:
     internal: true
-  # Only the live dashboard is published; the datacentres stay on the internal network.
+  # Published: the live scheduler (8100) and the three datacentre dashboards (8101-8103).
   public: {}

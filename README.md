@@ -138,7 +138,10 @@ Install uv first if needed: `curl -LsSf https://astral.sh/uv/install.sh | sh` (L
 ```bash
 uv run flipwise live --scenario tests/fixtures/toy --speed 120     # 6-job toy, no data needed
 uv run flipwise live --config configs/base.yaml                    # a real week, about 7,000 jobs
+uv run flipwise live --config configs/base.yaml --services local   # same, datacentres as separate services
 ```
+
+`--services local` starts the three datacentre services itself and prints four URLs: the scheduler at **http://localhost:8100** and one dashboard per datacentre at **http://localhost:8101** (Delhi NCR), **:8102** (Mumbai), **:8103** (Chennai).
 
 Open **http://localhost:8100**. With the three datacentres as Docker containers:
 

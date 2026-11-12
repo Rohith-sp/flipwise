@@ -13,12 +13,15 @@ import sys
 import threading
 import urllib.error
 import urllib.request
+from collections import deque
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from typing import ClassVar
+from urllib.parse import urlsplit
 
 from flipwise.datacentre import InProcDatacentre, Started
 from flipwise.errors import DeploymentError, MigrationError, SimulationInvariantError
 from flipwise.models import DcConfig, DcState, Request, RunningInfo
+from flipwise.webstatic import ist_string, read_static
 
 PROTOCOL_VERSION = 1
 DEFAULT_TIMEOUT_S = 30.0
@@ -30,6 +33,68 @@ INVALID_CONFIG = "INVALID_CONFIG"
 BAD_REQUEST = "BAD_REQUEST"
 NOT_QUEUED = "NOT_QUEUED"
 NOT_RUNNING = "NOT_RUNNING"
+
+# Display only (the dashboard): site names, and bounds on what the service remembers.
+DC_SITES = {0: ("Delhi NCR", "Northern grid"), 1: ("Mumbai", "Western grid"),
+            2: ("Chennai", "Southern grid")}  # fmt: skip
+LOG_KEEP = 200
+STARTS_KEEP = 20
+HISTORY_KEEP = 2000
+SAMPLE_S = 1800
+
+
+class _Board:
+    """Display-only bookkeeping for the dashboard. It reads requests and results after the
+    datacentre has acted and never feeds anything back, so responses are unchanged (R-DEP-1)."""
+
+    def __init__(self) -> None:
+        self.reset()
+
+    def reset(self) -> None:
+        self.counters = {"enqueue": 0, "remove": 0, "dispatch": 0, "complete": 0, "started": 0}
+        self.log: deque[dict] = deque(maxlen=LOG_KEEP)
+        self.starts: deque[dict] = deque(maxlen=STARTS_KEEP)
+        self.history: deque[dict] = deque(maxlen=HISTORY_KEEP)
+        self.queued: dict[str, Request] = {}
+        self.t = 0
+        self.last_slot: int | None = None
+
+    def record(self, op: str, body: dict, result: dict, dc: InProcDatacentre) -> None:
+        t = int(body.get("t", self.t))
+        self.t = t
+        entry: dict = {"t": t, "time": ist_string(t), "op": op, "job_id": body.get("job_id")}
+        if op == "enqueue":
+            req = Request(body["gpu_req"], body["cpu_req"], body["mem_req_gb"])
+            self.queued[body["job_id"]] = req
+            entry.update(gpu=req.gpu, cpu=req.cpu, mem_gb=req.mem_gb,
+                         outcome=f"queued, {result['queue_len']} waiting")  # fmt: skip
+        elif op == "remove":
+            self.queued.pop(body["job_id"], None)
+            entry["outcome"] = "taken out of the queue"
+        elif op == "complete":
+            entry["outcome"] = "finished, resources freed"
+        elif op == "dispatch":
+            started = []
+            for s in result["started"]:
+                req = self.queued.pop(s["job_id"], None)
+                started.append({"job_id": s["job_id"], "gpu": req.gpu if req else None})
+                self.starts.append({"t": t, "time": entry["time"], "job_id": s["job_id"],
+                                    "gpu": req.gpu if req else None})  # fmt: skip
+            self.counters["started"] += len(started)
+            entry["started"] = started
+            entry["outcome"] = (f"started {len(started)} job{'s' if len(started) != 1 else ''}"
+                                if started else "nothing started")  # fmt: skip
+        else:
+            return
+        self.counters[op] += 1
+        self.log.append(entry)
+        slot = t // SAMPLE_S
+        if slot != self.last_slot:
+            self.last_slot = slot
+            st = dc.state()
+            self.history.append({"t": t, "gpu": st.used.gpu, "cpu": st.used.cpu,
+                                 "mem_gb": st.used.mem_gb, "queue": len(st.queue),
+                                 "running": len(st.running)})  # fmt: skip
 
 
 class _ApiError(Exception):
@@ -47,6 +112,8 @@ class DatacentreService:
         # The coordinator sends one request at a time (§13.5 rule 1); this keeps a stray second
         # client from interleaving with it.
         self.lock = threading.Lock()
+        self.board = _Board()
+        self.port: int | None = None
 
     def _ready(self) -> InProcDatacentre:
         if self.dc is None:
@@ -72,6 +139,7 @@ class DatacentreService:
         if cfg.dc_id != self.dc_id:
             raise _ApiError(400, INVALID_CONFIG, f"this is dc {self.dc_id}, not dc {cfg.dc_id}")
         self.dc = InProcDatacentre(cfg, scenario_hash)
+        self.board.reset()
         return {"ok": True}
 
     def enqueue(self, body: dict) -> dict:
@@ -132,7 +200,10 @@ class DatacentreService:
             return 404, {"error": "NOT_FOUND", "message": f"{method} {path}"}
         try:
             with self.lock:
-                return 200, getattr(self, name)(body)
+                result = getattr(self, name)(body)
+                if self.dc is not None and name in self.board.counters:
+                    self.board.record(name, body, result, self.dc)
+                return 200, result
         except _ApiError as e:
             return e.status, {"error": e.code, "message": str(e)}
         except MigrationError as e:
@@ -146,6 +217,33 @@ class DatacentreService:
             return 400, {"error": BAD_REQUEST, "message": f"missing field {e}"}
         except TypeError as e:
             return 400, {"error": BAD_REQUEST, "message": str(e)}
+
+    def live(self) -> dict:
+        """What the dashboard shows; read-only, and not a simulation request."""
+        name, grid = DC_SITES.get(self.dc_id, (f"Datacentre {self.dc_id}", ""))
+        base = {"dc_id": self.dc_id, "name": name, "grid": grid, "port": self.port}
+        with self.lock:
+            if self.dc is None:
+                return {**base, "state": "waiting"}
+            st, b = self.dc.state(), self.board
+            cap, used = st.cap, st.used
+            frac = lambda u, c: round(u / c, 4) if c else 0.0  # noqa: E731
+            return {
+                **base, "state": "ready", "t": b.t or None,
+                "time": ist_string(b.t) if b.t else None,
+                "capacity": _request_json(cap), "used": _request_json(used),
+                "utilisation": {"gpu": frac(used.gpu, cap.gpu), "cpu": frac(used.cpu, cap.cpu),
+                                "mem_gb": frac(used.mem_gb, cap.mem_gb)},
+                "queue_len": len(st.queue),
+                "queue": [{"job_id": j, **_request_json(b.queued[j])} if j in b.queued
+                          else {"job_id": j} for j in st.queue[:LOG_KEEP]],
+                "running": [{"job_id": r.job_id, "start_s": r.start_s, "gpu": r.gpu_req,
+                             "cpu": r.cpu_req, "mem_gb": r.mem_req_gb}
+                            for r in st.running],
+                "counters": {**b.counters, "requests": sum(
+                    b.counters[k] for k in ("enqueue", "remove", "dispatch", "complete"))},
+                "starts": list(b.starts), "log": list(b.log), "history": list(b.history),
+            }  # fmt: skip
 
 
 def _invariant_code(message: str) -> str:
@@ -165,8 +263,8 @@ def make_server(
     """A bound, not yet serving, server for one datacentre. Port 0 picks a free port.
 
     `crash_at_request` is fault injection for R-DEP-3: the process exits, without answering, on
-    that simulation request (1-based; `/health` does not count). Counting requests, not seconds,
-    makes the failure land at the same point of every run.
+    that simulation request (1-based; `/health` and the dashboard pages do not count). Counting
+    requests, not seconds, makes the failure land at the same point of every run.
     """
     service = DatacentreService(dc_id)
     seen = {"n": 0}
@@ -175,7 +273,35 @@ def make_server(
     class Handler(BaseHTTPRequestHandler):
         protocol_version = "HTTP/1.1"
 
+        def _dashboard(self) -> bool:
+            """Serve the display-only pages (GET /, /live, /static/...); False if not one."""
+            path = urlsplit(self.path).path
+            if path == "/live":
+                self._reply(200, service.live(), cors=True)
+            elif path == "/":
+                self._file("dc.html")
+            elif path.startswith("/static/"):
+                self._file(path[len("/static/") :])
+            else:
+                return False
+            return True
+
+        def _file(self, rel: str) -> None:
+            found = read_static(rel)
+            if found is None:
+                self._reply(404, {"error": "NOT_FOUND", "message": self.path}, cors=True)
+                return
+            data, ctype = found
+            self.send_response(200)
+            self.send_header("Content-Type", ctype)
+            self.send_header("Access-Control-Allow-Origin", "*")
+            self.send_header("Content-Length", str(len(data)))
+            self.end_headers()
+            self.wfile.write(data)
+
         def _serve(self, method: str) -> None:
+            if method == "GET" and self._dashboard():
+                return
             if crash_at_request is not None and self.path != "/health":
                 with lock:
                     seen["n"] += 1
@@ -191,10 +317,12 @@ def make_server(
                 return
             self._reply(*service.handle(method, self.path, body))
 
-        def _reply(self, status: int, payload: dict) -> None:
+        def _reply(self, status: int, payload: dict, cors: bool = False) -> None:
             data = json.dumps(payload).encode()
             self.send_response(status)
             self.send_header("Content-Type", "application/json")
+            if cors:
+                self.send_header("Access-Control-Allow-Origin", "*")
             self.send_header("Content-Length", str(len(data)))
             self.end_headers()
             self.wfile.write(data)
@@ -208,7 +336,9 @@ def make_server(
         def log_message(self, format: str, *args) -> None:  # noqa: A002
             pass  # one line per RPC would swamp the service log on a real run
 
-    return _Server((host, port), Handler)
+    server = _Server((host, port), Handler)
+    service.port = server.server_address[1]
+    return server
 
 
 class _Server(ThreadingHTTPServer):

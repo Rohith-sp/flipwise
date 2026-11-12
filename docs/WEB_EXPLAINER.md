@@ -139,6 +139,23 @@ Read it as: CO₂ bars almost equal across re-planning policies; full re-scores 
 | **How the pieces connect** | The scheduler and the three datacentres as boxes, with each site's URL (or in-process), request count and latency |
 | **Local split / Docker** | Short explanations of the two ways the datacentres run as separate services, and that both give byte-identical results to the single-process run |
 
+## Datacentre dashboards (ports 8101–8103)
+
+Each datacentre service serves its own page: **8101** Delhi NCR (Northern grid), **8102** Mumbai (Western), **8103** Chennai (Southern). They are display only: they show what the service has been told and add nothing to the simulation. The pages poll once a second (paused while the tab is hidden).
+
+| Component | What it shows |
+|---|---|
+| **Header** | Site name, grid, port, the simulated clock last sent by the scheduler, a connection pill (Live, Waiting for scheduler, Disconnected) and a link back to the scheduler dashboard |
+| **Waiting state** | Before the scheduler's first request the service has no capacity configured; the page says so instead of showing errors |
+| **KPI tiles** | GPU utilisation, running jobs, queued jobs, jobs completed here, messages received |
+| **Gauges** | GPU, CPU and memory in use against this site's capacity |
+| **Local scheduler · FIFO first-fit** | The queue in order (head first) and the running set as chips labelled with GPUs requested; beside them the last dispatch decisions ("started job X: fits 4 GPUs") |
+| **GPUs in use / Queue and running** | Time series sampled once per simulated half hour, from the times in the scheduler's requests |
+| **Grid carbon at this site** | Carbon now, the forecast for this slot, the next 6 hours, CO2 so far and the scheduler's policy. The service does not know carbon, so the page reads it from the scheduler; if that is unreachable it says "Scheduler not reachable" and the rest keeps working |
+| **Messages from the scheduler** | The last 200 requests, newest first: time, operation (enqueue blue, remove amber, dispatch green, complete grey), job and details |
+
+The scheduler's **Overview** (Services card) and **Architecture** page link to each datacentre's page when the datacentre runs as a service.
+
 ## Where the data comes from (for the curious)
 
 | Endpoint | Used by |
