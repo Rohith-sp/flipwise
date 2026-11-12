@@ -120,6 +120,7 @@ Move to b only if
 - **54 % fewer full re-scores and 60 % fewer moves** than `fixed_savings`.
 - Clearly less carbon than `fcfs` (no carbon awareness).
 - Not distinguishable from `place_once` on carbon; its advantage is the work saved, not lower emissions.
+- With cited power (D58), test kgCO₂ per replicate is 3,853 (measured) to 11,862 (nameplate); the conclusions are the same at both ends (`docs/power_bracket/`).
 
 ## 9. Where it is in the code
 

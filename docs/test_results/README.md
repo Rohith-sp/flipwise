@@ -2,7 +2,7 @@
 
 The one test-set run the PRD allows (§14.5, D50), made on 11–12 Nov 2026 with commit `6cf8b8a` and a clean working tree: `flipwise compare --config configs/base.yaml --split test --policies all --jobs 5`. Frozen thresholds from `configs/policies.yaml`, job sampling 0.1, 4 trace weeks (days 46, 53, 60, 67) × 4 carbon Mondays = 16 replicates, 7 policies, 112 runs, all completed. The full logs (`results/compare_51565ad2804f`) are not committed.
 
-**This run is spent.** Do not re-run the test split to try a different setting; that would be tuning on test data (PRD §14.3). kgCO2 is relative until B3 is resolved.
+**This run is spent.** Do not re-run the test split to try a different setting; that would be tuning on test data (PRD §14.3). kgCO₂ in these tables uses the placeholder power (relative units). The same runs under the cited D58 power bracket, with identical decisions, are in `docs/power_bracket/` (F25): decision_flip 3,853 kg (measured) to 11,862 kg (nameplate) per replicate.
 
 Files have the same meaning as in `docs/validation/README.md`: `summary.csv`, `paired.csv` (each policy against `place_once`, 95 % bootstrap CI), `pairwise.csv` (`decision_flip` against every other policy), `diagnostics.csv`, `decision_counts.csv`, `carbon_coverage.csv`, `runs.csv` (run ids and SHA-256 of outputs), `dashboard.html` and `figures/`. The θ-sweep tab of the dashboard is empty: no sweeps were run on the test set.
 

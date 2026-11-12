@@ -45,6 +45,11 @@ LATENCY_WINDOW = 50
 KEEPALIVE_S = 15.0
 WEB_DIR = Path(__file__).resolve().parent / "web"
 RESULTS_CSV = Path("docs/test_results/summary.csv")
+# kgCO2 under the D58 power bracket for the same test runs (D59, F25); optional.
+BRACKET_CSVS = {
+    "kg_co2_measured": Path("docs/power_bracket/test_measured_summary.csv"),
+    "kg_co2_nameplate": Path("docs/power_bracket/test_nameplate_summary.csv"),
+}
 
 
 def _ist(t_s: int) -> str:
@@ -639,6 +644,9 @@ def results_summary(path: Path | None = None) -> tuple[int, dict]:
     cols = [c for c in ("kg_co2", "miss_rate", "stage2_calls", "moves") if c in df.columns]
     agg = df.groupby("policy")[cols].mean()
     agg["replicates"] = df.groupby("policy").size()
+    for key, bracket_path in BRACKET_CSVS.items():
+        if path is None and bracket_path.is_file():
+            agg[key] = pd.read_csv(bracket_path).groupby("policy")["kg_co2"].mean()
     return 200, {"source": str(csv_path), "aggregate": "mean over replicates",
                  "policies": {p: {k: _round(v, 6) for k, v in row.items()}
                               for p, row in agg.iterrows()}}  # fmt: skip

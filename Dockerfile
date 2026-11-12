@@ -22,6 +22,7 @@ COPY configs ./configs
 COPY tests/fixtures/toy ./tests/fixtures/toy
 # The live dashboard's Test results page reads this (PRD §13.6).
 COPY docs/test_results/summary.csv ./docs/test_results/summary.csv
+COPY docs/power_bracket/test_measured_summary.csv docs/power_bracket/test_nameplate_summary.csv ./docs/power_bracket/
 
 # The image has no .git, so the manifest takes the commit from here (experiment._git_commit).
 ARG GIT_COMMIT=unknown

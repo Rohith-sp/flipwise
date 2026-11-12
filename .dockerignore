@@ -8,4 +8,6 @@
 !configs/
 !tests/fixtures/toy/
 !docs/test_results/summary.csv
+!docs/power_bracket/test_measured_summary.csv
+!docs/power_bracket/test_nameplate_summary.csv
 **/__pycache__

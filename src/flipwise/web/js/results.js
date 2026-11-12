@@ -7,14 +7,14 @@ export const title = ["Test results", "The one-shot test run, shown as a referen
 
 export function mount(view) {
   root = view;
-  view.innerHTML = `<p class="small fw-muted" id="note">kgCO2 from the 12 Nov test run; relative units. Mean over the test replicates.</p>
+  view.innerHTML = `<p class="small fw-muted" id="note">Test set (16 replicates), run once on 12 Nov. kgCO2 as a cited range: measured power (lower) to datasheet power (upper). Mean per replicate.</p>
   <section class="fw-card"><div class="tw" id="tbl"><p class="fw-muted">Loading</p></div></section>
   <div class="fw-grid g11 fw-section" id="bars"></div>`;
   api.getResults().then((d) => { data = d; err = null; update(); }).catch((e) => { err = e.message; update(); });
 }
 export function unmount() { root = null; }
 
-const METRICS = [["kg_co2", "kgCO2 (relative units)", "kg"], ["miss_rate", "Deadline miss rate", ""], ["stage2_calls", "Full re-scorings per replicate", ""], ["moves", "Moves per replicate", ""]];
+const METRICS = [["kg_co2_measured", "kgCO2, measured (lower)", "kg"], ["kg_co2_nameplate", "kgCO2, nameplate (upper)", "kg"], ["miss_rate", "Deadline miss rate", ""], ["stage2_calls", "Full re-scorings per replicate", ""], ["moves", "Moves per replicate", ""]];
 
 export function update() {
   if (!root) return;
@@ -22,9 +22,9 @@ export function update() {
   if (!data) return;
   const pols = Object.entries(data.policies);
   const reps = pols.length ? pols[0][1].replicates : 0;
-  root.querySelector("#note").textContent = `kgCO2 from the 12 Nov test run; relative units. Mean over ${reps} test replicates.`;
+  root.querySelector("#note").textContent = `Test set (${reps} replicates), run once on 12 Nov. kgCO2 as a cited range: measured power (lower) to datasheet power (upper). Mean per replicate.`;
   root.querySelector("#tbl").innerHTML = `<table class="fw-t"><thead><tr><th>Policy</th>${METRICS.map((m) => `<th>${m[1]}</th>`).join("")}</tr></thead><tbody>` +
-    pols.map(([p, r]) => `<tr class="${p === "decision_flip" ? "hl" : ""}"><td><i class="pdot" style="background:${colourOf(p)}"></i>${esc(p)}</td>${METRICS.map((m) => `<td>${r[m[0]] == null ? "--" : m[0] === "miss_rate" ? (r[m[0]] * 100).toFixed(2) + "%" : m[0] === "kg_co2" ? num(r[m[0]], 1) : int(r[m[0]])}</td>`).join("")}</tr>`).join("") + "</tbody></table>";
+    pols.map(([p, r]) => `<tr class="${p === "decision_flip" ? "hl" : ""}"><td><i class="pdot" style="background:${colourOf(p)}"></i>${esc(p)}</td>${METRICS.map((m) => `<td>${r[m[0]] == null ? "--" : m[0] === "miss_rate" ? (r[m[0]] * 100).toFixed(2) + "%" : m[0].startsWith("kg_co2") ? num(r[m[0]], 1) : int(r[m[0]])}</td>`).join("")}</tr>`).join("") + "</tbody></table>";
   const host = root.querySelector("#bars");
   if (!host.children.length) host.innerHTML = METRICS.map((m, i) => `<section class="fw-card"><h2>${m[1]}</h2><div class="ch-sm" style="height:230px" id="rb${i}" role="img" aria-label="${m[1]} per policy"></div></section>`).join("");
   METRICS.forEach((m, i) => chart(`rb${i}`, root.querySelector(`#rb${i}`)).setOption({

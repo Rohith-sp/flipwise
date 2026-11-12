@@ -211,6 +211,12 @@ DT2 followed the same shape as DT1: one image, started four times. The image is 
 
 With deployment working, the team ran the test set once, as agreed (D50): 16 replicates, 7 policies, 112 runs, on a clean commit. The result was less flattering than validation. `decision_flip` stayed clearly below `fcfs` and kept its lower re-planning cost against `fixed_savings` and `periodic`, but its lead over `place_once` shrank from 146 kg to 55 kg and stopped being distinguishable from zero. The claim agreed in D51, about the same carbon at much lower re-planning cost, still stands; a claim of lower emissions than the simple baselines does not (F21).
 
+## 13e. Real power, and a live dashboard (12 Nov, PRD v0.9.1 to v0.9.3)
+
+Blocker B3 had kept every kgCO₂ figure relative. Alibaba's own sensor table turned out to record how hard each job used its GPUs, and it showed something striking: the median job kept only 3.5 % of the GPUs it asked for busy. With NVIDIA datasheet power per GPU type, kgCO₂ became a cited range: measured use at the bottom, full datasheet power at the top (D58). One surprise on the way: giving the scheduler per-type power changed one `periodic` run, because some policies accept gains above a fixed tiny amount; the scheduler now keeps its original scale and only the evaluator uses the new power (F24). Validation and test were then re-measured in both modes, with all 392 runs keeping identical decisions (D59, F25). The conclusion held at both ends of the range.
+
+For the review, a live mode followed (D60): several policies on one clock in real time, a time skip, jobs a viewer can submit and follow, and a light dashboard with a head-to-head page that shows how many checks the cheap screen avoids. Phase 3 machine learning was planned for the inputs, not the rules (D61).
+
 ## 14. Tools used along the way
 
 | Tool | Used for |
@@ -238,11 +244,12 @@ With deployment working, the team ran the test set once, as agreed (D50): 16 rep
 - The test set, run once (F21).
 
 **Next:**
-1. Build phase 8, the rest: sensitivity sweeps and ablations (the test set is done, F21).
+1. Build phase 8, the rest: sensitivity sweeps and ablations (the test set is done, F21; its kgCO₂ is re-measured with cited power, F25).
+2a. Rehearse the live demo (`docs/USAGE.md` §8a).
 2. Finish DT2: one Windows run (the Docker build and the clean-clone run are done).
 3. DT3 AWS after the test results.
 
 **Still open:**
 - **B1:** the mentor confirms the scope, now including the v0.8 changes to the screen and θ.
 - **B2:** NESO redistribution terms.
-- **B3:** GPU and CPU power values (until resolved, kgCO2 is reported as relative).
+- **B3:** mostly resolved (D58): kgCO₂ is a cited range; CPU power per core and idle GPU draw remain assumptions.

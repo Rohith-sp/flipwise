@@ -335,13 +335,14 @@ Both give byte-identical `jobs.csv`, `decisions.csv` and `events.log` to the in-
 
 | | Validation (12 replicates) | Test (16 replicates, the claim) |
 |---|---|---|
-| `decision_flip` against `place_once` | −146 kg, clearly lower | −55 kg, **not distinguishable** (CI −128 to +12) |
+| `decision_flip` against `place_once` | −146 kg, clearly lower | −55 kg, **not distinguishable** (CI −128 to +12); with cited power −20 to −40 kg, still not distinguishable |
 | against `fixed_savings`, `periodic`, `pred_error` | Not distinguishable | Not distinguishable |
 | against `fcfs` | −161 kg, clearly lower | −427 kg, clearly lower |
 | Full re-scorings against `fixed_savings` | 58 % fewer | 54 % fewer |
 | Moves against `fixed_savings` | 61 % fewer | 60 % fewer |
 | P1 (θ = 0 equals `fixed_savings`) | Holds on all 12 | Not re-checked on test |
 | Oracle `pig` against `place_once` | About −1.8 % | About −1.6 % |
+| decision_flip kgCO₂ per replicate, cited power (F25) | 3,285 (measured) to 10,437 (nameplate) | 3,853 (measured) to 11,862 (nameplate) |
 
 What this means:
 
@@ -350,6 +351,8 @@ What this means:
 - **There is little carbon to win.** Even perfect foresight beats `place_once` by under 2 %, so no trigger rule can win much on this data.
 - **Deadlines.** About 4.1 % of jobs miss against 2.1 % under `fcfs`. Carbon-aware placement causes it, not re-planning: `place_once` is at about 4 % too. About 93 % of misses are jobs that ran longer than their 90th-percentile estimate.
 - **The noise margin is often off.** θ was switched off on 23 to 28 % of comparisons because the interval was too wide.
+
+The first two rows' kg values used the placeholder power (relative units); re-measured with cited power (D58, D59) every decision stayed identical and the conclusions hold at both ends of the range (`docs/power_bracket/`).
 
 The claim the team agreed (D51) is: *about the same carbon as the other re-planners, at much lower re-planning cost*.
 
