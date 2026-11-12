@@ -234,7 +234,7 @@ Optional, only after the main results exist: X1 (Global–Local DRO planner) and
 
 ## 8. References
 
-- **Docs:** [Step-by-step walkthrough](docs/WALKTHROUGH.md) · [Usage guide](docs/USAGE.md) · [PRD](docs/prd.md) · [Plain-language explanation](docs/explanation.md) · [Links](docs/helpfullinks.md)
+- **Docs:** [Decision-flip explained](docs/DECISION_FLIP.md) · [Step-by-step walkthrough](docs/WALKTHROUGH.md) · [Usage guide](docs/USAGE.md) · [PRD](docs/prd.md) · [Plain-language explanation](docs/explanation.md) · [Links](docs/helpfullinks.md)
 
 Key references (full list in PRD §19):
 
