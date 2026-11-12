@@ -172,6 +172,30 @@ def _cmd_run(args: argparse.Namespace) -> int:
     return 0
 
 
+def _cmd_live(args: argparse.Namespace) -> int:
+    from flipwise.dcservice import HttpDatacentre
+    from flipwise.errors import ConfigError
+    from flipwise.live import LiveSession, scenario_factory, serve
+
+    cfg = _experiment_config(args)
+    factory = scenario_factory(cfg if args.scenario is None else None, args.scenario, args.seed)
+    remote = None
+    if args.mode == "remote":
+        n = len(factory().dcs)
+        urls = [u for u in (args.dc_urls or "").split(",") if u] or [
+            f"http://127.0.0.1:{8101 + i}" for i in range(n)
+        ]
+        if len(urls) != n:
+            raise ConfigError(f"--dc-urls gives {len(urls)} URLs; the scenario has {n} datacentres")
+        remote = [HttpDatacentre(u) for u in urls]
+        for i, c in enumerate(remote):
+            if c.health()["dc_id"] != i:
+                raise ConfigError(f"{c.url} serves another datacentre, not dc {i}")
+    session = LiveSession(factory, cfg, _policy_list(args.policies), args.speed, remote)
+    serve(session, args.host, args.port)
+    return 0
+
+
 def _cmd_compare(args: argparse.Namespace) -> int:
     from flipwise.experiment import compare
 
@@ -301,6 +325,25 @@ def build_parser() -> argparse.ArgumentParser:
     r.add_argument("--dc-urls", default=None, metavar="URL1,URL2,URL3",
                    help="in dc_id order; default 127.0.0.1:8101, 8102, …")  # fmt: skip
     r.set_defaults(func=_cmd_run)
+
+    lv = sub.add_parser("live", help="demo: paced simulation, several policies, JSON API (§13.6)")
+    _experiment_args(lv)
+    lv.add_argument(
+        "--policies",
+        default="decision_flip,fixed_savings,periodic,pred_error,place_once",
+        help="comma-separated, or all; the first may use --mode remote",
+    )
+    lv.add_argument(
+        "--speed",
+        type=float,
+        default=1800.0,
+        help="simulated seconds per real second (1800: half an hour per second)",
+    )
+    lv.add_argument("--mode", choices=["inproc", "remote"], default="inproc")
+    lv.add_argument("--dc-urls", default=None, metavar="URL1,URL2,URL3")
+    lv.add_argument("--host", default="127.0.0.1")
+    lv.add_argument("--port", type=int, default=8100)
+    lv.set_defaults(func=_cmd_live)
 
     cp = sub.add_parser("compare", help="all policies on identical replicates")
     _experiment_args(cp)
