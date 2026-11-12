@@ -5,7 +5,7 @@
 | Field | Value |
 |---|---|
 | Document status | Implementation-ready draft. Supersedes v0.8.7 (5 Nov 2026), v0.8.6 (5 Nov 2026), v0.8.5 (4 Nov 2026), v0.8.4 (4 Nov 2026), v0.8.3 (4 Nov 2026), v0.8.2 (4 Nov 2026), v0.8.1 (4 Nov 2026), v0.8 (2 Nov 2026), v0.7 (29 Oct 2026), v0.6, v0.5.1 and v0.5 (29 Oct 2026), v0.4 (28 Oct 2026), v0.3 (24 Oct 2026), v0.2 (24 Oct 2026) and v0.1 (23 Oct 2026). Changes are listed in the changelog below. |
-| Version | 0.9 |
+| Version | 0.9.1 |
 | Revised | 5 November 2026 |
 | Project name | **Flipwise** (Python package and CLI `flipwise`) [Decision]: it re-evaluates decision flips wisely. Renamed from FlipSim on 25 Oct 2026. Availability of the name on GitHub and PyPI is [Open], not yet checked. |
 | Project context | RV College of Engineering, Experiential Learning, V Semester, AY 2026–27; SDG 9 |
@@ -17,6 +17,7 @@
 
 | Version | Date | Changes |
 |---|---|---|
+| 0.9.1 | 12 Nov 2026 | Power model resolves most of B3 (7.2, D58, F22): GPU power per type from NVIDIA datasheets, measured GPU and CPU use per job from Alibaba's `pai_sensor_table`, and emissions reported as a bracket between `nameplate` (upper) and `measured` (lower). The scheduler keeps nameplate power, so decisions are unchanged. New `flipwise ingest usage` and `data/processed/job_usage.csv`. CPU power per core stays an assumption. |
 | 0.9 | 12 Nov 2026 | Test set run once (D57, F21; 14.5): 16 replicates × 7 policies at sampling 0.1, commit `6cf8b8a`, results in `docs/test_results/`. The validation advantage of `decision_flip` over `place_once` did not repeat (−55 kg, CI −128 to +12), and it is not distinguishable on emissions from the other re-planners. Its cost advantage held against `fixed_savings` and `periodic` (54 % fewer full re-scorings, 60–63 % fewer moves) but not on re-scorings against `pred_error`. The claim (D51) is unchanged and is stated with these limits. |
 | 0.8.9 | 11 Nov 2026 | Deployment step DT2 built (13.4, 13.5, 18, D56, F19, F20): `Dockerfile`, `.dockerignore` (allow-list), `docker-compose.yml` and `scripts/docker_check.sh`. R-DEP-1 (every policy on the toy), R-DEP-2 (dev replicate) and R-DEP-3 (a killed datacentre container) hold in Compose. The manifest takes the commit from `FLIPWISE_GIT_COMMIT` when there is no `.git`. Phase 2 scope item 5 no longer mentions the scripted driver (D53). |
 | 0.8.8 | 10 Nov 2026 | Team decisions after the freeze (14.5; D49–D52): `INTERVAL_TOO_WIDE` above its 10 % flag is accepted at `w_max` = 2 and reported with the results; the test set runs once at sampling 0.1; the claim is stated as about the same carbon at much lower re-planning cost; deployment comes before the test run. DT2 (Docker) is now required for EL Phase 2, not a stretch goal (18.1). Deployment step 7 built: `flipwise run --mode remote --dc-urls …` (13.4); the scripted driver (step 5) is dropped because the simulator now exists (18, D53). Deployment step 6 built: `scripts/local_cluster.sh` and its PowerShell twin `local_cluster.ps1`, with `dc-serve --crash-at-request N` as fault injection for R-DEP-3 (13.4, 18, D54, F16). F16 fixed (F17). Overhead block in `manifest.json` built (13.5 rule 5, R-DEP-5, D55); first numbers in F18. |
@@ -360,12 +361,18 @@ Units: kW × h = kWh; kWh × gCO2/kWh = gCO2; ÷ 1000 = kgCO2. The scheduler's e
 
 | Parameter | MVP default | Status |
 |---|---|---|
-| `p_gpu_kw` | must be set in `configs/energy.yaml` with a citation before any real-trace emission number is reported | [Partly confirmed, v0.3] Nameplate (datasheet) power: V100 SXM2 300 W (V100M32 assumed the same, not checked separately), P100 PCIe 250 W (PAI form factor unverified), T4 70 W, all from NVIDIA datasheets. MISC GPUs (K40m, K80, M60; 2,240 of 6,742) [Open]: one assumed value, included in the sweep. Proposed form `p_gpu_kw = TDP_type × f`, with utilisation factor `f` swept over {0.4, 0.7, 1.0}. Default `f` is [Open]: 1.0 (conservative upper bound) or about 0.4 (sanity check from Dodge et al., FAccT 2022). Toy tests use 1.0. |
-| `p_cpu_kw` | as above, per core | [Open] The trace gives CPU counts but no CPU model, so this needs one stated SPECpower-style reference. Toy tests use 0.01. |
+| `gpu_kw_by_type` | V100 0.30, V100M32 0.30, P100 0.25, T4 0.07, MISC 0.15 kW per GPU | [Decision, v0.9.1, D58] Datasheet board power from NVIDIA: V100 SXM2 300 W, P100 250 W, T4 70 W. MISC (K40m, K80, M60; the trace does not say which) takes 150 W: NVIDIA's K80 board spec caps each of its two GPUs at 150 W, and the M60 is a two-GPU 300 W board; the K40m (about 235 W) is not separated, so MISC may be underestimated. V100M32 is assumed equal to V100. |
+| `p_cpu_kw` | 0.01 kW per core | [Assumption, v0.9.1] The trace gives core counts but no CPU model, so no datasheet applies. 10 W per core is in the range of server TDP divided by cores (Green Algorithms method, Lannelongue et al. 2021). Stated as an assumption and covered by the 0.5 / 1.5 multipliers. |
+| `power.mode` | `measured` (base) and `nameplate` | [Decision, v0.9.1, D58] Two evaluator power models that bracket real draw (below) |
 | `pue` | 1.0 | [Decision] IT-only. X5 adds per-site values. |
 | Low/base/high multipliers | 0.5 / 1.0 / 1.5 on both powers | [Synthetic] sensitivity |
 
-[Decision, v0.8] Until B3 is resolved, the Phase 2 review uses placeholders `p_gpu_kw = 0.3` and `p_cpu_kw = 0.01`, and every kgCO2 figure is labelled relative (percent change against `place_once` or `fcfs`). By 7.3 this does not change rankings. The fleet is mostly P100 (about 250 W) and T4 (70 W) machines, so 0.3 kW is on the high side; that matters only for the GPU-versus-CPU share in fleet totals.
+[Decision, v0.9.1, D58] **Power model: a cited bracket.** Emissions are reported under two evaluator models, so every kgCO2 figure comes as a range rather than a guess:
+
+- **`nameplate` (upper bound):** each requested GPU draws its datasheet power, `P_j = gpu_req × gpu_kw(type) + cpu_req × p_cpu_kw`. Real GPUs rarely draw full board power, so this over-counts.
+- **`measured` (lower bound for GPUs):** each job's measured use from `pai_sensor_table` (Alibaba's per-instance averages, summed over the job's instances): `P_j = gpu_req × gpu_kw(type) × u_j + cpu_used_j × p_cpu_kw`, with `u_j = min(1, gpu_used_j / gpu_req)`. It ignores idle draw of an allocated GPU, which no datasheet gives, so it under-counts. Jobs with no sensor rows (about 21 %) take the mean `u` and CPU-used ratio of their GPU type.
+
+The scheduler always scores with the `nameplate` power: it may know a job's request and GPU type, but not how hard the job will use them (information boundary, 8.7). Power multiplies every candidate of a job equally, so decisions do not depend on the power model (7.3, R-EN-3); only reported kgCO2 changes. `power_label` in the results is the mode. Until v0.9.1 the placeholders `p_gpu_kw = 0.3` and `p_cpu_kw = 0.01` were used for every GPU, labelled relative.
 
 ### 7.3 Why the power parameters matter less than they appear
 
@@ -968,6 +975,7 @@ Truth (`T`) reaches the simulator's evaluator and `pig`'s `OracleView` only.
 | Command | Purpose |
 |---|---|
 | `flipwise ingest alibaba --raw data/raw/v2020 --out data/processed` | Verify checksums, build `jobs_v2020.csv`, write manifest and ingest report |
+| `flipwise ingest usage --raw data/raw/v2020 --out data/processed` | Sum `pai_sensor_table` per job into `job_usage.csv` (`job_id, gpu_used, cpu_used`, in GPUs and cores), write `data/manifests/job_usage.json` (v0.9.1, D58) |
 | `flipwise ingest india --raw data/raw/india --cea data/raw/cea --start 2023-03-13 --end 2024-02-08 --out data/processed` | Build `india_generation.csv` and the Indian truth `carbon_truth.csv` (6.2.2) |
 | `flipwise ingest carbon --archive <path-to-clone> --start 2023-03-13 --end 2024-02-08 --gb-regions 13,7,9 --out data/processed` | Reconstruct GB vintages and write `gb_error_paths.csv` and `capture_coverage.csv` (6.2.3) |
 | `uv run python scripts/download_india.py` | Fetch Grid-India daily PSP reports (13 Mar 2023 – 8 Feb 2024) and the Grid-India SCADA workbooks; SHA-256 per file in `data/manifests/india_raw.json` |
@@ -1275,7 +1283,7 @@ Blockers (resolve before the stated phase):
 | B1 | Confirm with mentor that decision-flip is the core contribution and DRO is extension X1 | Phase 1 | Mentor meeting; record in report |
 | B2 | Archive suitability: coverage of the three GB source regions for Mar 2023 – Feb 2024, behaviour of `summary_csv`-sourced early captures, and NESO terms for redistributing derived error paths | Phase 2 | `ingest carbon` coverage report; read NESO API/data-portal terms. **Coverage answered (v0.5.1, archive commit `5d38b63`):** forward captures median 44/day; none on 2023-03-20, 2023-03-31 – 04-02, 2023-10-21 or from 2024-02-04; `A_gb` gaps > 2 slots on 2023-04-01/02, 2023-10-20/22 and 2023-12-31 23:30 – 2024-01-01 00:30, identical in all three source regions (`data/manifests/carbon_archive.json`). **Still open:** NESO terms |
 | B4 | **Resolved v0.7.** Indian regional generation by fuel for 13 Mar 2023 – 8 Feb 2024: constructed from Grid-India daily PSP reports and Grid-India SCADA (6.2.2); CEA factors from v19.0 | — | Revisit if Electricity Maps academic access or a CEA v20.0 file becomes available |
-| B3 | Power parameters with citations. Partly resolved (v0.3): V100 300 W, P100 250 W, T4 70 W from NVIDIA datasheets. Still open: MISC GPU value, CPU per-core value, default utilisation factor `f` (Section 7.2) | Before any absolute emission figure from the real trace (Phase 8). Until then, label all kgCO2 as relative. | One SPECpower-style CPU reference and one MISC GPU value; record in `energy.yaml` |
+| B3 | Power parameters with citations. [Mostly resolved, v0.9.1, D58] GPU power per type from NVIDIA datasheets, and measured utilisation from `pai_sensor_table`, give a cited bracket (`nameplate` upper, `measured` lower). Still open: CPU power per core (assumed 10 W; the trace names no CPU model), the K40m share of MISC, idle GPU draw, PUE | Report kgCO2 as the bracket; no longer labelled relative | A CPU model for the PAI machines, or one SPECpower reference |
 
 Configurable or non-blocking:
 

@@ -2,7 +2,7 @@
 
 Current state of the work, for a teammate or a new Claude Code session. Keep it short and overwrite it as things change; history belongs in `decisions.md` and `project_journey.md`.
 
-**Last updated:** 11 Nov 2026 · **PRD version: 0.9**
+**Last updated:** 11 Nov 2026 · **PRD version: 0.9.1**
 
 **First-time setup (optional, for the graph):** `uv tool install graphifyy`, then `uv tool run --from graphifyy python scripts/build_graph.py`. Open `graphify-out/graph.html` in a browser to explore. The output is generated and not committed. The project's Claude Code hooks call `graphify`, so install it if you use Claude Code here.
 

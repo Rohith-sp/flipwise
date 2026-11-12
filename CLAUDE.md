@@ -4,7 +4,7 @@ Flipwise: an offline, deterministic discrete-event simulator that tests **when**
 
 ## Source of truth
 
-- `docs/prd.md` (v0.9) is authoritative: formulas, data rules, requirement IDs (R-*), decisions (D*), open items (B*/O*). If code and PRD disagree, flag it; don't silently pick one.
+- `docs/prd.md` (v0.9.1) is authoritative: formulas, data rules, requirement IDs (R-*), decisions (D*), open items (B*/O*). If code and PRD disagree, flag it; don't silently pick one.
 - `docs/WALKTHROUGH.md` is the step-by-step explanation (with the toy traced minute by minute) and `docs/USAGE.md` the command guide; `docs/explanation.md` is the longer plain-language version; `docs/project_journey.md` records how and why the project got to its current state (update it after major decisions). `README.md` is the short overview and roadmap.
 - A design change means editing the PRD (and its changelog) and `docs/decisions.md` in the same change.
 - `docs/HANDOFF.md` is the current state and next steps: read it first in a new session, and update it before ending one. `docs/decisions.md` lists every decision and finding by phase, with why; check it before reopening a settled choice.
