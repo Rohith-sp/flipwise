@@ -93,7 +93,7 @@ def test_live_http_smoke():
         assert dcs[0]["requests"] > 0
         assert _call(base, "/history?since=0")[0] == 200
         code, ctype, body = _call(base, "/")
-        assert code == 200 and ctype.startswith("text/html") and b"stage 2" in body
+        assert code == 200 and ctype.startswith("text/html") and b"Flipwise live" in body
         for bad in (
             "/../../etc/passwd",
             "/static/../../../etc/passwd",

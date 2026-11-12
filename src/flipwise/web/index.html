@@ -1,6 +1,61 @@
 <!doctype html>
 <html lang="en">
-<head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Flipwise live</title></head>
-<body><p>Flipwise live dashboard: coming in stage 2. The JSON API is at <a href="/status">/status</a>.</p></body>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Flipwise live</title>
+<link rel="stylesheet" href="/static/vendor/tabler.min.css">
+<link rel="stylesheet" href="/static/css/app.css">
+</head>
+<body>
+<div class="fw-app">
+  <aside class="fw-side" aria-label="Main navigation">
+    <div class="fw-logo">
+      <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#1D4ED8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 7h11l-3-3"/><path d="M20 17H9l3 3"/></svg>
+      <div><div class="fw-logo-name">Flipwise</div><div class="fw-logo-sub">Carbon-aware scheduler</div></div>
+    </div>
+    <nav>
+      <div class="fw-nav-h">Monitor</div>
+      <a class="fw-nav" href="#/overview" data-route="overview">Overview</a>
+      <a class="fw-nav" href="#/scheduler" data-route="scheduler">Scheduler</a>
+      <a class="fw-nav" href="#/datacentres" data-route="datacentres">Datacentres</a>
+      <a class="fw-nav" href="#/compare" data-route="compare">Policy comparison</a>
+      <a class="fw-nav" href="#/jobs" data-route="jobs">Job tracker</a>
+      <div class="fw-nav-h">Evidence</div>
+      <a class="fw-nav" href="#/scale" data-route="scale">Scale projection</a>
+      <a class="fw-nav" href="#/results" data-route="results">Test results</a>
+      <a class="fw-nav" href="#/architecture" data-route="architecture">Architecture</a>
+    </nav>
+    <div class="fw-scenario"><div class="fw-nav-h">Scenario</div>
+      <div id="scenario-text" class="fw-muted small">Connecting...</div></div>
+  </aside>
+  <div class="fw-main">
+    <header class="fw-head">
+      <div class="fw-title"><h1 id="page-title">Overview</h1><p id="page-sub" class="fw-muted"></p></div>
+      <div class="fw-controls">
+        <span class="fw-clock" id="clock" title="Simulated time (IST)">--</span>
+        <button type="button" class="btn btn-sm" id="btn-play" aria-label="Pause simulation">
+          <svg id="ico-pause" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M8 5v14M16 5v14"/></svg>
+          <svg id="ico-play" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" hidden><path d="M7 4l12 8-12 8z"/></svg>
+          <span id="play-label">Pause</span></button>
+        <div class="fw-seg" role="group" aria-label="Simulation speed" id="speed-seg"></div>
+        <div class="fw-seg" role="group" aria-label="Skip ahead" id="skip-seg">
+          <button type="button" data-skip="1">+1 h</button>
+          <button type="button" data-skip="6">+6 h</button>
+          <button type="button" data-skip="24">+1 day</button>
+        </div>
+        <span id="skip-busy" class="fw-busy" hidden><span class="spinner-border spinner-border-sm" aria-hidden="true"></span> Skipping...</span>
+        <a class="btn btn-primary btn-sm" href="#/jobs" id="btn-submit">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg> Submit job</a>
+        <span class="fw-pill" id="conn" role="status"><span class="fw-dot"></span><span id="conn-text">Connecting</span></span>
+      </div>
+    </header>
+    <main id="view" class="fw-view" tabindex="-1"></main>
+  </div>
+</div>
+<div id="toasts" class="fw-toasts" aria-live="polite"></div>
+<script src="/static/vendor/tabler.min.js"></script>
+<script src="/static/vendor/echarts.min.js"></script>
+<script type="module" src="/static/js/app.js"></script>
+</body>
 </html>
