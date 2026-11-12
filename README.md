@@ -10,6 +10,68 @@ RV College of Engineering · Experiential Learning, V Semester, AY 2026–27 · 
 
 ---
 
+## System architecture (EL Phase 2)
+
+```mermaid
+flowchart TB
+  subgraph SRC["Raw data (data/raw, not committed)"]
+    direction LR
+    A1["Alibaba GPU trace v2020<br/>jobs · tasks · sensor table"]
+    A2["Grid-India generation by fuel<br/>× CEA emission factors"]
+    A3["NESO forecast archive<br/>real GB forecast errors"]
+  end
+
+  subgraph ING["1 · Data pipeline: flipwise ingest · build-forecasts · validate"]
+    direction LR
+    I1["jobs_v2020.csv<br/>job_usage.csv"]
+    I2["carbon_truth.csv<br/>A(r,k) = Σ G·EF / Σ G"]
+    I3["carbon_forecast.csv<br/>F = max(0, A + α·s_r·E)"]
+    I4["Frozen estimates<br/>runtime q05…q95 per user<br/>forecast error e05/e95 per lead time"]
+  end
+
+  S1["2 · Scenario (one replicate)<br/>7-day job slice, 10 % sample · deadline = arrival + 4 h + 2·q90<br/>3 datacentres sized for ρ = 0.7 · 15 days of carbon"]
+
+  subgraph CO["Coordinator: the scheduler (owns the simulated clock)"]
+    direction LR
+    C1["3 · Event simulator<br/>arrival · release · finish ·<br/>carbon update every 30 min"]
+    C2["5 · Policy<br/>decision_flip + 6 baselines<br/>sees only SchedulerView"]
+    C3["6 · Decision-flip<br/>screen LB → full re-score →<br/>move iff gain ≥ g_min + θ·w_ab"]
+    C4["4 · Planner<br/>≤147 options · queue wait ·<br/>score Ŝ · deadline check"]
+    C1 --> C2 --> C3 --> C4
+  end
+
+  subgraph DC["9 · Datacentre services: in-process, local processes or Docker containers"]
+    direction LR
+    D1["dc-delhi<br/>Northern grid"]
+    D2["dc-mumbai<br/>Western grid"]
+    D3["dc-chennai<br/>Southern grid"]
+  end
+
+  subgraph EV["7–8 · Evaluation"]
+    direction LR
+    E1["Evaluator<br/>true carbon × real runtime<br/>kgCO₂: measured … nameplate"]
+    E2["Run outputs<br/>jobs.csv · decisions.csv<br/>events.log · metrics · manifest"]
+    E3["compare · sweep · report<br/>paired bootstrap CIs"]
+    E4["docs/validation · test_results<br/>power_bracket"]
+    E1 --> E2 --> E3 --> E4
+  end
+
+  subgraph LV["10 · Live demo: flipwise live"]
+    direction LR
+    L1["Paced clock · several policies<br/>time skip · submitted jobs"]
+    L2["JSON API + SSE<br/>/status /jobs /activity /stream"]
+    L3["Dashboard :8100<br/>Overview · Head-to-head · Job tracker"]
+    L1 --> L2 --> L3
+  end
+
+  SRC --> ING --> S1 --> CO
+  CO <-->|"HTTP JSON: /enqueue /remove /dispatch /complete /state"| DC
+  CO --> EV
+  CO -.->|"same scheduler, paced in real time"| LV
+```
+
+How to read it: raw data becomes clean files and frozen estimates (1); a scenario packs one week of jobs, three datacentres and carbon (2); the coordinator replays events (3) and, at each new forecast, lets the policy decide (5–6) using the planner (4) through the `SchedulerView` information boundary; the three datacentres can run in-process, as local services or as Docker containers, with byte-identical results (9); the evaluator charges real runtimes against true carbon (7) and the experiment runner produces the statistics (8); the live mode paces the same machinery for the dashboard (10). Numbers match the stages in [docs/WALKTHROUGH.md](docs/WALKTHROUGH.md); a slide-sized version is [docs/figures/architecture_ppt.png](docs/figures/architecture_ppt.png).
+
 ## 1. Problem and contribution
 
 A scheduler picks a datacentre and start time for each job using carbon-intensity forecasts. Those forecasts are revised every 30 minutes, so a job's placement can stop being the best one before the job starts. If you never re-plan, you miss savings. If you re-plan on a timer or at every update, you spend planner time, and jobs bounce around on forecast noise.

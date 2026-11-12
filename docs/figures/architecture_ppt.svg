@@ -1,0 +1,101 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="900" viewBox="0 0 1600 900" font-family="Inter, Segoe UI, Arial, sans-serif">
+  <title>Flipwise system architecture (EL Phase 2)</title>
+  <defs>
+    <marker id="arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
+      <path d="M0 0 L10 5 L0 10 z" fill="#64748B"/>
+    </marker>
+    <marker id="arrB" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
+      <path d="M0 0 L10 5 L0 10 z" fill="#1D4ED8"/>
+    </marker>
+  </defs>
+  <rect width="1600" height="900" fill="#FFFFFF"/>
+
+  <text x="60" y="70" font-size="34" font-weight="700" fill="#111827">Flipwise: system architecture</text>
+  <text x="60" y="104" font-size="18" fill="#4B5563">Carbon-aware scheduling across three Indian datacentres · re-evaluate a waiting job only when it can pay off</text>
+
+  <!-- 1 Data -->
+  <rect x="60" y="160" width="300" height="300" rx="16" fill="#F8FAFC" stroke="#CBD5E1" stroke-width="2"/>
+  <text x="84" y="198" font-size="20" font-weight="700" fill="#111827">1 · Data</text>
+  <text x="84" y="236" font-size="16" fill="#1F2937">Alibaba GPU trace v2020</text>
+  <text x="84" y="258" font-size="14" fill="#4B5563">jobs, runtimes, measured GPU use</text>
+  <text x="84" y="296" font-size="16" fill="#1F2937">Indian grid truth</text>
+  <text x="84" y="318" font-size="14" fill="#4B5563">Grid-India generation × CEA factors</text>
+  <text x="84" y="356" font-size="16" fill="#1F2937">Forecasts</text>
+  <text x="84" y="378" font-size="14" fill="#4B5563">real NESO forecast errors</text>
+  <text x="84" y="416" font-size="16" fill="#1F2937">Frozen estimates</text>
+  <text x="84" y="438" font-size="14" fill="#4B5563">runtime q05–q95 · error e05–e95</text>
+
+  <!-- 2 Scenario -->
+  <rect x="420" y="220" width="240" height="180" rx="16" fill="#F8FAFC" stroke="#CBD5E1" stroke-width="2"/>
+  <text x="444" y="258" font-size="20" font-weight="700" fill="#111827">2 · Scenario</text>
+  <text x="444" y="294" font-size="15" fill="#1F2937">one week of jobs</text>
+  <text x="444" y="320" font-size="15" fill="#1F2937">deadlines at arrival</text>
+  <text x="444" y="346" font-size="15" fill="#1F2937">3 datacentres, ρ = 0.7</text>
+  <text x="444" y="372" font-size="15" fill="#1F2937">15 days of carbon</text>
+  <line x1="360" y1="310" x2="414" y2="310" stroke="#64748B" stroke-width="3" marker-end="url(#arr)"/>
+
+  <!-- Scheduler -->
+  <rect x="720" y="150" width="400" height="340" rx="18" fill="#EFF4FF" stroke="#1D4ED8" stroke-width="3"/>
+  <text x="746" y="190" font-size="22" font-weight="700" fill="#1E3A8A">Scheduler (coordinator)</text>
+  <text x="746" y="216" font-size="14" fill="#1E3A8A">owns the simulated clock</text>
+  <rect x="746" y="234" width="348" height="58" rx="10" fill="#FFFFFF" stroke="#93C5FD"/>
+  <text x="764" y="260" font-size="16" font-weight="600" fill="#111827">Event simulator</text>
+  <text x="764" y="281" font-size="13" fill="#4B5563">arrival · release · finish · forecast every 30 min</text>
+  <rect x="746" y="302" width="348" height="106" rx="10" fill="#1D4ED8"/>
+  <text x="764" y="330" font-size="17" font-weight="700" fill="#FFFFFF">Decision-flip</text>
+  <text x="764" y="354" font-size="14" fill="#FFFFFF">1. cheap screen: can a move pay off?</text>
+  <text x="764" y="374" font-size="14" fill="#FFFFFF">2. full re-score only if yes</text>
+  <text x="764" y="396" font-size="14" fill="#FFFFFF">3. move iff saving ≥ 5 % + noise margin</text>
+  <rect x="746" y="416" width="348" height="54" rx="10" fill="#FFFFFF" stroke="#93C5FD"/>
+  <text x="764" y="440" font-size="16" font-weight="600" fill="#111827">Planner</text>
+  <text x="764" y="460" font-size="13" fill="#4B5563">≤147 options · queue wait · CO₂ score · deadline</text>
+  <line x1="660" y1="310" x2="714" y2="310" stroke="#64748B" stroke-width="3" marker-end="url(#arr)"/>
+
+  <!-- Datacentres -->
+  <rect x="1180" y="150" width="360" height="330" rx="18" fill="#F8FAFC" stroke="#CBD5E1" stroke-width="2"/>
+  <text x="1204" y="190" font-size="20" font-weight="700" fill="#111827">Datacentre services</text>
+  <text x="1204" y="214" font-size="14" fill="#4B5563">local processes or Docker containers</text>
+  <rect x="1204" y="232" width="312" height="66" rx="10" fill="#FFFFFF" stroke="#1E3A8A" stroke-width="2"/>
+  <text x="1222" y="262" font-size="17" font-weight="600" fill="#1E3A8A">Delhi NCR</text>
+  <text x="1222" y="284" font-size="13" fill="#4B5563">Northern grid · queue · running jobs</text>
+  <rect x="1204" y="310" width="312" height="66" rx="10" fill="#FFFFFF" stroke="#C2410C" stroke-width="2"/>
+  <text x="1222" y="340" font-size="17" font-weight="600" fill="#9A3412">Mumbai</text>
+  <text x="1222" y="362" font-size="13" fill="#4B5563">Western grid · queue · running jobs</text>
+  <rect x="1204" y="388" width="312" height="66" rx="10" fill="#FFFFFF" stroke="#0F766E" stroke-width="2"/>
+  <text x="1222" y="418" font-size="17" font-weight="600" fill="#115E59">Chennai</text>
+  <text x="1222" y="440" font-size="13" fill="#4B5563">Southern grid · queue · running jobs</text>
+  <line x1="1124" y1="300" x2="1174" y2="300" stroke="#1D4ED8" stroke-width="3" marker-start="url(#arrB)" marker-end="url(#arrB)"/>
+  <text x="1150" y="288" font-size="13" font-weight="600" fill="#1D4ED8" text-anchor="middle">HTTP</text>
+  <text x="1150" y="328" font-size="12" fill="#1D4ED8" text-anchor="middle">JSON</text>
+
+  <!-- Evaluation -->
+  <rect x="720" y="560" width="400" height="200" rx="16" fill="#F8FAFC" stroke="#CBD5E1" stroke-width="2"/>
+  <text x="746" y="598" font-size="20" font-weight="700" fill="#111827">Evaluation</text>
+  <text x="746" y="632" font-size="15" fill="#1F2937">true carbon × real runtime</text>
+  <text x="746" y="658" font-size="15" fill="#1F2937">kgCO₂ range: measured … datasheet</text>
+  <text x="746" y="684" font-size="15" fill="#1F2937">7 policies on the same weeks</text>
+  <text x="746" y="710" font-size="15" fill="#1F2937">bootstrap 95 % confidence intervals</text>
+  <text x="746" y="736" font-size="15" fill="#1F2937">validation 12 weeks · test 16 weeks (once)</text>
+  <line x1="920" y1="490" x2="920" y2="554" stroke="#64748B" stroke-width="3" marker-end="url(#arr)"/>
+
+  <!-- Live dashboard -->
+  <rect x="1180" y="560" width="360" height="200" rx="16" fill="#ECFDF3" stroke="#15803D" stroke-width="2"/>
+  <text x="1204" y="598" font-size="20" font-weight="700" fill="#14532D">Live dashboard</text>
+  <text x="1204" y="632" font-size="15" fill="#1F2937">policies side by side, real time</text>
+  <text x="1204" y="658" font-size="15" fill="#1F2937">time skip · submit a job</text>
+  <text x="1204" y="684" font-size="15" fill="#1F2937">head-to-head: checks skipped</text>
+  <text x="1204" y="710" font-size="15" fill="#1F2937">by the screen vs re-scored</text>
+  <text x="1204" y="736" font-size="15" fill="#1F2937">localhost:8100</text>
+  <line x1="1080" y1="490" x2="1176" y2="580" stroke="#15803D" stroke-width="3" marker-end="url(#arr)"/>
+
+  <!-- Result strip -->
+  <rect x="60" y="560" width="600" height="200" rx="16" fill="#FFFBEB" stroke="#F59E0B" stroke-width="2"/>
+  <text x="84" y="598" font-size="20" font-weight="700" fill="#78350F">Result (test set, run once)</text>
+  <text x="84" y="640" font-size="30" font-weight="700" fill="#111827">54 % fewer re-scores</text>
+  <text x="84" y="680" font-size="30" font-weight="700" fill="#111827">60 % fewer job moves</text>
+  <text x="84" y="716" font-size="16" fill="#374151">same carbon as re-checking everything (vs fixed_savings);</text>
+  <text x="84" y="740" font-size="16" fill="#374151">at θ = 0 provably the same decisions with 62 % fewer checks</text>
+  <line x1="714" y1="660" x2="666" y2="660" stroke="#64748B" stroke-width="3" marker-end="url(#arr)"/>
+
+  <text x="60" y="840" font-size="14" fill="#6B7280">Deterministic: same inputs give byte-identical outputs in-process, as local services and in Docker. Running jobs are never moved.</text>
+</svg>
