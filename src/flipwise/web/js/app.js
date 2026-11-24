@@ -16,6 +16,7 @@ const SPEEDS = [[60, "1 min/s"], [300, "5 min/s"], [1800, "30 min/s"], [7200, "2
 const state = { status: null, clock: null, health: null, dcs: [null, null, null], history: {}, lastT: null, connected: false, events: {}, replicate: null };
 let page = null, skipping = false, polling = false;
 const $ = (id) => document.getElementById(id);
+window.__fwState = state; // one shared object: pages read it from their own event handlers
 
 export function toast(html) {
   const t = document.createElement("div");
@@ -56,7 +57,7 @@ function render() { if (page && page.update) page.update(state); }
 function header() {
   const c = state.clock;
   if (c) {
-    $("clock").textContent = String(c.sim_time).replace(" IST", " IST");
+    $("clock").textContent = c.sim_time;
     const paused = c.paused;
     $("ico-pause").hidden = paused; $("ico-play").hidden = !paused;
     $("play-label").textContent = paused ? "Play" : "Pause";
@@ -95,14 +96,20 @@ function wireHeader() {
 
 // ---- polling ----------------------------------------------------------------------------------
 const completed = new Set();
+let watching = false;
 async function watchCompletions() {
-  for (const id of (state.status && state.status.user_jobs) || []) {
-    if (completed.has(id)) continue;
-    try {
-      const j = await api.getJob(id), v = j.by_policy.decision_flip;
-      if (v && v.state === "COMPLETED") { completed.add(id); toast(`${esc(id)} completed${v.kg_co2 != null ? `: ${v.kg_co2.toFixed(3)} kg CO2` : ""}${v.datacentre ? ` in ${esc(shortRegion(v.datacentre))}` : ""}`); }
-    } catch (e) { /* retried next poll */ }
-  }
+  if (watching) return; // a slow round must not overlap the next poll's, or a toast shows twice
+  watching = true;
+  try {
+    const st = state.status, main = st && (st.policies.includes("decision_flip") ? "decision_flip" : st.policies[0]);
+    for (const id of (st && st.user_jobs) || []) {
+      if (completed.has(id)) continue;
+      try {
+        const j = await api.getJob(id), v = j.by_policy[main];
+        if (v && v.state === "COMPLETED") { completed.add(id); toast(`${esc(id)} completed${v.kg_co2 != null ? `: ${v.kg_co2.toFixed(3)} kg CO2` : ""}${v.datacentre ? ` in ${esc(shortRegion(v.datacentre))}` : ""}`); }
+      } catch (e) { /* retried next poll */ }
+    }
+  } finally { watching = false; }
 }
 
 async function poll(force) {
@@ -110,7 +117,7 @@ async function poll(force) {
   polling = true;
   try {
     const wantDcs = location.hash.startsWith("#/overview") || location.hash === "";
-    const [st, clk] = await Promise.all([api.getStatus(), api.getClock()]);
+    const st = await api.getStatus(), clk = st.clock; // /status already carries the clock
     state.status = st; state.clock = clk; state.connected = true;
     const jobs_ = [api.getHistory(state.lastT).then((h) => {
       for (const [p, rows] of Object.entries(h.policies)) {
@@ -121,7 +128,7 @@ async function poll(force) {
     if (wantDcs) st.carbon.forEach((_, i) => jobs_.push(api.getDc(i).then((d) => (state.dcs[i] = d))));
     await Promise.all(jobs_);
     const rep = clk.replicate ? clk.replicate.index : null;
-    if (state.replicate !== null && rep !== state.replicate) { state.history = {}; state.lastT = null; state.events = {}; if (rep !== null) toast(`Replicate ${rep} of ${clk.replicate.total} started: ${esc(clk.replicate.name)}`); }
+    if (state.replicate !== null && rep !== state.replicate) { state.history = {}; state.lastT = null; state.events = {}; seen.clear(); if (rep !== null) toast(`Replicate ${rep} of ${clk.replicate.total} started: ${esc(clk.replicate.name)}`); }
     state.replicate = rep;
     seedEvents(st);
     header(); render(); watchCompletions(); loadPage();

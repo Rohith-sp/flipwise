@@ -30,7 +30,6 @@ export function unmount() { root = null; }
 
 export function update(s) {
   if (!root || !s || !s.status) return;
-  window.__fwState = s;
   const cmp = s.status.compare, names = Object.keys(FLIP_REF).filter((p) => p !== "decision_flip");
   const sb = root.querySelector("#sb");
   if (!sb.options.length) sb.innerHTML = names.map((p) => `<option value="${p}">${p}</option>`).join("");

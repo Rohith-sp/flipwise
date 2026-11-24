@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import copy
 import dataclasses
+import functools
 import heapq
 import math
 from dataclasses import dataclass, field
@@ -71,8 +72,9 @@ class JobInfo:
     plan_score: float | None
     on_fallback: bool = False
 
-    @property
+    @functools.cached_property
     def request(self) -> Request:
+        # Cached: every candidate of the job asks for it. Fields are frozen, so it cannot go stale.
         return Request(self.gpu_req, self.cpu_req, self.mem_req_gb)
 
     def r_q(self, q: str) -> int:
@@ -90,6 +92,7 @@ class SchedulerView:
         self._profiles: dict[tuple[int, str], tuple[tuple[int, int], UsageProfile]] = {}
         self._excluding: dict[tuple, UsageProfile] = {}
         self._tables: dict[tuple[int, int], CarbonTable] = {}
+        self._requests: dict[str, Request] = {}
 
     @property
     def now_s(self) -> int:
@@ -128,52 +131,67 @@ class SchedulerView:
 
     def profile(self, dc_id: int, q: str, exclude: str | None = None) -> UsageProfile:
         stamp = (self._sim.dc_version[dc_id], self.now_s)
-        if exclude is None:
+        saved = self._profiles.get((dc_id, q))
+        if saved is not None and saved[0] == stamp:
+            prof = saved[1]
+        else:
             # Kept apart from the per-job profiles: every candidate of every job at another
             # datacentre shares this one, so it must survive their churn.
-            saved = self._profiles.get((dc_id, q))
-            if saved is not None and saved[0] == stamp:
-                return saved[1]
-            prof = self._build_profile(dc_id, q, None)
+            prof = self._build_profile(dc_id, q)
             self._profiles[(dc_id, q)] = (stamp, prof)
+        if exclude is None:
             return prof
         key = (dc_id, q, exclude, *stamp)
-        prof = self._excluding.get(key)
-        if prof is None:
-            prof = self._build_profile(dc_id, q, exclude)
+        excluding = self._excluding.get(key)
+        if excluding is None:
+            excluding = prof.without(exclude)
             if len(self._excluding) > 64:
                 self._excluding.clear()
-            self._excluding[key] = prof
-        return prof
+            self._excluding[key] = excluding
+        return excluding
 
-    def _build_profile(self, dc_id: int, q: str, exclude: str | None) -> UsageProfile:
+    def _build_profile(self, dc_id: int, q: str) -> UsageProfile:
         # Reads simulator jobs directly: this runs for every job in every profile, and only the
-        # runtime estimate reaches the result, through `_runtime_q`.
+        # runtime estimate reaches the result, through `_runtime_field`.
         st = self.dc_state(dc_id)
         t = self.now_s
         jobs = self._sim.jobs
+        field_name = self._runtime_field(q)
+        request = self._request
         running = [
-            (Request(r.gpu_req, r.cpu_req, r.mem_req_gb), r.start_s, self._runtime_q(r.job_id, q))
+            (Request(r.gpu_req, r.cpu_req, r.mem_req_gb), r.start_s,
+             getattr(jobs[r.job_id], field_name))
             for r in st.running
+        ]  # fmt: skip
+        pending = [
+            ProfileJob(jid, request(jobs[jid]), t, getattr(jobs[jid], field_name))
+            for jid in st.queue
         ]
-        pending: list[ProfileJob] = []
-        for jid in st.queue:
-            if jid != exclude:
-                pending.append(ProfileJob(jid, jobs[jid].request, t, self._runtime_q(jid, q)))
         placed = sorted(
-            (jobs[j] for j in self._sim.placed_at[dc_id] if j != exclude),
+            (jobs[j] for j in self._sim.placed_at[dc_id]),
             key=lambda j: (j.release_slot, j.deadline_s, j.job_id),
         )
-        for j in placed:
-            pending.append(
-                ProfileJob(
-                    j.job_id, j.request, max(t, j.release_slot), self._runtime_q(j.job_id, q)
-                )
+        pending.extend(
+            ProfileJob(
+                j.job_id,
+                request(j),
+                t if t > j.release_slot else j.release_slot,
+                getattr(j, field_name),
             )
+            for j in placed
+        )
         return build_profile(st.cap, t, running, pending)
 
-    def _runtime_q(self, job_id: str, q: str) -> int:
-        return self._sim.jobs[job_id].r_q(q)
+    def _request(self, job: Job) -> Request:
+        """`job.request`, made once per job: profiles ask for it millions of times a run."""
+        req = self._requests.get(job.job_id)
+        if req is None:
+            req = self._requests[job.job_id] = job.request
+        return req
+
+    def _runtime_field(self, q: str) -> str:
+        """The `Job` field that profiles take runtime `q` from: the estimate, never the actual."""
+        return QUANTILE_FIELD[q]
 
     def projected_start(self, dc_id: int, job: JobInfo, release_s: int, q: str) -> int | None:
         # Only a job already at this datacentre is in its profile, so every other job can share
@@ -203,8 +221,8 @@ class OracleView(SchedulerView):
     def forecast(self) -> ForecastVintage:
         return self._truth
 
-    def _runtime_q(self, job_id: str, q: str) -> int:
-        return self._sim.jobs[job_id].runtime_actual_s
+    def _runtime_field(self, q: str) -> str:
+        return "runtime_actual_s"
 
     def job(self, job_id: str) -> JobInfo:
         r = self._sim.jobs[job_id].runtime_actual_s

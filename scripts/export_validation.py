@@ -24,9 +24,8 @@ import yaml
 
 from flipwise import figures
 from flipwise.dashboard import build_dashboard
-from flipwise.reporting import BOOTSTRAP_RESAMPLES, BOOTSTRAP_SEED
+from flipwise.reporting import BOOTSTRAP_SEED, MISS_ALLOWANCE, bootstrap_ci
 
-MISS_ALLOWANCE = 0.01  # PRD §14.5: 1 percentage point
 BASE = "place_once"
 PROPOSED = "decision_flip"
 METRICS = [
@@ -51,13 +50,6 @@ EXAMINED = {"SCREEN_FAIL", "NO_ALTERNATIVE", "KEEP", "MOVE"}
 COMPARED = {"KEEP", "MOVE"}
 
 
-def paired_ci(diff: np.ndarray, rng: np.random.Generator) -> tuple[float, float]:
-    """Percentile bootstrap over replicates, as in `paired.csv` (PRD §14.7)."""
-    picks = rng.integers(0, len(diff), size=(BOOTSTRAP_RESAMPLES, len(diff)))
-    boot = diff[picks].mean(axis=1)
-    return float(np.percentile(boot, 2.5)), float(np.percentile(boot, 97.5))
-
-
 def diff_rows(a: pd.DataFrame, b: pd.DataFrame, rng: np.random.Generator, **labels) -> list[dict]:
     """Difference `a − b` on each metric, paired by replicate."""
     rows = []
@@ -66,7 +58,7 @@ def diff_rows(a: pd.DataFrame, b: pd.DataFrame, rng: np.random.Generator, **labe
         if pair.empty:
             continue
         diff = (pair["a"] - pair["b"]).to_numpy(dtype=float)
-        lo, hi = paired_ci(diff, rng)
+        lo, hi = bootstrap_ci(diff, rng)
         rows.append(
             {
                 **labels,
@@ -145,7 +137,7 @@ def sweep_tables(
                 **rows[METRICS].mean().to_dict(),
             }
             gap = (rows["kg_co2"] - reference["kg_co2"]).to_numpy(dtype=float)
-            lo, hi = paired_ci(gap, rng)
+            lo, hi = bootstrap_ci(gap, rng)
             mean.update(kg_co2_vs_frozen=gap.mean(), ci95_lo=lo, ci95_hi=hi)
             means.append(mean)
     first = ["sweep", "cell", "policy", "replicate"]
@@ -347,7 +339,7 @@ def export(cmp_dir: Path, sweeps: list[Path], out: Path, policies_yaml: Path) ->
     out.mkdir(parents=True, exist_ok=True)
     fig_dir = out / "figures"
     fig_dir.mkdir(exist_ok=True)
-    frozen = yaml.safe_load(policies_yaml.read_text())
+    frozen = yaml.safe_load(policies_yaml.read_text(encoding="utf-8"))
     summary = pd.read_csv(cmp_dir / "summary.csv")
     for name in ("summary.csv", "paired.csv", "carbon_coverage.csv"):
         shutil.copyfile(cmp_dir / name, out / name)

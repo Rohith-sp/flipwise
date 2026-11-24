@@ -10,7 +10,6 @@ async function req(path, opts) {
 }
 const post = (path, body) => req(path, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
 export const getStatus = () => req("/status");
-export const getClock = () => req("/clock");
 export const getHealth = () => req("/health");
 export const getHistory = (since) => req(since == null ? "/history" : `/history?since=${since}`);
 export const getDc = (id, policy) => req(`/dc/${id}${policy ? `?policy=${encodeURIComponent(policy)}` : ""}`);

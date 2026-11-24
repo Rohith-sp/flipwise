@@ -1,11 +1,13 @@
 // One datacentre's own dashboard. Reads this service's /live; carbon comes from the scheduler.
-import { esc, int, num, chart, REGION_COLOURS, axisTime, tsToMs, gClass } from "./util.js";
+import { esc, int, num, chart, REGION_COLOURS, axisTime, tsToMs, gClass, gpuLabel } from "./util.js";
 
 const $ = (id) => document.getElementById(id);
 const params = new URLSearchParams(location.search);
 const SCHEDULER = (params.get("scheduler") || `${location.protocol}//${location.hostname}:8100`).replace(/\/$/, "");
-const POLL_MS = 1000, SCHED_MS = 3000;
-let lastKey = "", dcId = null, lastSched = 0, sched = null, schedErr = false;
+const POLL_MS = 1000, SCHED_MS = 3000, HIST_KEEP = 2000;
+let lastKey = "", dcId = null, lastSched = 0, sched = null, schedErr = false, schedBusy = false;
+// The service's history, kept here: each poll asks only for samples newer than the last one held.
+let hist = [], histRun = null;
 
 $("dc-back").href = SCHEDULER + "/";
 
@@ -25,7 +27,7 @@ function kpis(d) {
     tile("Messages received", int(c.requests), `${int(c.enqueue)} enqueue, ${int(c.dispatch)} dispatch`);
 }
 
-function gauge(id, frac, colour, sub, text) {
+function gauge(id, frac, colour, text) {
   $(id + "-sub").textContent = text;
   chart(id, $(id)).setOption({
     animation: false,
@@ -40,7 +42,6 @@ function gauge(id, frac, colour, sub, text) {
   });
 }
 
-const gpuLabel = (g) => (g == null ? "?" : g < 1 ? (String(+g.toFixed(2)).replace(/^0/, "") || "0") : String(Math.round(g)));
 const chipHtml = (j, cls, extra) => `<span class="jc ${cls}" title="${esc(j.job_id)} - ${num(j.gpu, 1)} GPU, ${num(j.cpu, 0)} CPU, ${num(j.mem_gb, 0)} GB${extra || ""}">${gpuLabel(j.gpu)}</span>`;
 
 function panel(d) {
@@ -61,7 +62,7 @@ function panel(d) {
 }
 
 function charts(d) {
-  const h = d.history, cap = d.capacity.gpu;
+  const h = hist, cap = d.capacity.gpu;
   chart("ch-gpu", $("ch-gpu")).setOption({
     animation: false, grid: { left: 44, right: 16, top: 30, bottom: 28 }, tooltip: { trigger: "axis" },
     legend: { top: 0, textStyle: { color: "#4B5563" } }, xAxis: axisTime, yAxis: { type: "value", min: 0, max: Math.ceil(cap * 1.05), axisLabel: { color: "#4B5563" } },
@@ -92,11 +93,8 @@ function logRows(d) {
 
 function carbon() {
   const box = $("carbon-body");
-  if (schedErr || !sched) { box.className = "fw-muted"; box.textContent = "Scheduler not reachable"; return; }
-  const st = sched.status, c = (st.carbon || []).find((x) => x.dc_id === dcId);
-  if (!c) { box.textContent = "This site is not in the scheduler's scenario"; return; }
-  const policy = (st.policies || [])[0] || "--";
-  const kg = sched.dc ? sched.dc.kg_co2_so_far : null;
+  if (schedErr || !sched) { box.className = "fw-muted"; box.textContent = sched === false ? "This site is not in the scheduler's scenario" : "Scheduler not reachable"; return; }
+  const c = sched.carbon, policy = sched.policy, kg = sched.kg_co2_so_far;
   const next = (c.forecast_next_6h || []).slice(0, 12);
   const g = c.actual_g_per_kwh;
   box.className = "";
@@ -104,21 +102,23 @@ function carbon() {
     <div class="dbox"><div class="l">Carbon now (actual)</div><div class="v"><span class="chip-g ${gClass(g)}">${num(g, 0)}</span> gCO2/kWh</div><div class="n">${esc(c.region || "")}</div></div>
     <div class="dbox"><div class="l">Forecast for this slot</div><div class="v">${num(c.forecast_g_per_kwh, 0)} gCO2/kWh</div><div class="n">what the scheduler believes</div></div>
     <div class="dbox"><div class="l">CO2 so far at this site</div><div class="v">${num(kg, 2)} kg</div><div class="n">completed jobs</div></div>
-    <div class="dbox"><div class="l">Scheduler policy</div><div class="v">${esc(policy)}</div><div class="n">${esc(st.remote_policy ? "calls this service over HTTP" : "in-process")}</div></div></div>
+    <div class="dbox"><div class="l">Scheduler policy</div><div class="v">${esc(policy)}</div><div class="n">${esc(sched.remote ? "calls this service over HTTP" : "in-process")}</div></div></div>
     <div class="dc-lab">Forecast for the next 6 hours (gCO2/kWh, per half hour)</div>
     <div class="chips">${next.map((v, i) => `<span class="chip-g ${gClass(v)}" title="in ${i * 30} min">${num(v, 0)}</span>`).join("")}</div>`;
 }
 
+// /dc/<id> holds everything this page shows from the scheduler (carbon, policy, CO2 so far), so
+// the much larger /status is not needed. One request at a time.
 async function pollScheduler() {
-  lastSched = Date.now();
+  if (schedBusy) return;
+  schedBusy = true; lastSched = Date.now();
   try {
-    const r = await fetch(SCHEDULER + "/status", { cache: "no-store" });
-    if (!r.ok) throw new Error(String(r.status));
-    const status = await r.json();
-    let dc = null;
-    try { const r2 = await fetch(`${SCHEDULER}/dc/${dcId}`, { cache: "no-store" }); if (r2.ok) dc = await r2.json(); } catch (e) { dc = null; }
-    sched = { status, dc }; schedErr = false;
+    const r = await fetch(`${SCHEDULER}/dc/${dcId}`, { cache: "no-store" });
+    if (r.status === 404) { sched = false; schedErr = false; }
+    else if (!r.ok) throw new Error(String(r.status));
+    else { sched = await r.json(); schedErr = false; }
   } catch (e) { schedErr = true; }
+  finally { schedBusy = false; }
   carbon();
 }
 
@@ -126,7 +126,7 @@ function render(d) {
   dcId = d.dc_id;
   document.title = `${d.name} datacentre - Flipwise`;
   $("dc-name").textContent = `${d.name} datacentre`;
-  $("dc-sub").textContent = `${d.grid} · Datacentre service · port ${d.port}`;
+  $("dc-sub").textContent = `${d.grid} · Datacentre service · port ${location.port || d.port}`;
   $("dc-root").style.setProperty("--accent", REGION_COLOURS[d.dc_id] || "#1D4ED8");
   if (d.state !== "ready" || d.t == null) {
     $("dc-waiting").hidden = false; $("dc-ready").hidden = true;
@@ -144,18 +144,33 @@ function render(d) {
   if (key === lastKey) return;
   lastKey = key;
   kpis(d); panel(d); charts(d); logRows(d);
-  gauge("g-gpu", d.utilisation.gpu, REGION_COLOURS[d.dc_id], "", `${num(d.used.gpu, 0)} of ${num(d.capacity.gpu, 0)} GPUs`);
-  gauge("g-cpu", d.utilisation.cpu, "#4B5563", "", `${int(d.used.cpu)} of ${int(d.capacity.cpu)} CPUs`);
-  gauge("g-mem", d.utilisation.mem_gb, "#7C3AED", "", `${int(d.used.mem_gb)} of ${int(d.capacity.mem_gb)} GB`);
-  if (!sched && !schedErr) pollScheduler();
+  gauge("g-gpu", d.utilisation.gpu, REGION_COLOURS[d.dc_id], `${num(d.used.gpu, 0)} of ${num(d.capacity.gpu, 0)} GPUs`);
+  gauge("g-cpu", d.utilisation.cpu, "#4B5563", `${int(d.used.cpu)} of ${int(d.capacity.cpu)} CPUs`);
+  gauge("g-mem", d.utilisation.mem_gb, "#7C3AED", `${int(d.used.mem_gb)} of ${int(d.capacity.mem_gb)} GB`);
+  if (sched === null && !schedErr) pollScheduler();
+}
+
+async function getLive(query) {
+  const r = await fetch("/live" + query, { cache: "no-store" });
+  if (!r.ok) throw new Error(String(r.status));
+  return r.json();
+}
+
+// Polls ask only for history newer than the last sample held; after a reset (a new run) that
+// answer belongs to the wrong run, so the whole history is fetched again.
+async function fetchLive() {
+  const since = hist.length ? hist[hist.length - 1].t : null;
+  let d = await getLive(since == null ? "" : `?since=${since}`);
+  if (since != null && d.run !== histRun) d = await getLive("");
+  if (since == null || d.run !== histRun) { hist = d.history || []; histRun = d.run; }
+  else if (d.history.length) { hist.push(...d.history); if (hist.length > HIST_KEEP) hist.splice(0, hist.length - HIST_KEEP); }
+  return d;
 }
 
 async function tick() {
   if (document.hidden) return;
   try {
-    const r = await fetch("/live", { cache: "no-store" });
-    if (!r.ok) throw new Error(String(r.status));
-    render(await r.json());
+    render(await fetchLive());
     if (dcId !== null && Date.now() - lastSched > SCHED_MS) pollScheduler();
   } catch (e) {
     pill("bad", "Disconnected");

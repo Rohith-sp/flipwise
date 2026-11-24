@@ -14,7 +14,8 @@ from pathlib import Path
 
 import pandas as pd
 
-MISS_ALLOWANCE = 0.01  # PRD §14.5: 1 percentage point
+from flipwise.reporting import MISS_ALLOWANCE
+
 SHOWN = ["kg_co2", "intensity_g_per_kwh_estimable", "miss_rate", "stage2_calls", "moves"]
 
 

@@ -1,11 +1,11 @@
 // Scheduler: the forecasts it sees, every decision it makes, and how the work splits up.
-import { esc, int, badge, decisionText, chart, timeOnly, istClock, REGION_COLOURS, REGION_SHORT } from "./util.js";
+import { esc, int, badge, decisionText, chart, carbonChart, policySelect, timeOnly, REGION_COLOURS, REGION_SHORT } from "./util.js";
 
-let root = null, policy = "decision_flip", kind = "ALL", shown = "";
+let root = null, policy = "decision_flip", kind = "ALL";
 export const title = ["Scheduler", "What the planner sees, and what it decides at each forecast update"];
 
 export function mount(view) {
-  root = view; shown = "";
+  root = view;
   view.innerHTML = `
   <section class="fw-card"><h2>Carbon forecast by region</h2><p class="sub">Forecast for the next 6 hours (dashed) and actual so far (solid), gCO2/kWh. The scheduler sees only the forecast.</p>
     <div class="rlegend">${REGION_SHORT.map((n, i) => `<span><i class="sw" style="background:${REGION_COLOURS[i]}"></i>${n}</span>`).join("")}</div>
@@ -30,22 +30,7 @@ function feed(s) {
   root.querySelector("#feed").innerHTML = rows.map((d) => `<div class="frow"><span class="t mono">${esc(timeOnly(d.time))}</span>${badge(d.kind)}<span>${esc(decisionText(d))}</span></div>`).join("") || '<p class="fw-muted">No decisions of this kind yet</p>';
 }
 
-function carbon(st, hist) {
-  const h = hist.decision_flip || [], nowS = st.clock.sim_time_s, slot0 = Math.floor(nowS / 1800) * 1800, sers = [];
-  st.carbon.forEach((c, i) => {
-    const col = REGION_COLOURS[i % 3];
-    sers.push({ name: REGION_SHORT[i] + " actual", type: "line", showSymbol: false, connectNulls: true, lineStyle: { color: col, width: 2 }, itemStyle: { color: col },
-      data: h.map((p) => [p.t, p.dcs[i] ? p.dcs[i].actual_g_per_kwh : null]),
-      markLine: i === 0 ? { symbol: "none", silent: true, lineStyle: { color: "#111827", type: "dashed" }, label: { formatter: "now", color: "#111827" }, data: [{ xAxis: nowS }] } : undefined });
-    sers.push({ name: REGION_SHORT[i] + " forecast", type: "line", showSymbol: false, lineStyle: { color: col, width: 2, type: "dashed" }, itemStyle: { color: col },
-      data: (c.forecast_next_6h || []).map((v, k) => [slot0 + k * 1800, v]) });
-  });
-  chart("sc-carbon", root.querySelector("#ch-carbon")).setOption({
-    animation: false, tooltip: { trigger: "axis", valueFormatter: (v) => (v == null ? "--" : Number(v).toFixed(0) + " g/kWh") },
-    grid: { left: 48, right: 16, top: 32, bottom: 28 },
-    xAxis: { type: "value", min: "dataMin", max: "dataMax", axisLabel: { formatter: (v) => istClock(v), color: "#4B5563" } },
-    yAxis: { type: "value", name: "g/kWh", scale: true, axisLabel: { color: "#4B5563" }, splitLine: { lineStyle: { color: "#EEF0F3" } } }, series: sers }, true);
-}
+const carbon = (st, hist) => carbonChart("sc-carbon", root.querySelector("#ch-carbon"), st, hist.decision_flip || [], { left: 48, right: 16, top: 32, bottom: 28 });
 
 function donut(st) {
   const c = st.compare.decision_flip;
@@ -62,9 +47,6 @@ function donut(st) {
 
 export function update(s) {
   if (!root || !s || !s.status) return;
-  window.__fwState = s;
-  const sel = root.querySelector("#f-pol"), names = s.status.policies;
-  if (shown !== names.join(",")) { sel.innerHTML = names.map((p) => `<option value="${esc(p)}">${esc(p)}</option>`).join(""); shown = names.join(","); }
-  sel.value = policy;
+  policy = policySelect(root.querySelector("#f-pol"), s.status.policies, policy);
   carbon(s.status, s.history); donut(s.status); feed(s);
 }

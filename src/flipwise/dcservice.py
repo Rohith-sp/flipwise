@@ -16,12 +16,12 @@ import urllib.request
 from collections import deque
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from typing import ClassVar
-from urllib.parse import urlsplit
+from urllib.parse import parse_qs, urlsplit
 
 from flipwise.datacentre import InProcDatacentre, Started
 from flipwise.errors import DeploymentError, MigrationError, SimulationInvariantError
 from flipwise.models import DcConfig, DcState, Request, RunningInfo
-from flipwise.webstatic import QuietHTTPServer, ist_string, read_static
+from flipwise.webstatic import QuietHTTPServer, ist_string, send_static
 
 PROTOCOL_VERSION = 1
 DEFAULT_TIMEOUT_S = 30.0
@@ -48,9 +48,11 @@ class _Board:
     datacentre has acted and never feeds anything back, so responses are unchanged (R-DEP-1)."""
 
     def __init__(self) -> None:
+        self.run = 0
         self.reset()
 
     def reset(self) -> None:
+        self.run += 1
         self.counters = {"enqueue": 0, "remove": 0, "dispatch": 0, "complete": 0, "started": 0}
         self.log: deque[dict] = deque(maxlen=LOG_KEEP)
         self.starts: deque[dict] = deque(maxlen=STARTS_KEEP)
@@ -218,8 +220,12 @@ class DatacentreService:
         except TypeError as e:
             return 400, {"error": BAD_REQUEST, "message": str(e)}
 
-    def live(self) -> dict:
-        """What the dashboard shows; read-only, and not a simulation request."""
+    def live(self, since_t: int | None = None) -> dict:
+        """What the dashboard shows; read-only, and not a simulation request.
+
+        `since_t` sends only the history samples after that time: a page that already holds the
+        earlier ones fetches a few hundred bytes per poll instead of the whole history. `run`
+        changes on every reset, so a page knows when to drop what it holds."""
         name, grid = DC_SITES.get(self.dc_id, (f"Datacentre {self.dc_id}", ""))
         base = {"dc_id": self.dc_id, "name": name, "grid": grid, "port": self.port}
         with self.lock:
@@ -242,7 +248,9 @@ class DatacentreService:
                             for r in st.running],
                 "counters": {**b.counters, "requests": sum(
                     b.counters[k] for k in ("enqueue", "remove", "dispatch", "complete"))},
-                "starts": list(b.starts), "log": list(b.log), "history": list(b.history),
+                "starts": list(b.starts), "log": list(b.log), "run": b.run,
+                "history": list(b.history) if since_t is None
+                else [h for h in b.history if h["t"] > since_t],
             }  # fmt: skip
 
 
@@ -275,9 +283,17 @@ def make_server(
 
         def _dashboard(self) -> bool:
             """Serve the display-only pages (GET /, /live, /static/...); False if not one."""
-            path = urlsplit(self.path).path
+            url = urlsplit(self.path)
+            path = url.path
             if path == "/live":
-                self._reply(200, service.live(), cors=True)
+                since = parse_qs(url.query).get("since", [None])[0]
+                try:
+                    since_t = None if since is None else int(since)
+                except ValueError:
+                    self._reply(400, {"error": BAD_REQUEST, "message": "since must be an integer"},
+                                cors=True)  # fmt: skip
+                    return True
+                self._reply(200, service.live(since_t), cors=True)
             elif path == "/":
                 self._file("dc.html")
             elif path.startswith("/static/"):
@@ -287,17 +303,8 @@ def make_server(
             return True
 
         def _file(self, rel: str) -> None:
-            found = read_static(rel)
-            if found is None:
+            if not send_static(self, rel, cors=True):
                 self._reply(404, {"error": "NOT_FOUND", "message": self.path}, cors=True)
-                return
-            data, ctype = found
-            self.send_response(200)
-            self.send_header("Content-Type", ctype)
-            self.send_header("Access-Control-Allow-Origin", "*")
-            self.send_header("Content-Length", str(len(data)))
-            self.end_headers()
-            self.wfile.write(data)
 
         def _serve(self, method: str) -> None:
             if method == "GET" and self._dashboard():
@@ -309,11 +316,15 @@ def make_server(
                         print(f"dc {dc_id}: crashing at request {seen['n']} (fault injection)",
                               flush=True)  # fmt: skip
                         os._exit(3)
-            length = int(self.headers.get("Content-Length") or 0)
             try:
+                length = max(0, int(self.headers.get("Content-Length") or 0))
                 body = json.loads(self.rfile.read(length) or b"{}")
             except ValueError as e:
+                self.close_connection = True  # the unread body would be taken as the next request
                 self._reply(400, {"error": BAD_REQUEST, "message": f"not JSON: {e}"})
+                return
+            if not isinstance(body, dict):
+                self._reply(400, {"error": BAD_REQUEST, "message": "body must be a JSON object"})
                 return
             self._reply(*service.handle(method, self.path, body))
 

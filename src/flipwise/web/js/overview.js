@@ -1,4 +1,4 @@
-import { keepLast, esc, num, int, badge, dcLink, decisionText, colourOf, chart, shortRegion, timeOnly, istClock, REGION_COLOURS, REGION_SHORT } from "./util.js";
+import { keepLast, esc, num, int, badge, dcLink, decisionText, colourOf, chart, carbonChart, gClass, shortRegion, timeOnly, REGION_COLOURS, REGION_SHORT } from "./util.js";
 
 const MAIN = "decision_flip", REF = "fixed_savings";
 let root = null;
@@ -31,7 +31,7 @@ export function unmount() { root = null; }
 const pct = (a, b, word) => {
   if (a == null || !b) return "";
   const p = ((a - b) / b) * 100;
-  return `${Math.abs(p).toFixed(0)}% ${p <= 0 ? "less" : "more"} ${word} than ${REF}`;
+  return `${Math.abs(p).toFixed(0)}% ${p <= 0 ? "less" : "more"}${word ? " " + word : ""} than ${REF}`;
 };
 const series = (h, f) => (h || []).map((p) => [p.t, f(p)]);
 const shareOf = (p) => (p.screen_skips + p.full_rescores ? p.screen_skips / (p.screen_skips + p.full_rescores) : 0);
@@ -48,7 +48,7 @@ function kpis(st, hist) {
   if (!m) return;
   const stop = m.screen_skips + m.full_rescores ? m.screen_skips / (m.screen_skips + m.full_rescores) : null;
   const tiles = [
-    { id: "co2", label: "CO2 so far", value: `${num(m.kg_co2_so_far, 2)} kg`, delta: f ? pct(m.kg_co2_so_far, f.kg_co2_so_far, "") .replace("  ", " ") : "", note: "decision_flip, completed jobs", f: (p) => p.kg_co2 },
+    { id: "co2", label: "CO2 so far", value: `${num(m.kg_co2_so_far, 2)} kg`, delta: f ? pct(m.kg_co2_so_far, f.kg_co2_so_far, "") : "", note: "decision_flip, completed jobs", f: (p) => p.kg_co2 },
     { id: "resc", label: "Full re-scores", value: int(m.full_rescores), delta: f ? pct(m.full_rescores, f.full_rescores, "work") : "", note: "expensive checks run", f: (p) => p.full_rescores },
     { id: "mv", label: "Jobs moved", value: int(m.moves), delta: f ? pct(m.moves, f.moves, "churn") : "", note: "plan changes accepted", f: (p) => p.moves },
     { id: "scr", label: "Checks stopped by screen", value: stop == null ? "--" : `${(stop * 100).toFixed(0)}%`, delta: "", note: `${int(m.screen_skips)} of ${int(m.screen_skips + m.full_rescores)} checks`, f: shareOf },
@@ -58,37 +58,21 @@ function kpis(st, hist) {
   if (!host.children.length) host.innerHTML = tiles.map((t) => `<section class="fw-card kpi"><div class="lab">${t.label}</div><div class="val" data-v="${t.id}"></div><div class="delta" data-d="${t.id}"></div><div class="note" data-n="${t.id}"></div><div class="spark" id="sp-${t.id}"></div></section>`).join("");
   for (const t of tiles) {
     host.querySelector(`[data-v="${t.id}"]`).textContent = t.value;
-    host.querySelector(`[data-d="${t.id}"]`).textContent = t.delta;
+    const d = host.querySelector(`[data-d="${t.id}"]`);
+    d.textContent = t.delta;
+    d.classList.toggle("bad", / more /.test(t.delta));
     host.querySelector(`[data-n="${t.id}"]`).textContent = t.note;
     spark(`sp-${t.id}`, host.querySelector(`#sp-${t.id}`), series(h, t.f));
   }
 }
 
-function carbon(st, hist) {
-  const h = hist[MAIN] || [];
-  const nowS = st.clock.sim_time_s, slot0 = Math.floor(nowS / 1800) * 1800;
-  const sers = [];
-  st.carbon.forEach((c, i) => {
-    const col = REGION_COLOURS[i % 3];
-    sers.push({ name: REGION_SHORT[i] + " actual", type: "line", showSymbol: false, lineStyle: { color: col, width: 2 }, itemStyle: { color: col },
-      data: h.map((p) => [p.t, p.dcs[i] ? p.dcs[i].actual_g_per_kwh : null]),
-      markLine: i === 0 ? { symbol: "none", silent: true, lineStyle: { color: "#111827", type: "dashed" }, label: { formatter: "now", color: "#111827" }, data: [{ xAxis: nowS }] } : undefined });
-    sers.push({ name: REGION_SHORT[i] + " forecast", type: "line", showSymbol: false, lineStyle: { color: col, width: 2, type: "dashed" }, itemStyle: { color: col },
-      data: (c.forecast_next_6h || []).map((v, k) => [slot0 + k * 1800, v]) });
-  });
-  chart("carbon", root.querySelector("#ch-carbon")).setOption({
-    animation: false, tooltip: { trigger: "axis", valueFormatter: (v) => (v == null ? "--" : Number(v).toFixed(0) + " g/kWh"), axisPointer: { type: "line" } },
-    grid: { left: 44, right: 16, top: 30, bottom: 28 }, legend: { show: false },
-    xAxis: { type: "value", min: "dataMin", max: "dataMax", axisLabel: { formatter: (v) => istClock(v), color: "#4B5563" } },
-    yAxis: { type: "value", name: "g/kWh", scale: true, axisLabel: { color: "#4B5563" }, splitLine: { lineStyle: { color: "#EEF0F3" } } },
-    series: sers }, true);
-}
+const carbon = (st, hist) => carbonChart("carbon", root.querySelector("#ch-carbon"), st, hist[MAIN] || [], { left: 44, right: 16, top: 30, bottom: 28 });
 
 function services(health, st) {
   const host = root.querySelector("#services");
   const rows = (health ? health.datacentres : []).map((d) => `<div class="svc"><div><b>Datacentre ${d.dc_id} &middot; ${REGION_SHORT[d.dc_id] || ""}</b><div class="small fw-muted">${esc(d.url)}</div>${dcLink(d)}</div>
     <div class="small" style="text-align:right">${int(d.requests)} requests<br>${d.mean_latency_ms == null ? "--" : d.mean_latency_ms.toFixed(2)} ms mean</div></div>`).join("");
-  host.innerHTML = `<div class="svc"><div><b>Scheduler &middot; ${esc(MAIN)}</b><div class="small fw-muted">owns the simulated clock</div></div><div class="small">${esc(st.remote_policy ? "calls services" : "in-process")}</div></div>${rows}`;
+  host.innerHTML = `<div class="svc"><div><b>Scheduler &middot; ${esc(health ? health.policy : st.policies[0])}</b><div class="small fw-muted">owns the simulated clock</div></div><div class="small">${esc(st.remote_policy ? "calls services" : "in-process")}</div></div>${rows}`;
   root.querySelector("#msgs").innerHTML = st.recent_messages.slice().reverse().slice(0, 20).map((m) =>
     `<div>${esc(timeOnly(m.t))} dc${esc(m.dc_id)} ${esc(m.op)} ${esc(m.job_id || m.detail || "")}</div>`).join("") || "<div>No messages yet</div>";
 }
@@ -97,8 +81,7 @@ function dcCards(dcs) {
   const host = root.querySelector("#dcs");
   host.innerHTML = dcs.map((d, i) => {
     if (!d) return `<section class="fw-card"><h2>${REGION_SHORT[i]}</h2><p class="sub">Loading</p></section>`;
-    const g = keepLast("g" + i, d.carbon.actual_g_per_kwh ?? d.carbon.forecast_g_per_kwh);
-    const cls = g == null ? "" : g < 600 ? "cg-green" : g < 800 ? "cg-amber" : "cg-red";
+    const g = keepLast("g" + i, d.carbon.actual_g_per_kwh ?? d.carbon.forecast_g_per_kwh), cls = gClass(g);
     const u = Math.round((d.gpu_utilisation || 0) * 100);
     return `<section class="fw-card"><div style="display:flex;justify-content:space-between;align-items:start"><div><h2 style="color:${REGION_COLOURS[i]}">${esc(shortRegion(d.name))}</h2>
       <p class="sub" style="margin-bottom:8px">${esc(d.name.replace(/.*\((.*)\)/, "$1"))} &middot; dc${d.dc_id}${d.remote ? " &middot; service" : ""}</p></div>

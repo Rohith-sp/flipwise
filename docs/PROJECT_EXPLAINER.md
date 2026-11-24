@@ -31,6 +31,7 @@ The evidence folders are `docs/validation/`, `docs/test_results/` and `docs/powe
 14. [How the project got here](#14-how-the-project-got-here)
 15. [Glossary](#15-glossary)
 16. [References and useful links](#16-references-and-useful-links)
+17. [Phase 2 review feedback and material for the paper](#17-phase-2-review-feedback-and-material-for-the-paper)
 
 ---
 
@@ -835,7 +836,7 @@ Real data lives in `data/processed/` (not in git; get the team's data zip). With
 | `flipwise ingest usage --raw data/raw/v2020 --out data/processed` | `pai_sensor_table` | `job_usage.csv` + manifest |
 | `uv run python scripts/download_india.py` | Grid-India file API, Mendeley | Raw PSP reports and SCADA workbooks; SHA-256 per file in `india_raw.json` |
 | `uv run --extra india-data python scripts/build_india_generation.py` | Those raw files | `data/raw/india/india_generation.csv` |
-| `flipwise ingest india --raw data/raw/india --cea data/raw/cea --start 2023-03-13 --end 2024-02-08 --out data/processed` | Generation + CEA factors | `india_generation.csv`, `carbon_truth.csv` + manifest |
+| `flipwise ingest india --generation data/raw/india/india_generation.csv` | Generation + CEA factors (`configs/`) | `carbon_truth.csv` + manifest |
 | `flipwise ingest carbon --archive <clone> --start 2023-03-13 --end 2024-02-08 --gb-regions 13,7,9 --out data/processed` | NESO archive clone | `gb_error_paths.csv`, `gb_truth.csv`, `capture_coverage.csv` |
 | `flipwise build-forecasts --out data/processed [--alpha 1]` | Truth + error paths | `carbon_forecast.csv` + manifest with `s_r` |
 
@@ -1517,3 +1518,101 @@ From here on, decisions and findings are recorded in `docs/decisions.md` and the
 
 - `docs/prd.md` (specification), `docs/decisions.md` (decisions and findings), `docs/HANDOFF.md` (state and next steps), `data/README.md` (data layout).
 - Evidence: `docs/validation/README.md`, `docs/test_results/README.md`, `docs/power_bracket/README.md`; static dashboards `docs/validation/dashboard.html` and `docs/test_results/dashboard.html`.
+
+## 17. Phase 2 review feedback and material for the paper
+
+Recorded on 24 Nov 2026 (decision D63). This section lists what the guide asked for at the Phase 2 review and the answers we have prepared, so they can go straight into the research paper. Every number below was checked against `docs/test_results/summary.csv`, `docs/validation/sweep_means.csv`, `docs/validation/carbon_coverage.csv` or `docs/power_bracket/`. Items marked **open** have not been run yet; the paper must not claim them.
+
+### 17.1 Feedback received
+
+The guide asked for four things:
+
+1. Justify each formula and document it.
+2. Label the architecture diagram better.
+3. Justify the parameter values (the 5 % gain, at most 3 moves, and so on).
+4. Compare the algorithms with a standard cost measure, such as time complexity and measured run time, not only counts of re-evaluations.
+
+### 17.2 Why each formula has its form
+
+| Formula | Why this form |
+|---|---|
+| `A = Σ G·EF / Σ G` (actual intensity, gCO2/kWh) | Generation-weighted average of emission factors: the standard way to turn a fuel mix into grid intensity. Emission factors come from the CEA CO2 Baseline Database, User Guide v19.0, Table 6 (FY 2022-23): coal 978, lignite 1,286, gas 478 g/kWh. |
+| `Ŝ = (P / 3.6e6) · Σ τ_k · F_k` (score, kgCO2) | Power (kW) × seconds spent in each 30-min slot × that slot's forecast intensity gives kgCO2. The constant only converts units (kW·s to kWh, g to kg). It is a unit conversion, not a modelling choice. |
+| Interval `[L, U]` | Built from real 5th and 95th percentile forecast residuals per lead bucket (0–6, 6–12, 12–24 and 24–48 h), so it targets 90 % coverage. Measured on validation: carbon 91–93 % per bucket (91.2, 92.6, 91.2, 91.3 %, pooled over 12 replicates), runtime 86.8 %, wait 89.8 %. Test carbon coverage: 88.8, 88.7, 88.5 and 86.7 %. |
+| `deadline = arrival + 4 h + 2·q90` | Uses only the frozen runtime estimate `q90`, so the deadline leaks nothing about the actual runtime (PRD §6.5). |
+| Screen: skip if `Ŝa − LB < g_min` | `LB` is a true lower bound on the score of any feasible alternative, so a skipped job could never have passed the gate. P1 proves soundness: at θ = 0, decisions are identical to `fixed_savings` on all 12 of 12 validation replicates (and on the dev week), with 62 % fewer full re-scores (185,188 against 492,783, summed over the 12 validation replicates). |
+| Gate: move if `Ŝa − Ŝb ≥ g_min + θ·w_ab` and `Ŝa − Ŝb > 0` | The saving must beat the threshold plus a margin for forecast noise. `w_ab` is a paired width because runtime uncertainty moves both options together. The earlier unpaired width was "too wide" on 98.7 % of comparisons, which switched θ off (F2, D27). The `> 0` term stops zero-power jobs moving on every update (D38). |
+
+### 17.3 Why each parameter has its value
+
+Validation: 12 replicates, sampling 0.1. Selection rule (PRD §14.5): lowest kgCO2 among settings whose miss rate is at most `place_once` + 1 percentage point; ties go to fewer `stage2_calls`. kgCO2 below is in the frozen relative units of `docs/validation/sweep_means.csv`.
+
+| Parameter | Value | How chosen | Evidence |
+|---|---|---|---|
+| `g_rel` (`decision_flip`) | 5 % | Swept 1, 5, 10, 20 % | kgCO2 14,047 / 14,008 / 14,108 / 14,099; `stage2_calls` 23,257 / 16,933 / 12,351 / 7,792. 5 % gives the lowest carbon. |
+| θ | 0.1 | Swept 0, 0.05, 0.1, 0.25, 0.5 | kgCO2 14,063 / 14,079 / 14,008 / 14,058 / 14,087; moves 3,857 / 2,772 / 2,289 / 1,785 / 1,564. |
+| `w_max` | 2 | Swept 2, 3, 5 (θ = 0.1) | Widening did not lower emissions: 14,008 against 14,040 and 14,079 (D49, F13). |
+| `pred_error` ε | 5 % | Swept 5, 10, 20 % | kgCO2 14,077 / 14,114 / 14,161. Matches CarbonScaler's published 5 % deviation threshold. |
+| `fixed_savings` `g_rel` | 1 % (default 5 %) | Swept 1, 5, 10, 20 % | kgCO2 14,032 / 14,063 / 14,110 / 14,062; 1 % is lowest. |
+| `periodic` T | 30 min | Swept 30 min, 2 h, 6 h | kgCO2 14,057 / 14,067 / 14,089. Matches GREEN's 30-min rescheduling quantum. |
+| `cooldown_s` | 1,800 s | Design default; **open, not swept** (PRD grid 1,800, 7,200) | Equals the forecast update interval, so a job is re-checked at most once per new forecast. P1 holds only at this value. |
+| `max_moves` | 3 | Design default; **open, not swept** (PRD grid 1, 3, 10) | Stops thrashing: each move of a queued job loses its queue place. Applied identically to every re-planner, so it cannot favour `decision_flip`. |
+| `n_min` (runtime quantiles) | 20 jobs per user | Data rule | Below 20 jobs a q90 is unreliable. 756 of 1,307 users qualify, and they own 99.5 % of jobs. |
+| ρ (load) | 0.7 | Design default; **open**, sweep `configs/sweeps/sens_rho.yaml` not run | Default for a moderately loaded cluster. |
+| Slack | 4 h + 2·q90 | Design default; **open**, sweeps `sens_slack_base.yaml` and `sens_k_slack.yaml` not run | Default; sensitivity not yet measured. |
+
+Open items, so the paper does not overclaim: the `max_moves` sweep {1, 3, 10}, the `cooldown_s` sweep {1,800, 7,200}, and the ρ and slack sensitivity sweeps have not been run. Until they are, state these four values as design defaults, not as tuned values.
+
+### 17.4 Cost comparison: time complexity
+
+Notation:
+
+- N: waiting jobs at a forecast update.
+- C ≤ 147: candidates per job (3 sites × 49 start times).
+- S: slots a job's run spans.
+- R = 3: regions.
+- p: screen pass rate (44.3 % on test; the screen skipped about 56 %).
+- q: share of jobs that the `pred_error` trigger fires on.
+
+Updates come every 30 min: 720 updates over 15 days.
+
+| Policy | Cost | When |
+|---|---|---|
+| `fcfs` | O(R) per job | Once, at arrival |
+| `place_once` | O(C·S) per job | Once, at arrival |
+| `periodic`, `fixed_savings` | O(N·C·S) | Every update |
+| `pred_error` | O(N·S) trigger check + q·O(N·C·S) | Every update |
+| `decision_flip` | O(N·R·S) screen (no wait profiles; prefix sums) + p·O(N·C·S) | Every update |
+| `pig` | O(C·S) per job, with true data | Once; oracle reference only |
+
+Honest note: in the worst case (p = 1) every re-planner costs O(N·C·S) per update. `decision_flip` lowers the expected cost by filter-then-verify; it does not lower the worst case.
+
+### 17.5 Cost comparison: measured scheduler CPU time
+
+Test set, mean per replicate over 16 replicates (about 9,026 jobs each), `perf_counter`, one machine. Times depend on the machine, so counts are given next to them. "Total scheduler" is the sum of `scheduler_placement_s`, `scheduler_screen_s`, `scheduler_rescore_s` and `scheduler_rescue_s`. "ms per re-score" is the per-replicate mean of `scheduler_rescore_s / stage2_calls`.
+
+| Policy | Full re-score s | Total scheduler s | ms per re-score | `stage2_calls` | Moves |
+|---|---|---|---|---|---|
+| `fixed_savings` | 106.9 | 159.4 | 2.43 | 43,540 | 5,897 |
+| `periodic` | 99.3 | 153.5 | 2.27 | 43,392 | 6,337 |
+| `decision_flip` | 41.4 | 93.1 | 2.05 | 20,035 | 2,359 |
+| `pred_error` | 37.9 | 88.3 | 2.51 | 14,944 | 4,122 |
+| `place_once` | 0 | 41.1 | – | 0 | 0 |
+| `fcfs` | 0 | 6.1 | – | 0 | 0 |
+| `pig` | 0 | 210.6 | – | 0 | 0 |
+
+Source: `docs/test_results/summary.csv` (columns `scheduler_placement_s`, `scheduler_screen_s`, `scheduler_rescore_s`, `scheduler_rescue_s`, `stage2_calls`, `screened`).
+
+- One screen check costs about 0.27 ms (`decision_flip`: 12.1 s over 45,444 screened jobs per replicate), against about 2.05 ms for a full re-score: about 7.6 times cheaper. The 0.27 ms is an upper bound: `scheduler_screen_s` is non-zero for policies that do not screen, so it also holds other per-update work.
+- `decision_flip` uses 42 % less total scheduler CPU than `fixed_savings` (93.1 s against 159.4 s) and 39 % less than `periodic` (153.5 s).
+- It does so at about the same carbon: 3,853 kg against 3,865 kg (`fixed_savings`) and 3,871 kg (`periodic`), measured-power lower bracket (`docs/power_bracket/`, F25).
+- `pred_error` uses slightly less CPU than `decision_flip` (88.3 s) but makes 75 % more moves (4,122 against 2,359).
+
+Suggested sentence for the paper: "Worst-case complexity is O(N·C·S) per update for every re-planner; decision-flip lowers expected cost with an O(N·R·S) screen that is about 7.6 times cheaper per job than a full re-score, which measured CPU time confirms (93 s vs 159 s for fixed-savings, −42 %)."
+
+### 17.6 Architecture diagram: labelling to-do
+
+- Number the blocks to match the slide order.
+- Label each arrow with the data it carries, for example "F(r,k,v) every 30 min", "SchedulerView", "MOVE/KEEP".
+- Draw a dashed box for the information boundary: policies never see the actual runtime or the carbon truth.
+- Add a legend for three kinds of block: data source, shared component, policy-specific part.

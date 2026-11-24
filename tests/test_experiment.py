@@ -99,6 +99,8 @@ def test_report_refuses_missing_logs(toy_compare, tmp_path):
     empty_root.mkdir()
     with pytest.raises(ReportError, match="logs are missing"):
         build_report(cmp_dir, empty_root)
+    with pytest.raises(ReportError, match="runs.json"):
+        build_report(empty_root)
 
 
 def test_existing_runs_are_reused(tmp_path):
@@ -142,6 +144,25 @@ def test_a_mistyped_policy_fails_before_anything_runs(tmp_path):
     with pytest.raises(ConfigError):
         compare({"policies": {}}, ["fcfs", "nope"], out=tmp_path, scenario_dir=TOY_DIR)
     assert not list(tmp_path.iterdir())
+
+
+def test_an_empty_policy_list_fails_before_anything_runs(tmp_path):
+    with pytest.raises(ConfigError):
+        compare({"policies": {}}, [], out=tmp_path, scenario_dir=TOY_DIR)
+    with pytest.raises(ConfigError, match="--policies"):
+        main(["compare", "--scenario", str(TOY_DIR), "--out", str(tmp_path), "--policies", ","])
+    assert not list(tmp_path.iterdir())
+
+
+def test_compare_reuses_saved_replicate_tables(tmp_path):
+    """The carbon tables are written once per replicate and reused by later comparisons."""
+    first = compare({"policies": {}}, ["fcfs"], out=tmp_path, scenario_dir=TOY_DIR)
+    (folder,) = tmp_path.glob("replicate_*")
+    stamp = {p.name: p.stat().st_mtime_ns for p in folder.iterdir()}
+    second = compare({"policies": {}}, ["fcfs", "pig"], out=tmp_path, scenario_dir=TOY_DIR)
+    assert {p.name: p.stat().st_mtime_ns for p in folder.iterdir()} == stamp
+    for name in ("carbon_coverage.csv", "carbon_timeline.csv"):
+        assert (first / name).read_bytes() == (second / name).read_bytes()
 
 
 def test_replicates_follow_prd_14_2():

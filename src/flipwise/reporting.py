@@ -106,6 +106,7 @@ BOOTSTRAP_RESAMPLES = 10_000
 BOOTSTRAP_SEED = 20261104
 COMPLETION_SPREAD = 0.005  # PRD §14.1: policies must complete within 0.5 pp of each other
 PAIRED_BASE = "place_once"
+MISS_ALLOWANCE = 0.01  # PRD §14.5: a setting may miss at most 1 pp more deadlines than place_once
 PAIRED_METRICS = (
     "kg_co2",
     "kg_co2_estimable",
@@ -145,6 +146,13 @@ def _add_deltas(summary: pd.DataFrame) -> pd.DataFrame:
     return out
 
 
+def bootstrap_ci(diff: np.ndarray, rng: np.random.Generator) -> tuple[float, float]:
+    """95 % percentile bootstrap of the mean of paired differences, over replicates (§14.7)."""
+    picks = rng.integers(0, len(diff), size=(BOOTSTRAP_RESAMPLES, len(diff)))
+    boot = diff[picks].mean(axis=1)
+    return float(np.percentile(boot, 2.5)), float(np.percentile(boot, 97.5))
+
+
 def _paired(summary: pd.DataFrame) -> pd.DataFrame:
     """Mean difference from `place_once` with a percentile bootstrap over replicates (§14.7)."""
     rows = []
@@ -162,8 +170,7 @@ def _paired(summary: pd.DataFrame) -> pd.DataFrame:
             if pair.empty:
                 continue
             diff = (pair["a"] - pair["b"]).to_numpy(dtype=float)
-            picks = rng.integers(0, len(diff), size=(BOOTSTRAP_RESAMPLES, len(diff)))
-            boot = diff[picks].mean(axis=1)
+            lo, hi = bootstrap_ci(diff, rng)
             rows.append(
                 {
                     "policy": policy,
@@ -172,8 +179,8 @@ def _paired(summary: pd.DataFrame) -> pd.DataFrame:
                     "mean": pair["a"].mean(),
                     "mean_base": pair["b"].mean(),
                     "mean_diff": diff.mean(),
-                    "ci95_lo": np.percentile(boot, 2.5),
-                    "ci95_hi": np.percentile(boot, 97.5),
+                    "ci95_lo": lo,
+                    "ci95_hi": hi,
                 }
             )
     return pd.DataFrame(rows)
@@ -216,6 +223,8 @@ def _report_figures(summary: pd.DataFrame, coverage_path: Path, out: Path) -> No
 def build_report(cmp_dir: Path, runs_root: Path | None = None) -> pd.DataFrame:
     """Rebuild `summary.csv`, `paired.csv` and figures from saved logs alone (R-REP-2)."""
     runs_root = runs_root if runs_root is not None else cmp_dir.parent
+    if not (cmp_dir / "runs.json").exists():
+        raise ReportError(f"{cmp_dir}: no runs.json; expected a results/compare_<hash> folder")
     records = json.loads((cmp_dir / "runs.json").read_text())
     if not records:
         raise ReportError(f"{cmp_dir}: no runs listed")

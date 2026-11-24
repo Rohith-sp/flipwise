@@ -13,6 +13,7 @@ service holds the state of one simulation.
 
 from __future__ import annotations
 
+import bisect
 import datetime as dt
 import json
 import threading
@@ -31,7 +32,7 @@ from flipwise.models import SLOT_S, Job, JobState, floor_to_slot
 from flipwise.policies import make_policy
 from flipwise.scenario import build_replicate, dev_replicate, load_scenario
 from flipwise.simulator import Scenario, Simulator, job_outcome
-from flipwise.webstatic import QuietHTTPServer, read_static
+from flipwise.webstatic import CLIENT_GONE, QuietHTTPServer, send_static
 
 IST = dt.timezone(dt.timedelta(hours=5, minutes=30))
 REGION_NAMES = {1: "Delhi NCR (Northern grid)", 2: "Mumbai (Western grid)",
@@ -43,6 +44,7 @@ _CHECK_KINDS = {"KEEP", "MOVE", "SCREEN_FAIL", "THROTTLED", "RESCUE", "RESCUE_NO
 STREAM_BUFFER = 2000
 LATENCY_WINDOW = 50
 KEEPALIVE_S = 15.0
+SKIP_YIELD_S = 0.005
 RESULTS_CSV = Path("docs/test_results/summary.csv")
 # kgCO2 under the D58 power bracket for the same test runs (D59, F25); optional.
 BRACKET_CSVS = {
@@ -221,6 +223,9 @@ class LiveSession:
         self._seen_decisions: dict[str, int] = {p: 0 for p in self.policies}
         self._act: dict[str, dict[int, Counter]] = {p: {} for p in self.policies}
         self._act_seen: dict[str, int] = {p: 0 for p in self.policies}
+        self._job_decisions: dict[str, dict[str, list[dict]]] = {p: {} for p in self.policies}
+        self._kinds: dict[str, Counter] = {p: Counter() for p in self.policies}
+        self._kinds_seen: dict[str, int] = {p: 0 for p in self.policies}
         self.sims: dict[str, Simulator] = {}
         for i, name in enumerate(self.policies):
             params = policy_params(self.cfg, name) if self.cfg is not None else {}
@@ -237,6 +242,11 @@ class LiveSession:
             self.sims[name] = sim
             self._pending[name] = list(sim.jobs)
         self.start_s, self.end_s = scenario.start_s, scenario.end_s
+        self._dc_names = {d.dc_id: REGION_NAMES.get(d.region_id, f"region {d.region_id}")
+                          for d in scenario.dcs}  # fmt: skip
+        self._caps = sorted(
+            c for c in scenario.forecast.captures if self.start_s <= c <= self.end_s
+        )
         self._sim_base = float(self.start_s)
         self._wall_base = time.monotonic()
         if self.user_jobs_list():
@@ -300,23 +310,37 @@ class LiveSession:
         return done
 
     def control(self, body: dict) -> dict:
+        # Validate the whole request before changing anything, so a bad field applies nothing.
+        speed = float(body["speed"]) if "speed" in body else None
+        if speed is not None and not speed > 0:
+            raise ValueError("speed must be > 0 (simulated seconds per real second)")
+        hours = float(body["skip_hours"]) if "skip_hours" in body else None
+        if hours is not None and not 0 < hours <= MAX_SKIP_H:
+            raise ValueError(f"skip_hours must be in (0, {MAX_SKIP_H}]")
         with self.lock:
             self._rebase()
-            if "speed" in body:
-                speed = float(body["speed"])
-                if speed <= 0:
-                    raise ValueError("speed must be > 0 (simulated seconds per real second)")
+            if speed is not None:
                 self.speed = speed
             if "paused" in body:
                 self.paused = bool(body["paused"])
-            if "skip_hours" in body:
-                hours = float(body["skip_hours"])
-                if not 0 < hours <= MAX_SKIP_H:
-                    raise ValueError(f"skip_hours must be in (0, {MAX_SKIP_H}]")
-                # The time skip: replay history up to the new time as fast as possible.
-                self._sim_base = min(self._sim_base + hours * 3600, float(self.end_s))
-                self._advance_all(self._sim_base)
-            return self.clock()
+            if hours is None:
+                return self.clock()
+            # The time skip: replay history up to the new time as fast as possible.
+            self._sim_base = goal = min(self._sim_base + hours * 3600, float(self.end_s))
+        # One slot per lock hold, like `step`: a day-long skip takes seconds, and the API must
+        # keep answering meanwhile. The worker may advance the same policies in between; both
+        # only ever move them forward to a target, so the order does not matter. Progress is
+        # measured by the next snapshot slot, not by `now_s`: a simulation's clock stops at its
+        # last event, which may lie before the goal.
+        while True:
+            with self.lock:
+                if self._next_snap_s > goal:
+                    self._advance_all(goal)
+                    return self.clock()
+                self._advance_all(float(self._next_snap_s))
+            # Python locks are not fair: without a pause this loop takes the lock straight back
+            # and a waiting API request starves for the whole skip. Display pacing only.
+            time.sleep(SKIP_YIELD_S)
 
     def clock(self) -> dict:
         now = self._now()
@@ -373,7 +397,8 @@ class LiveSession:
             self.submitted[job_id] = {"submitted_at": _ist(now), **body}
             return {"job_id": job_id, "submitted_at": _ist(now)}
 
-    def _job_view(self, sim: Simulator, job_id: str) -> dict:
+    def _job_view(self, name: str, job_id: str) -> dict:
+        sim = self.sims[name]
         job = sim.jobs[job_id]
         out = {"state": str(job.state), "dc_id": job.dc_id,
                "datacentre": self._dc_name(sim, job.dc_id),
@@ -387,23 +412,31 @@ class LiveSession:
             o = job_outcome(job, sim.scenario)
             out["kg_co2"] = _round(o["kg_co2"])
             out["deadline_missed"] = bool(job.end_s > job.deadline_s)  # type: ignore[operator]
-        out["decisions"] = [self._decision(sim, d) for d in sim.decisions if d["job_id"] == job_id]
+        out["decisions"] = [self._decision(sim, d) for d in self._decisions_of(name, job_id)]
         return out
+
+    def _decisions_of(self, name: str, job_id: str) -> list[dict]:
+        if job_id in self.submitted:
+            return self._job_decisions[name].get(job_id, [])
+        return [d for d in self.sims[name].decisions if d["job_id"] == job_id]
 
     def job(self, job_id: str) -> dict:
         with self.lock:
             if job_id not in self.sims[self.policies[0]].jobs:
                 raise KeyError(job_id)
+            self._publish_decisions()  # index any decision made since the last advance
             return {"job_id": job_id, "submitted": self.submitted.get(job_id),
-                    "by_policy": {p: self._job_view(s, job_id)
-                                  for p, s in self.sims.items()}}  # fmt: skip
+                    "by_policy": {p: self._job_view(p, job_id) for p in self.sims}}  # fmt: skip
 
     # ---- history and stream ----------------------------------------------------------------
     def _publish_decisions(self) -> None:
+        """Push new decisions to the stream, and index those about user jobs for /jobs/<id>."""
         for name, sim in self.sims.items():
-            seen = self._seen_decisions[name]
+            seen, index = self._seen_decisions[name], self._job_decisions[name]
             for d in sim.decisions[seen:]:
                 self.feed.publish("decision", {"policy": name, **self._decision(sim, d)})
+                if d["job_id"] in self.submitted:
+                    index.setdefault(d["job_id"], []).append(d)
             self._seen_decisions[name] = len(sim.decisions)
 
     def _settle(self, name: str) -> None:
@@ -420,11 +453,18 @@ class LiveSession:
                 still.append(jid)
         self._pending[name] = still
 
+    def _kind_counts(self, name: str) -> Counter:
+        """Decisions per kind, extended with only the decisions made since the last call."""
+        decisions, kinds = self.sims[name].decisions, self._kinds[name]
+        kinds.update(d["kind"] for d in decisions[self._kinds_seen[name] :])
+        self._kinds_seen[name] = len(decisions)
+        return kinds
+
     def _snapshot(self, t_s: float) -> None:
         for name, sim in self.sims.items():
             self._settle(name)
             cache = self._outcome[name]
-            kinds = Counter(d["kind"] for d in sim.decisions)
+            kinds = self._kind_counts(name)
             stats = getattr(sim.policy, "stats", None)
             per_dc_kg: Counter = Counter()
             for dc_id, kg, _ in cache.values():
@@ -466,12 +506,8 @@ class LiveSession:
                 for i, c in enumerate(self.timed)]}  # fmt: skip
 
     # ---- views -----------------------------------------------------------------------------
-    @staticmethod
-    def _dc_name(sim: Simulator, dc_id: int | None) -> str | None:
-        if dc_id is None:
-            return None
-        region = {d.dc_id: d.region_id for d in sim.scenario.dcs}[dc_id]
-        return REGION_NAMES.get(region, f"region {region}")
+    def _dc_name(self, _sim: Simulator, dc_id: int | None) -> str | None:
+        return None if dc_id is None else self._dc_names[dc_id]
 
     def _decision(self, sim: Simulator, d: dict) -> dict:
         return {"time": _ist(d["time_s"]), "time_s": d["time_s"],
@@ -482,15 +518,15 @@ class LiveSession:
                 "w_ab_kg": _round(d["w_ab"]), "g_min_kg": _round(d["g_min"]),
                 "theta": d["theta_eff"], "reason": d["reason"]}  # fmt: skip
 
-    def _totals(self, sim: Simulator) -> dict:
-        done = [j for j in sim.jobs.values() if j.state == JobState.COMPLETED]
-        kg = sum(job_outcome(j, sim.scenario)["kg_co2"] for j in done)
-        missed = sum(1 for j in done if j.end_s > j.deadline_s)  # type: ignore[operator]
-        kinds = Counter(d["kind"] for d in sim.decisions)
+    def _totals(self, name: str) -> dict:
+        sim = self.sims[name]
+        self._settle(name)
+        done = self._outcome[name].values()
+        kinds = self._kind_counts(name)
         stats = getattr(sim.policy, "stats", None)
-        return {"kg_co2_so_far": _round(kg, 3), "jobs_arrived": sum(
+        return {"kg_co2_so_far": _round(sum(v[1] for v in done), 3), "jobs_arrived": sum(
                     1 for j in sim.jobs.values() if j.state != JobState.NOT_ARRIVED),
-                "jobs_completed": len(done), "deadline_misses": missed,
+                "jobs_completed": len(done), "deadline_misses": sum(1 for v in done if v[2]),
                 "moves": kinds.get("MOVE", 0), "full_rescores": getattr(stats, "stage2_calls", 0),
                 "screen_skips": kinds.get("SCREEN_FAIL", 0), "decisions": dict(kinds)}  # fmt: skip
 
@@ -514,7 +550,7 @@ class LiveSession:
             return {"clock": self.clock(), "policies": self.policies,
                     "replicate": self.replicate_info(),
                     "remote_policy": self.remote_policy, "carbon": self._carbon_now(main),
-                    "compare": {p: self._totals(s) for p, s in self.sims.items()},
+                    "compare": {p: self._totals(p) for p in self.sims},
                     "user_jobs": self.user_jobs,
                     "recent_decisions": {p: [self._decision(s, d) for d in s.decisions[-15:]]
                                          for p, s in self.sims.items()},
@@ -532,7 +568,8 @@ class LiveSession:
             st = sim.clients[dc_id].state()  # remote mode: a real request to the service
             dcfg = {d.dc_id: d for d in sim.scenario.dcs}[dc_id]
             here = [j for j in sim.jobs.values() if j.dc_id == dc_id]
-            done = [j for j in here if j.state == JobState.COMPLETED]
+            self._settle(name)
+            done = [v[1] for v in self._outcome[name].values() if v[0] == dc_id]
             carbon = next(c for c in self._carbon_now(sim) if c["dc_id"] == dc_id)
             return {"dc_id": dc_id, "name": self._dc_name(sim, dc_id), "policy": name,
                     "remote": name == self.remote_policy, "time": _ist(sim.now_s),
@@ -545,8 +582,7 @@ class LiveSession:
                     "queue_head": list(st.queue[:10]),
                     "planned_not_released": sum(1 for j in here if j.state == JobState.PLACED),
                     "completed": len(done),
-                    "kg_co2_so_far": _round(sum(job_outcome(j, sim.scenario)["kg_co2"]
-                                                for j in done), 3),
+                    "kg_co2_so_far": _round(sum(done), 3),
                     "carbon": carbon,
                     "user_jobs_here": [j.job_id for j in here
                                        if j.job_id in self.submitted]}  # fmt: skip
@@ -558,10 +594,9 @@ class LiveSession:
         with self.lock:
             if policy not in self.sims:
                 raise KeyError(policy)
-            sim, cache = self.sims[policy], self._act[policy]
-            caps = {c for c in sim.scenario.forecast.captures if self.start_s <= c <= self.end_s}
+            sim, cache, caps = self.sims[policy], self._act[policy], self._caps
             for d in sim.decisions[self._act_seen[policy] :]:
-                if d["time_s"] in caps and d["kind"] in _CHECK_KINDS:
+                if d["kind"] in _CHECK_KINDS and _contains(caps, d["time_s"]):
                     kind = d["kind"]
                     if kind == "KEEP" and d["S_b"] is None:
                         kind = "OTHER"  # kept without a re-score (no carbon incumbent)
@@ -569,9 +604,10 @@ class LiveSession:
                         kind = "RESCUE"
                     cache.setdefault(d["time_s"], Counter())[kind] += 1
             self._act_seen[policy] = len(sim.decisions)
-            lo = -1 if since_s is None else since_s
+            lo = bisect.bisect_right(caps, -1 if since_s is None else since_s)
+            hi = bisect.bisect_right(caps, sim.now_s)
             out = []
-            for t in sorted(c for c in caps if lo < c <= sim.now_s):
+            for t in caps[lo:hi]:
                 c = cache.get(t, Counter())
                 out.append({"t": t, "time": _ist(t), "checked": sum(c.values()),
                             "screen_skipped": c["SCREEN_FAIL"], "rescored_kept": c["KEEP"],
@@ -595,6 +631,8 @@ class LiveSession:
             def cap(ids: list[str]) -> dict:
                 return {"total": len(ids), "jobs": [chip(i) for i in ids[:LANE_CAP]]}
 
+            self._settle(name)
+            completed = Counter(v[0] for v in self._outcome[name].values())
             planned: dict[int, list[str]] = {d.dc_id: [] for d in sim.scenario.dcs}
             for j in sim.jobs.values():
                 if j.state == JobState.PLACED and j.dc_id in planned:
@@ -606,10 +644,13 @@ class LiveSession:
                             "planned": cap(sorted(planned[d.dc_id])),
                             "queued": cap(list(st.queue)),
                             "running": cap([r.job_id for r in st.running]),
-                            "completed": sum(1 for j in sim.jobs.values()
-                                             if j.dc_id == d.dc_id
-                                             and j.state == JobState.COMPLETED)})  # fmt: skip
+                            "completed": completed[d.dc_id]})  # fmt: skip
             return {"policy": name, "time": _ist(sim.now_s), "datacentres": out}
+
+
+def _contains(sorted_values: list[int], x: int) -> bool:
+    i = bisect.bisect_left(sorted_values, x)
+    return i < len(sorted_values) and sorted_values[i] == x
 
 
 def scenario_factory(cfg: dict | None, scenario_dir: Path | None, seed: int = 0):
@@ -630,9 +671,21 @@ def scenario_factory(cfg: dict | None, scenario_dir: Path | None, seed: int = 0)
     return factory
 
 
+_results_cache: dict = {}
+
+
 def results_summary(path: Path | None = None) -> tuple[int, dict]:
-    """Test-period results per policy (D57), for the dashboard's reference panel."""
+    """Test-period results per policy (D57), for the dashboard's reference panel. Cached until
+    one of the CSVs changes: pandas takes tens of milliseconds to parse them."""
     csv_path = path or RESULTS_CSV
+    files = [csv_path] + (list(BRACKET_CSVS.values()) if path is None else [])
+    key = (str(csv_path), tuple(f.stat().st_mtime_ns if f.is_file() else None for f in files))
+    if _results_cache.get("key") != key:
+        _results_cache.update(key=key, value=_results_summary(csv_path, path is None))
+    return _results_cache["value"]
+
+
+def _results_summary(csv_path: Path, with_brackets: bool) -> tuple[int, dict]:
     if not csv_path.is_file():
         return 404, {
             "error": "NOT_FOUND",
@@ -644,7 +697,7 @@ def results_summary(path: Path | None = None) -> tuple[int, dict]:
     agg = df.groupby("policy")[cols].mean()
     agg["replicates"] = df.groupby("policy").size()
     for key, bracket_path in BRACKET_CSVS.items():
-        if path is None and bracket_path.is_file():
+        if with_brackets and bracket_path.is_file():
             agg[key] = pd.read_csv(bracket_path).groupby("policy")["kg_co2"].mean()
     return 200, {"source": str(csv_path), "aggregate": "mean over replicates",
                  "policies": {p: {k: _round(v, 6) for k, v in row.items()}
@@ -670,20 +723,15 @@ def make_handler(session: LiveSession):
             self.end_headers()
 
         def _body(self) -> dict:
-            n = int(self.headers.get("Content-Length") or 0)
-            return json.loads(self.rfile.read(n) or b"{}") if n else {}
+            n = max(0, int(self.headers.get("Content-Length") or 0))
+            body = json.loads(self.rfile.read(n) or b"{}") if n else {}
+            if not isinstance(body, dict):
+                raise ValueError("body must be a JSON object")
+            return body
 
         def _static(self, rel: str) -> None:
-            found = read_static(rel)
-            if found is None:
+            if not send_static(self, rel):
                 self._send(404, {"error": "NOT_FOUND", "path": self.path})
-                return
-            data, ctype = found
-            self.send_response(200)
-            self.send_header("Content-Type", ctype)
-            self.send_header("Content-Length", str(len(data)))
-            self.end_headers()
-            self.wfile.write(data)
 
         def _stream(self) -> None:
             self.send_response(200)
@@ -708,7 +756,7 @@ def make_handler(session: LiveSession):
                         self.wfile.write(b": keep-alive\n\n")
                         quiet_since = time.monotonic()
                     self.wfile.flush()
-            except (BrokenPipeError, ConnectionResetError):
+            except CLIENT_GONE:
                 return  # the browser went away
 
         def do_GET(self) -> None:  # noqa: N802
@@ -757,11 +805,12 @@ def make_handler(session: LiveSession):
                 self._send(404, {"error": "NOT_FOUND", "message": str(e)})
 
         def do_POST(self) -> None:  # noqa: N802
+            path = urlsplit(self.path).path
             try:
                 body = self._body()
-                if self.path == "/jobs":
+                if path == "/jobs":
                     self._send(201, session.submit(body))
-                elif self.path == "/control":
+                elif path == "/control":
                     self._send(200, session.control(body))
                 else:
                     self._send(404, {"error": "NOT_FOUND", "path": self.path})

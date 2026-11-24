@@ -4,6 +4,7 @@ All display only: the simulation API and its byte-identity (R-DEP-1) are checked
 `test_dcservice.py`; this file checks that the extra GET routes leave them alone.
 """
 
+import gzip
 import json
 import socket
 import subprocess
@@ -87,6 +88,48 @@ def test_live_counters_and_log_match_the_calls_made():
         assert len(data["running"]) == len(started) - 1
         assert [h["t"] for h in data["history"]] == [0, 2000]  # one sample per half hour
         assert data["starts"][0]["job_id"] == started[0].job_id
+        newer = json.loads(_get(running.url + "/live?since=0")[2])
+        assert [h["t"] for h in newer["history"]] == [2000] and newer["run"] == data["run"]
+        assert _get(running.url + "/live?since=x")[0] == 400
+        c.reset(DcConfig(0, 0, 4.0, 32.0, 100.0), "h")  # a new run: pages drop what they hold
+        assert json.loads(_get(running.url + "/live")[2])["run"] == data["run"] + 1
+    finally:
+        running.stop()
+
+
+def test_static_files_revalidate_and_compress():
+    """Display only: ETag gives a 304 on reload; gzip only when the browser asks for it."""
+    running = Running(0)
+    try:
+        url = running.url + "/static/js/dc.js"
+        status, headers, plain = _get(url)
+        assert status == 200 and headers["Cache-Control"] == "no-cache"
+        etag = headers["ETag"]
+        req = urllib.request.Request(url, headers={"If-None-Match": etag})
+        try:
+            urllib.request.urlopen(req, timeout=5)
+            raise AssertionError("expected 304")
+        except urllib.error.HTTPError as e:
+            assert e.code == 304
+        req = urllib.request.Request(url, headers={"Accept-Encoding": "gzip"})
+        with urllib.request.urlopen(req, timeout=5) as r:
+            assert r.headers["Content-Encoding"] == "gzip"
+            assert gzip.decompress(r.read()) == plain
+        vendor = _get(running.url + "/static/vendor/echarts.min.js")[1]
+        assert vendor["Cache-Control"].startswith("public, max-age=")
+    finally:
+        running.stop()
+
+
+def test_non_object_json_body_is_a_bad_request():
+    running = Running(0)
+    try:
+        req = urllib.request.Request(running.url + "/reset", data=b"[1]", method="POST")
+        try:
+            urllib.request.urlopen(req, timeout=5)
+            raise AssertionError("expected 400")
+        except urllib.error.HTTPError as e:
+            assert e.code == 400 and json.loads(e.read())["error"] == "BAD_REQUEST"
     finally:
         running.stop()
 

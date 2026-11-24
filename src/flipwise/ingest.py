@@ -13,7 +13,6 @@ import pandas as pd
 
 from flipwise.errors import ChecksumError
 from flipwise.trace import (
-    ARCHIVE_SHA256,
     SENSOR_SHA256,
     read_jobs,
     read_tasks,
@@ -179,10 +178,6 @@ def ingest_alibaba(
     return manifest
 
 
-SENSOR_COLUMNS = ["job_name", "task_name", "worker_name", "inst_id", "machine", "gpu_name",
-                  "cpu_usage", "gpu_wrk_util"]  # fmt: skip
-
-
 def build_usage(jobs: pd.DataFrame, sensor: pd.DataFrame) -> pd.DataFrame:
     """Measured use per job (PRD §7.2, D58): GPUs and cores in use, averaged over each instance's
     life and summed over the job's instances (Alibaba reports both in percent: 100 = one).
@@ -261,16 +256,6 @@ def git_head(repo: Path) -> str:
     ).stdout.strip()
 
 
-__all__ = [
-    "ARCHIVE_SHA256",
-    "build_jobs",
-    "build_usage",
-    "ingest_alibaba",
-    "ingest_usage",
-    "git_head",
-]
-
-
 # ---- NESO forecast-vintage archive (PRD §6.2, §6.7) ----------------------------------------
 
 # The archive is the source of real forecast-error paths only (PRD v0.5, §6.2.3); the simulated
@@ -325,8 +310,6 @@ def build_truth(forecast: pd.DataFrame, past_caps: pd.DataFrame, slots: range) -
     Returns `region_id, slot_utc, truth_g_per_kwh, final_lag_s` with NaN truth where no capture
     covered the slot; `final_lag_s` is how long after the slot start that capture was.
     """
-    import numpy as np
-
     caps = past_caps.sort_values("capture_utc")
     cap_t = caps["capture_utc"].to_numpy()
     first = caps["window_first_utc"].to_numpy()
@@ -514,7 +497,8 @@ FUEL_SHAPE = {"coal": "thermal", "lignite": "thermal", "gas": "gas", "hydro": "h
               "nuclear": "nuclear", "wind": "wind", "solar": "solar", "biomass": None}  # fmt: skip
 
 
-def _ist_day_start_utc(d: dt.date) -> int:
+def ist_day_start_utc(d: dt.date) -> int:
+    """00:00 IST of `d` as Unix seconds (18:30 UTC the day before)."""
     return _utc_midnight(d) - IST_OFFSET_S
 
 
@@ -570,7 +554,7 @@ def construct_india_generation(
             w = flat
             counts["days_flat_shape"] += 1
         w = w.reindex(range(SLOTS_PER_DAY), fill_value=0.0)
-        start = _ist_day_start_utc(d)
+        start = ist_day_start_utc(d)
         rows.append(pd.DataFrame({"region_id": int(r), "fuel": f,
                                   "slot_utc": start + 1800 * np.arange(SLOTS_PER_DAY),
                                   "mwh": float(e.sum()) * w.to_numpy()}))  # fmt: skip
@@ -658,3 +642,65 @@ def build_forecasts(
         ["region_id", "slot_utc", "capture_utc"], kind="stable"
     )
     return out.reset_index(drop=True), {"error_rows_without_truth": dropped}
+
+
+def ingest_india(
+    generation_path: Path,
+    factors_path: Path,
+    truth_kind: str,
+    out_dir: Path,
+    manifest_dir: Path,
+) -> pd.DataFrame:
+    """Indian generation by fuel + CEA factors → `carbon_truth.csv` and its manifest (§6.2.2)."""
+    import yaml
+
+    from flipwise.carbon import interpolate_truth
+    from flipwise.errors import ConfigError
+
+    energy = yaml.safe_load(factors_path.read_text(encoding="utf-8"))["emission_factors"]
+    missing = [f for f, v in energy["g_per_kwh"].items() if v is None]
+    if missing or not energy.get("cea_database_version"):
+        raise ConfigError(
+            f"{factors_path}: fill CEA factors {missing} and cea_database_version (blocker B4)"
+        )
+    raw = india_truth(pd.read_csv(generation_path), energy["g_per_kwh"])
+    parts = []
+    for r, grp in raw.groupby("region_id", sort=True):
+        t = interpolate_truth(grp.set_index("slot_utc")["truth_g_per_kwh"])
+        parts.append(t.assign(region_id=int(r)))
+    truth = pd.concat(parts, ignore_index=True).assign(truth_kind=truth_kind)
+    truth = truth[["region_id", "slot_utc", "truth_g_per_kwh", "truth_kind", "interpolated"]]
+    out_dir.mkdir(parents=True, exist_ok=True)
+    out = out_dir / "carbon_truth.csv"
+    truth.to_csv(out, index=False, lineterminator="\n")
+    man = {**_base_manifest(), "generation": str(generation_path),
+           "generation_sha256": sha256_file(generation_path),
+           "cea_database_version": energy["cea_database_version"],
+           "factors_g_per_kwh": energy["g_per_kwh"], "truth_kind": truth_kind,
+           "rows": len(truth), "outputs_sha256": {out.name: sha256_file(out)}}  # fmt: skip
+    manifest_dir.mkdir(parents=True, exist_ok=True)
+    (manifest_dir / "india_truth.json").write_text(json.dumps(man, indent=2) + "\n")
+    return truth
+
+
+def ingest_forecasts(cfg: dict, alpha: float | None = None) -> dict:
+    """Indian truth + GB error paths → `carbon_forecast.csv` and its manifest (§6.2.4).
+
+    `alpha` defaults to the config's, then 1. Returns `s_r`, the row count and drop counts.
+    """
+    d = cfg["data"]
+    truth, errors, gb_truth = (pd.read_csv(d[k]) for k in ("truth", "gb_error_paths", "gb_truth"))
+    mapping = {int(r): int(g) for r, g in cfg["error_source"].items()}
+    lo_d, hi_d = (dt.date.fromisoformat(x) for x in cfg["splits"]["residual_fit_carbon"])
+    s_r = scale_factors(truth, gb_truth, mapping, _utc_midnight(lo_d),
+                        _utc_midnight(hi_d + dt.timedelta(days=1)) - 1)  # fmt: skip
+    alpha = float(alpha if alpha is not None else cfg.get("alpha", 1.0))
+    fc, counts = build_forecasts(truth, errors, mapping, s_r, alpha)
+    out = Path(d["forecast"])
+    out.parent.mkdir(parents=True, exist_ok=True)
+    fc.to_csv(out, index=False, lineterminator="\n")
+    man = {**_base_manifest(), "alpha": alpha, "error_source": mapping, "s_r": s_r, **counts,
+           "rows": len(fc), "outputs_sha256": {out.name: sha256_file(out)}}  # fmt: skip
+    Path(d["manifests"]).mkdir(parents=True, exist_ok=True)
+    (Path(d["manifests"]) / "india_forecasts.json").write_text(json.dumps(man, indent=2) + "\n")
+    return {"s_r": s_r, "rows": len(fc), **counts}

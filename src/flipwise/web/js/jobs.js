@@ -1,4 +1,4 @@
-import { esc, num, badge, colourOf, shortRegion, timeOnly, needed, explain } from "./util.js";
+import { esc, num, badge, kindClass, colourOf, shortRegion, timeOnly, needed, explain } from "./util.js";
 import { getJob, getJobs, postJob } from "./api.js";
 
 export const title = ["Job tracker", "Submit a job and watch what every policy does with it"];
@@ -64,8 +64,8 @@ async function refresh() {
   try { data = await getJob(selected); draw(); } catch (e) { /* keep the last view */ } finally { busy = false; }
 }
 
-function lane(p, v, i0) {
-  const chips = v.decisions.map((d, i) => `<button type="button" class="chip k-${badgeCls(d.kind)}${chip && chip.policy === p && chip.idx === i ? " sel" : ""}" data-p="${esc(p)}" data-i="${i}" aria-label="${esc(d.kind)} at ${esc(timeOnly(d.time))}">${esc(d.kind.replace("_", " "))}<small>${esc(timeOnly(d.time))}</small></button>`);
+function lane(p, v) {
+  const chips = v.decisions.map((d, i) => `<button type="button" class="chip k-${kindClass(d.kind)}${chip && chip.policy === p && chip.idx === i ? " sel" : ""}" data-p="${esc(p)}" data-i="${i}" aria-label="${esc(d.kind)} at ${esc(timeOnly(d.time))}">${esc(d.kind.replace("_", " "))}<small>${esc(timeOnly(d.time))}</small></button>`);
   if (STATE_KINDS.has(v.state)) chips.push(`<span class="chip k-${v.state}" style="cursor:default">${v.state}<small>${esc(timeOnly(v.state === "COMPLETED" ? v.end : v.start))}</small></span>`);
   else chips.push(`<span class="chip k-OTHER" style="cursor:default">${esc(v.state)}</span>`);
   const done = v.kg_co2 != null;
@@ -73,12 +73,11 @@ function lane(p, v, i0) {
     <div><div class="chips">${chips.join("")}</div><div class="sm" style="margin-top:4px">${v.moves} ${v.moves === 1 ? "move" : "moves"}, ${v.decisions.length} ${v.decisions.length === 1 ? "decision" : "decisions"}${v.deadline_missed ? ", deadline missed" : ""}</div></div>
     <div class="kg">${num(done ? v.kg_co2 : v.estimated_kg, 3)} kg<small>${done ? "measured" : "estimate"}</small></div></div>`;
 }
-const badgeCls = (k) => (["MOVE", "KEEP", "SCREEN_FAIL", "PLACE", "RESCUE", "FALLBACK", "RESCUE_NOOP"].includes(k) ? k : k.startsWith("RESCUE") ? "RESCUE" : "OTHER");
 
 function draw() {
   if (!root || !data) return;
   root.querySelector("#jt").textContent = `${data.job_id} · one lane per policy`;
-  root.querySelector("#lanes").innerHTML = Object.entries(data.by_policy).map(([p, v], i) => lane(p, v, i)).join("");
+  root.querySelector("#lanes").innerHTML = Object.entries(data.by_policy).map(([p, v]) => lane(p, v)).join("");
   const host = root.querySelector("#detail");
   if (!chip || !data.by_policy[chip.policy]) return;
   const d = data.by_policy[chip.policy].decisions[chip.idx];

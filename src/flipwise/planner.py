@@ -6,8 +6,14 @@ import math
 from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
-from flipwise.carbon import lead_bucket as lead_bucket
-from flipwise.models import PENDING, SLOT_S, Candidate, ceil_to_slot, floor_to_slot
+from flipwise.models import (
+    PENDING,
+    SLOT_S,
+    Candidate,
+    DcConfig,
+    ceil_to_slot,
+    floor_to_slot,
+)
 
 if TYPE_CHECKING:
     from flipwise.simulator import JobInfo, SchedulerView
@@ -29,6 +35,11 @@ LB_ROUNDING_GUARD = 1 - 1e-12
 class PlannerParams:
     h_defer_s: int = 24 * 3600
     feasibility: str = "conservative"  # or "point" (ablation, PRD §9.5)
+
+
+def _kg_per_gs(dc: DcConfig, job: JobInfo) -> float:
+    """kg per (s · g/kWh): turns an integral of intensity over time into a score (PRD §7.1)."""
+    return dc.pue * job.power_kw / 3600 / 1000
 
 
 def release_range(job: JobInfo, now_s: int, params: PlannerParams) -> tuple[int, int]:
@@ -70,7 +81,7 @@ def evaluate(
     c.w_lo = min(starts.values()) - release_slot  # type: ignore[type-var,operator]
     c.w_mid = c.s_q50 - release_slot  # type: ignore[operator]
     c.w_hi = max(starts.values()) - release_slot  # type: ignore[type-var,operator]
-    k_kg = dc.pue * job.power_kw / 3600 / 1000
+    k_kg = _kg_per_gs(dc, job)
     if view.forecast is not None:
         table = view.carbon_table(dc.region_id)
         p = table.point(release_slot + c.w_mid, job.r_q50_s)
@@ -118,7 +129,7 @@ def add_interval(view: SchedulerView, job: JobInfo, c: Candidate) -> None:
         return
     dc = view.dcs[c.dc_id]
     table = view.carbon_table(dc.region_id)
-    k_kg = dc.pue * job.power_kw / 3600 / 1000
+    k_kg = _kg_per_gs(dc, job)
     lo = table.integrate(c.release_slot + c.w_lo, job.r_q05_s)
     hi = table.integrate(c.release_slot + c.w_hi, job.r_q95_s)
     if lo is not None and hi is not None:
@@ -214,7 +225,7 @@ def lower_bound(view: SchedulerView, job: JobInfo) -> float:
             continue
         cost = view.carbon_table(dc.region_id).min_window(slot0, x_max, job.r_q50_s)
         if cost is not None:
-            best = min(best, dc.pue * job.power_kw / 3600 / 1000 * cost)
+            best = min(best, _kg_per_gs(dc, job) * cost)
     return best * LB_ROUNDING_GUARD
 
 
@@ -231,7 +242,7 @@ def paired_width(
     for c in (a, b):
         dc = view.dcs[c.dc_id]
         table = view.carbon_table(dc.region_id)
-        k_kg = dc.pue * job.power_kw / 3600 / 1000
+        k_kg = _kg_per_gs(dc, job)
         w_lo, w_hi = (c.w_mid, c.w_mid) if width != "full" else (c.w_lo, c.w_hi)
         lo = table.integrate(c.release_slot + w_lo, job.r_q50_s)
         hi = table.integrate(c.release_slot + w_hi, job.r_q50_s)
@@ -257,7 +268,7 @@ def _score_difference(
         p = view.carbon_table(dc.region_id).point(c.release_slot + c.w_mid, job.r_q(q))
         if p is None:
             return None
-        scores.append(dc.pue * job.power_kw / 3600 / 1000 * p[0])
+        scores.append(_kg_per_gs(dc, job) * p[0])
     return scores[0] - scores[1]
 
 

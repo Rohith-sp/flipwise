@@ -19,19 +19,12 @@ export function istClock(t_s) {
   const d = new Date((t_s + 19800) * 1000);
   return d.toISOString().slice(11, 16);
 }
-export function istDayClock(t_s) {
-  const d = new Date((t_s + 19800) * 1000);
-  return d.toISOString().slice(5, 10) + " " + d.toISOString().slice(11, 16);
-}
 
 export const colourOf = (policy) => POLICY_COLOURS[policy] || "#4B5563";
 
-export function badge(kind) {
-  const k = String(kind || "OTHER");
-  const cls = ["MOVE", "KEEP", "SCREEN_FAIL", "PLACE", "RESCUE", "FALLBACK", "RESCUE_NOOP", "RUNNING", "COMPLETED"].includes(k)
-    ? k : k.startsWith("RESCUE") ? "RESCUE" : "OTHER";
-  return `<span class="badge-k k-${cls}">${esc(k.replace("_", " "))}</span>`;
-}
+const KIND_CLASSES = new Set(["MOVE", "KEEP", "SCREEN_FAIL", "PLACE", "RESCUE", "FALLBACK", "RESCUE_NOOP", "RUNNING", "COMPLETED"]);
+export const kindClass = (kind) => { const k = String(kind || "OTHER"); return KIND_CLASSES.has(k) ? k : k.startsWith("RESCUE") ? "RESCUE" : "OTHER"; };
+export const badge = (kind) => `<span class="badge-k k-${kindClass(kind)}">${esc(String(kind || "OTHER").replace("_", " "))}</span>`;
 
 export const needed = (d) =>
   d && d.g_min_kg != null && d.w_ab_kg != null && d.theta != null ? d.g_min_kg + d.theta * d.w_ab_kg : null;
@@ -106,7 +99,7 @@ export function keepLast(key, v) {
 
 export const gClass = (g) => (g == null ? "" : g < 600 ? "cg-green" : g < 800 ? "cg-amber" : "cg-red");
 
-const gpuLabel = (g) => (g === 0 ? "0" : g < 1 ? String(+g.toFixed(2)).replace(/^0/, "") : String(Math.round(g)));
+export const gpuLabel = (g) => (g == null ? "?" : g === 0 ? "0" : g < 1 ? String(+g.toFixed(2)).replace(/^0/, "") : String(Math.round(g)));
 // Small squares labelled with GPUs: user jobs outlined black, moved jobs get an amber dot.
 export function jobChips(box, kind) {
   if (!box || !box.total) return '<span class="fw-muted small">none</span>';
@@ -118,7 +111,35 @@ export function jobChips(box, kind) {
 // Same-height line/bar chart option helpers.
 export const axisTime = { type: "time", axisLabel: { color: "#4B5563", formatter: (v) => istClock(v / 1000) } };
 export const tsToMs = (rows, f) => rows.map((p) => [p.t * 1000, f(p)]);
-export const sentenceInt = int;
+
+// Actual carbon so far (solid) and the forecast ahead (dashed) for every region, as on the
+// Overview and Scheduler pages. `hist` is one policy's history; `st` is /status.
+export function carbonChart(id, el, st, hist, grid) {
+  const nowS = st.clock.sim_time_s, slot0 = Math.floor(nowS / 1800) * 1800, sers = [];
+  st.carbon.forEach((c, i) => {
+    const col = REGION_COLOURS[i % 3];
+    sers.push({ name: REGION_SHORT[i] + " actual", type: "line", showSymbol: false, connectNulls: true, lineStyle: { color: col, width: 2 }, itemStyle: { color: col },
+      data: hist.map((p) => [p.t, p.dcs[i] ? p.dcs[i].actual_g_per_kwh : null]),
+      markLine: i === 0 ? { symbol: "none", silent: true, lineStyle: { color: "#111827", type: "dashed" }, label: { formatter: "now", color: "#111827" }, data: [{ xAxis: nowS }] } : undefined });
+    sers.push({ name: REGION_SHORT[i] + " forecast", type: "line", showSymbol: false, lineStyle: { color: col, width: 2, type: "dashed" }, itemStyle: { color: col },
+      data: (c.forecast_next_6h || []).map((v, k) => [slot0 + k * 1800, v]) });
+  });
+  chart(id, el).setOption({
+    animation: false, tooltip: { trigger: "axis", valueFormatter: (v) => (v == null ? "--" : Number(v).toFixed(0) + " g/kWh"), axisPointer: { type: "line" } },
+    grid, legend: { show: false },
+    xAxis: { type: "value", min: "dataMin", max: "dataMax", axisLabel: { formatter: (v) => istClock(v), color: "#4B5563" } },
+    yAxis: { type: "value", name: "g/kWh", scale: true, axisLabel: { color: "#4B5563" }, splitLine: { lineStyle: { color: "#EEF0F3" } } },
+    series: sers }, true);
+}
+
+// A <select> of policy names, rebuilt only when the list changes; returns the value to use.
+export function policySelect(sel, names, current) {
+  const key = names.join(",");
+  if (sel.dataset.names !== key) { sel.innerHTML = names.map((p) => `<option value="${esc(p)}">${esc(p)}</option>`).join(""); sel.dataset.names = key; }
+  const value = names.includes(current) ? current : names[0];
+  sel.value = value;
+  return value;
+}
 
 // Each remote datacentre serves its own page; the published port is 8101 + dc_id (local and Docker).
 export const dcPageUrl = (dcId) => `${location.protocol}//${location.hostname}:${8101 + dcId}/?scheduler=${encodeURIComponent(location.origin)}`;

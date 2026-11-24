@@ -263,20 +263,26 @@ def execute_run(spec: RunSpec) -> dict:
     return record
 
 
-def _replicate_tables(spec: RunSpec) -> tuple[pd.DataFrame, pd.DataFrame]:
+TABLES = ("carbon_coverage.csv", "carbon_timeline.csv")
+
+
+def _replicate_folder(out: Path, scenario_hash: str) -> Path:
     """Coverage and timeline depend only on the replicate, so sweep cells share one saved copy."""
+    return out / f"replicate_{scenario_hash[:12]}"
+
+
+def _tables_exist(folder: Path) -> bool:
+    return all((folder / name).exists() for name in TABLES)
+
+
+def _write_replicate_tables(spec: RunSpec) -> None:
     scenario = scenario_for(spec)
-    folder = spec.out / f"replicate_{scenario.scenario_hash[:12]}"
-    cov_path, line_path = folder / "carbon_coverage.csv", folder / "carbon_timeline.csv"
-    if not (cov_path.exists() and line_path.exists()):
-        folder.mkdir(parents=True, exist_ok=True)
-        for rows, path in (
-            (carbon_coverage(scenario), cov_path),
-            (carbon_timeline(scenario), line_path),
-        ):
-            data = pd.DataFrame(rows).assign(replicate=scenario.name)
-            data.to_csv(path, index=False, lineterminator="\n")
-    return pd.read_csv(cov_path), pd.read_csv(line_path)
+    folder = _replicate_folder(spec.out, scenario.scenario_hash)
+    folder.mkdir(parents=True, exist_ok=True)
+    tables = (carbon_coverage(scenario), carbon_timeline(scenario))
+    for rows, name in zip(tables, TABLES, strict=True):
+        data = pd.DataFrame(rows).assign(replicate=scenario.name)
+        data.to_csv(folder / name, index=False, lineterminator="\n")
 
 
 def compare(
@@ -290,6 +296,8 @@ def compare(
     debug: bool = False,
 ) -> Path:
     """Every policy on identical replicates → `results/compare_<hash>/` (PRD §16.2)."""
+    if not policies:
+        raise ConfigError("compare: no policies given")
     for p in policies:
         make_policy(p, **policy_params(cfg, p))  # a typo fails now, not hours into the run
     replicates: list[Replicate | None] = (
@@ -299,11 +307,28 @@ def compare(
         RunSpec(cfg, p, seed, out, r, scenario_dir, debug)
         for r, p in itertools.product(replicates, policies)
     ]
+    # Runs come back in `specs` order, so each replicate's first record carries its hash. Tables
+    # are built only where missing, and in the pool when there is one: finding a hash no longer
+    # means rebuilding the scenario in this process.
+    first = [RunSpec(cfg, policies[0], seed, out, r, scenario_dir) for r in replicates]
+
+    def missing(records: list[dict]) -> tuple[list[Path], list[RunSpec]]:
+        folders = [
+            _replicate_folder(out, records[i * len(policies)]["scenario_hash"])
+            for i in range(len(replicates))
+        ]
+        return folders, [s for s, f in zip(first, folders, strict=True) if not _tables_exist(f)]
+
     if jobs > 1 and len(specs) > 1:
         with ProcessPoolExecutor(max_workers=jobs) as pool:
             records = list(pool.map(execute_run, specs))  # in `specs` order, however they finish
+            folders, todo = missing(records)
+            list(pool.map(_write_replicate_tables, todo))
     else:
         records = [execute_run(s) for s in specs]
+        folders, todo = missing(records)
+        for spec in todo:
+            _write_replicate_tables(spec)
 
     identity = {
         "config": {k: v for k, v in cfg.items() if k != "policies"},
@@ -314,15 +339,9 @@ def compare(
     cmp_dir = out / f"compare_{hashlib.sha256(canonical_json(identity).encode()).hexdigest()[:12]}"
     cmp_dir.mkdir(parents=True, exist_ok=True)
     (cmp_dir / "runs.json").write_text(json.dumps(records, indent=2) + "\n")
-
-    coverage, timeline = [], []
-    for r in replicates:
-        spec = RunSpec(cfg, policies[0], seed, out, r, scenario_dir)
-        cov, line = _replicate_tables(spec)
-        coverage.append(cov)
-        timeline.append(line)
-    pd.concat(coverage).to_csv(cmp_dir / "carbon_coverage.csv", index=False, lineterminator="\n")
-    pd.concat(timeline).to_csv(cmp_dir / "carbon_timeline.csv", index=False, lineterminator="\n")
+    for name in TABLES:
+        tables = pd.concat([pd.read_csv(f / name) for f in folders])
+        tables.to_csv(cmp_dir / name, index=False, lineterminator="\n")
     build_report(cmp_dir, runs_root=out)
     return cmp_dir
 
@@ -352,12 +371,14 @@ def sweep(
     jobs: int = 1,
 ) -> Path:
     """A grid over config values; each cell is one `compare` (PRD §13.4, §14.8)."""
-    spec = yaml.safe_load(Path(sweep_path).read_text())
+    spec = yaml.safe_load(Path(sweep_path).read_text(encoding="utf-8"))
     grid = spec.get("grid") if isinstance(spec, dict) else None
     if not isinstance(grid, dict) or not grid:
         raise ConfigError(f"{sweep_path}: expected a mapping `grid: {{key: [values]}}`")
     names = sorted(grid)
     sets = {k: v for k, v in spec.items() if k != "grid"}
+    if sets:
+        raise ConfigError(f"{sweep_path}: unknown keys {sorted(sets)}; only `grid` is applied")
     rows = []
     for values in itertools.product(*(grid[k] for k in names)):
         overrides = [f"{k}={json.dumps(v)}" for k, v in zip(names, values, strict=True)]

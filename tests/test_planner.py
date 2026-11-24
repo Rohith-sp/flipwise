@@ -1,6 +1,7 @@
 import pytest
 
 from flipwise import planner
+from flipwise.carbon import lead_bucket
 from flipwise.policies import Policy, initial_placement
 from flipwise.simulator import Simulator
 
@@ -76,7 +77,7 @@ def test_fallback_earliest_conservative_finish_r_plan_2(toy):
 
 
 def test_lead_bucket_edges():
-    assert [planner.lead_bucket(T0 + h * 3600, T0) for h in (0, 5, 6, 11, 12, 23, 24, 50)] == [
+    assert [lead_bucket(T0 + h * 3600, T0) for h in (0, 5, 6, 11, 12, 23, 24, 50)] == [
         0, 0, 1, 1, 2, 2, 3, 3,
     ]  # fmt: skip
 

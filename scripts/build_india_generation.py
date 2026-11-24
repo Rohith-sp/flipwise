@@ -184,6 +184,13 @@ def fill_missing_days(daily: pd.DataFrame) -> tuple[pd.DataFrame, list[dt.date]]
     return daily, filled
 
 
+def _shown(path: Path) -> str:
+    """Repo-relative when inside the repo (as the committed manifest has it), else absolute. A
+    relative or outside `--out` used to crash here, after the CSV was already written."""
+    path = path.resolve()
+    return path.relative_to(ROOT).as_posix() if path.is_relative_to(ROOT) else path.as_posix()
+
+
 def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__.split("\n\n")[0])
     ap.add_argument("--out", type=Path, default=RAW / "india_generation.csv")
@@ -220,7 +227,7 @@ def main() -> int:
         "scada_slots": int(profile["slot_utc"].nunique()),
         **counts,
         "rows": len(gen),
-        "output": args.out.relative_to(ROOT).as_posix(),
+        "output": _shown(args.out),
     }
     (ROOT / "data" / "manifests" / "india_generation.json").write_text(
         json.dumps(report, indent=2, default=str) + "\n"

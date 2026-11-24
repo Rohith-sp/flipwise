@@ -15,7 +15,7 @@ from flipwise.errors import ConfigError
 
 def load_config(path: Path) -> dict:
     try:
-        cfg = yaml.safe_load(Path(path).read_text())
+        cfg = yaml.safe_load(Path(path).read_text(encoding="utf-8"))
     except FileNotFoundError:
         raise ConfigError(f"config file not found: {path}") from None
     if not isinstance(cfg, dict):
@@ -29,7 +29,7 @@ def load_config(path: Path) -> dict:
         # Merged in, so `--set policies.x.y=...` and the run hash both cover policy parameters.
         policies_path = Path(cfg["policies"])
         try:
-            cfg["policies"] = yaml.safe_load(policies_path.read_text())
+            cfg["policies"] = yaml.safe_load(policies_path.read_text(encoding="utf-8"))
         except FileNotFoundError:
             raise ConfigError(f"policies file not found: {policies_path}") from None
         if not isinstance(cfg["policies"], dict):

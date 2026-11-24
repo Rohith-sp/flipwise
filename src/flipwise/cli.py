@@ -43,68 +43,18 @@ def _cmd_ingest_carbon(args: argparse.Namespace) -> int:
 
 
 def _cmd_ingest_india(args: argparse.Namespace) -> int:
-    import pandas as pd
-    import yaml
+    from flipwise.ingest import ingest_india
 
-    from flipwise.carbon import interpolate_truth
-    from flipwise.errors import ConfigError
-    from flipwise.ingest import _base_manifest, india_truth
-    from flipwise.trace import sha256_file
-
-    energy = yaml.safe_load(args.factors.read_text())["emission_factors"]
-    missing = [f for f, v in energy["g_per_kwh"].items() if v is None]
-    if missing or not energy.get("cea_database_version"):
-        raise ConfigError(
-            f"{args.factors}: fill CEA factors {missing} and cea_database_version (blocker B4)"
-        )
-    gen = pd.read_csv(args.generation)
-    raw = india_truth(gen, energy["g_per_kwh"])
-    parts = []
-    for r, grp in raw.groupby("region_id", sort=True):
-        t = interpolate_truth(grp.set_index("slot_utc")["truth_g_per_kwh"])
-        parts.append(t.assign(region_id=int(r)))
-    truth = pd.concat(parts, ignore_index=True).assign(truth_kind=args.truth_kind)
-    truth = truth[["region_id", "slot_utc", "truth_g_per_kwh", "truth_kind", "interpolated"]]
-    args.out.mkdir(parents=True, exist_ok=True)
-    out = args.out / "carbon_truth.csv"
-    truth.to_csv(out, index=False, lineterminator="\n")
-    man = {**_base_manifest(), "generation": str(args.generation),
-           "generation_sha256": sha256_file(args.generation),
-           "cea_database_version": energy["cea_database_version"],
-           "factors_g_per_kwh": energy["g_per_kwh"], "truth_kind": args.truth_kind,
-           "rows": len(truth), "outputs_sha256": {out.name: sha256_file(out)}}  # fmt: skip
-    args.manifests.mkdir(parents=True, exist_ok=True)
-    (args.manifests / "india_truth.json").write_text(json.dumps(man, indent=2) + "\n")
-    print(f"wrote {out} ({len(truth)} rows)")
+    truth = ingest_india(args.generation, args.factors, args.truth_kind, args.out, args.manifests)
+    print(f"wrote {args.out / 'carbon_truth.csv'} ({len(truth)} rows)")
     return 0
 
 
 def _cmd_build_forecasts(args: argparse.Namespace) -> int:
-    import datetime as dt
-
-    import pandas as pd
-
     from flipwise.config import load_config
-    from flipwise.ingest import _base_manifest, _utc_midnight, build_forecasts, scale_factors
-    from flipwise.trace import sha256_file
+    from flipwise.ingest import ingest_forecasts
 
-    cfg = load_config(args.config)
-    d = cfg["data"]
-    truth, errors, gb_truth = (pd.read_csv(d[k]) for k in ("truth", "gb_error_paths", "gb_truth"))
-    mapping = {int(r): int(g) for r, g in cfg["error_source"].items()}
-    lo_d, hi_d = (dt.date.fromisoformat(x) for x in cfg["splits"]["residual_fit_carbon"])
-    s_r = scale_factors(truth, gb_truth, mapping, _utc_midnight(lo_d),
-                        _utc_midnight(hi_d + dt.timedelta(days=1)) - 1)  # fmt: skip
-    alpha = float(args.alpha if args.alpha is not None else cfg.get("alpha", 1.0))
-    fc, counts = build_forecasts(truth, errors, mapping, s_r, alpha)
-    out = Path(d["forecast"])
-    out.parent.mkdir(parents=True, exist_ok=True)
-    fc.to_csv(out, index=False, lineterminator="\n")
-    man = {**_base_manifest(), "alpha": alpha, "error_source": mapping, "s_r": s_r, **counts,
-           "rows": len(fc), "outputs_sha256": {out.name: sha256_file(out)}}  # fmt: skip
-    Path(d["manifests"]).mkdir(parents=True, exist_ok=True)
-    (Path(d["manifests"]) / "india_forecasts.json").write_text(json.dumps(man, indent=2) + "\n")
-    print(json.dumps({"s_r": s_r, "rows": len(fc), **counts}, indent=2))
+    print(json.dumps(ingest_forecasts(load_config(args.config), args.alpha), indent=2))
     return 0
 
 
@@ -146,9 +96,13 @@ def _experiment_config(args: argparse.Namespace) -> dict:
 
 
 def _policy_list(text: str) -> list[str]:
+    from flipwise.errors import ConfigError
     from flipwise.experiment import ALL_POLICIES
 
-    return list(ALL_POLICIES) if text == "all" else [p for p in text.split(",") if p]
+    policies = list(ALL_POLICIES) if text == "all" else [p for p in text.split(",") if p]
+    if not policies:
+        raise ConfigError("--policies: name at least one policy, or all")
+    return policies
 
 
 def _cmd_run(args: argparse.Namespace) -> int:
@@ -333,7 +287,8 @@ def build_parser() -> argparse.ArgumentParser:
     i.add_argument("--generation", type=Path, required=True,
                    help="CSV region_id,slot_utc,fuel,mwh (india_generation.csv)")  # fmt: skip
     i.add_argument("--factors", type=Path, default=Path("configs/energy.yaml"))
-    i.add_argument("--truth-kind", default="generation_mix")
+    # PRD §6.2.2: the truth is constructed from PSP daily totals and SCADA within-day shapes.
+    i.add_argument("--truth-kind", default="constructed_psp_scada")
     i.add_argument("--out", type=Path, default=Path("data/processed"))
     i.add_argument("--manifests", type=Path, default=Path("data/manifests"))
     i.set_defaults(func=_cmd_ingest_india)

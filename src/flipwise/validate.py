@@ -10,17 +10,17 @@ import pandas as pd
 
 from flipwise.config import date
 from flipwise.errors import ConfigError
+from flipwise.ingest import ist_day_start_utc
 from flipwise.models import SLOT_S
 from flipwise.trace import sha256_file
 
 MAX_CAPTURE_SPACING_S = 6 * 3600  # longer silences make the scheduler's view stale
-IST_OFFSET_S = 19800  # UTC+5:30; carbon starts are Monday 00:00 IST (PRD v0.5 §6.3)
 TRACE_TZ = dt.timezone(dt.timedelta(hours=8))  # the trace keeps its weekday in UTC+8 (PRD §6.1)
 
 
 def monday_start_utc(d: dt.date) -> int:
-    """Monday 00:00 IST as Unix seconds (Sunday 18:30 UTC)."""
-    return int(dt.datetime(d.year, d.month, d.day, tzinfo=dt.UTC).timestamp()) - IST_OFFSET_S
+    """Monday 00:00 IST as Unix seconds (Sunday 18:30 UTC): carbon starts (PRD v0.5 §6.3)."""
+    return ist_day_start_utc(d)
 
 
 def check_splits(cfg: dict) -> list[str]:

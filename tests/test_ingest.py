@@ -1,3 +1,4 @@
+import json
 import math
 
 import pandas as pd
@@ -141,6 +142,38 @@ def test_india_truth_hand_example_r_ing_5():
     assert t.loc[(2, 0), "truth_g_per_kwh"] == pytest.approx(160.0, abs=1e-9)
     with pytest.raises(Exception, match="no emission factor"):
         india_truth(gen.assign(fuel="peat"), {"coal": 1000.0})
+
+
+def test_ingest_india_writes_truth_and_manifest_r_ing_5(tmp_path):
+    """`flipwise ingest india` with its defaults: the PRD §6.2.2 truth kind, a UTF-8 factors file
+    (read the same on Windows), and a manifest whose hash matches the CSV."""
+    from flipwise.cli import main
+    from flipwise.errors import ConfigError
+    from flipwise.trace import sha256_file
+
+    gen = tmp_path / "gen.csv"
+    pd.DataFrame(
+        [(1, 0, "coal", 300.0), (1, 0, "solar", 100.0), (1, 1800, "coal", 100.0),
+         (1, 1800, "solar", 100.0)],
+        columns=["region_id", "slot_utc", "fuel", "mwh"],
+    ).to_csv(gen, index=False)  # fmt: skip
+    factors = tmp_path / "energy.yaml"
+    factors.write_text(
+        "# CEA §6 — ρ, ≤ (non-ASCII comment)\nemission_factors:\n"
+        "  cea_database_version: v19\n  g_per_kwh:\n    coal: 1000.0\n",
+        encoding="utf-8",
+    )
+    out, man = tmp_path / "out", tmp_path / "man"
+    args = ["ingest", "india", "--generation", str(gen), "--factors", str(factors)]
+    assert main([*args, "--out", str(out), "--manifests", str(man)]) == 0
+    truth = pd.read_csv(out / "carbon_truth.csv")
+    assert truth["truth_g_per_kwh"].tolist() == pytest.approx([750.0, 500.0])
+    assert set(truth["truth_kind"]) == {"constructed_psp_scada"}
+    manifest = json.loads((man / "india_truth.json").read_text())
+    assert manifest["outputs_sha256"]["carbon_truth.csv"] == sha256_file(out / "carbon_truth.csv")
+    factors.write_text("emission_factors:\n  g_per_kwh:\n    coal: null\n", encoding="utf-8")
+    with pytest.raises(ConfigError, match="B4"):
+        main([*args, "--out", str(out), "--manifests", str(man)])
 
 
 def test_construct_india_generation_hand_example():

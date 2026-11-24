@@ -2,7 +2,19 @@
 
 Current state of the work, for a teammate or a new Claude Code session. Keep it short and overwrite it as things change; history belongs in `decisions.md`.
 
-**Last updated:** 12 Nov 2026 · **PRD version: 0.9.3**
+**Last updated:** 24 Nov 2026 · **PRD version: 0.9.3**
+
+## Done 24 Nov 2026: code cleanup merged into `main`, not yet committed
+
+Three cleanup agents (bugs, latency, redundancy) finished and their work is merged; worktrees removed. Outputs are byte-identical (33 `events.log`/`jobs.csv`/`decisions.csv` hashes checked), P1 holds, ruff clean, 282 tests pass.
+
+- Simulation core: queue-wait profiles rebuilt with one sweep and checkpoints; `flipwise run` 1.6–2.2× faster (decision_flip dev week 82 s to 50 s).
+- Live dashboard and services: `/status` 2,170 ms to 13 ms; skips no longer block the API; static files cached and gzipped (`webstatic.send_static`); Datacentres page now follows the policy picker; several POST and JSON-body bugs fixed; unused `tabler.min.js` dropped.
+- CLI and scripts: `ingest india` default truth kind fixed (rebuilds the committed truth file); UTF-8 YAML reads for Windows; empty policy list fails early; shared `bootstrap_ci`; `scripts/rerun_power.sh` removed.
+
+Known, not fixed: Overview KPI delta always green; in Docker each dc page subtitle says port 8101; sweep YAML keys other than `grid` are ignored. Commit when the user asks.
+
+Also pending from the Phase 2 review: see next step 5 below and `PROJECT_EXPLAINER.md` §17.
 
 **First-time setup (optional, for the graph):** `uv tool install graphifyy`, then `uv tool run --from graphifyy python scripts/build_graph.py`. Open `graphify-out/graph.html` in a browser to explore. The output is generated and not committed. The project's Claude Code hooks call `graphify`, so install it if you use Claude Code here.
 
@@ -44,6 +56,13 @@ To explore the code, use `graphify query "<question>"` if the graph is built.
 To rebuild the review outputs: `uv run flipwise compare --config configs/base.yaml --jobs 7`, `uv run flipwise sweep --config configs/base.yaml --sweep configs/sweeps/theta.yaml --policies fcfs,place_once,fixed_savings,decision_flip --jobs 4`, then `uv run flipwise dashboard --runs results/compare_<hash> --sweep results/sweep_<hash>`. Finished runs are reused; a dev week takes about 8 minutes with 7 jobs.
 
 4. **Phase 3, machine learning (D61, PRD 4.2 X10 to X12):** after the main Phase 3 runs, add learned runtime quantiles (X10) as an input to the same rules, then a learned Indian carbon forecaster (X11); an advisory learned trigger (X12) only as an ablation. Needs a PRD 12.1 edit to admit one ML library first.
+
+5. **Phase 2 review follow-ups (24 Nov, D63).** The guide's feedback and our answers (formula and parameter justification, complexity and CPU-time comparison) are in `docs/PROJECT_EXPLAINER.md` §17. Still open, all on **validation** data only:
+   - Run a `max_moves` sweep {1, 3, 10} and a `cooldown_s` sweep {1,800, 7,200}. No sweep config exists yet in `configs/sweeps/`; add one first. P1 holds only at `cooldown_s` = 1,800 (PRD §10).
+   - Run the ρ and slack sensitivity sweeps (`configs/sweeps/sens_rho.yaml`, `sens_slack_base.yaml`, `sens_k_slack.yaml`).
+   - Add the complexity and CPU-time tables (§17.4, §17.5) and the parameter table (§17.3) to the Phase 2/3 slides.
+   - Redraw the architecture diagram with labels (§17.6): numbered blocks, labelled arrows, a dashed information-boundary box, a legend.
+   - When the sweeps finish, update §17.3 and remove the "open" marks.
 
 ## Waiting on a decision
 

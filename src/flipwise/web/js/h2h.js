@@ -1,6 +1,6 @@
 // Head-to-head: decision_flip above one challenger, same jobs and clock, lane by lane.
 import * as api from "./api.js";
-import { esc, int, num, chart, colourOf, shortRegion, timeOnly, istClock, jobChips, keepLast, gClass, POLICY_RULES, REGION_COLOURS } from "./util.js";
+import { esc, int, num, chart, colourOf, shortRegion, timeOnly, istClock, jobChips, keepLast, gClass, needed, POLICY_RULES, REGION_COLOURS } from "./util.js";
 
 const MAIN = "decision_flip";
 let root = null, challenger = "fixed_savings", act = {}, lanes = {}, repSeen = null, shownPolicies = "";
@@ -16,7 +16,7 @@ export function mount(view) {
     <div class="rlegend" style="margin-top:8px" aria-label="Chart legend"><span class="small fw-muted">Per forecast update, jobs checked:</span>${[["Screen-skipped", "#9CA3AF"], ["Re-scored and kept", "#DB2777"], ["Moved", "#D97706"], ["Rescued", "#B91C1C"]].map(([n, c]) => `<span><i class="sw" style="background:${c}"></i>${n}</span>`).join("")}</div>
     <div class="strip" id="strip"></div><p class="say" id="say"></p></section>
   <div id="lane-top"></div><div id="lane-bot"></div>`;
-  view.querySelector("#pick").addEventListener("change", (e) => { challenger = e.target.value; update(window.__fwState); load(window.__fwState); });
+  view.querySelector("#pick").addEventListener("change", (e) => { challenger = e.target.value; update(window.__fwState); load(window.__fwState).then(() => update(window.__fwState), () => {}); });
 }
 export function unmount() { root = null; }
 
@@ -27,9 +27,11 @@ export async function load(s) {
   await Promise.all(names.map(async (p) => {
     const have = act[p] || [];
     const since = have.length ? have[have.length - 1].t : null;
-    const rows = await api.getActivity(p, since);
-    act[p] = have.concat(rows);
-    lanes[p] = await api.getLanes(p);
+    const [rows, l] = await Promise.all([api.getActivity(p, since), api.getLanes(p)]);
+    // Another load may have appended while this one was in flight: keep only newer rows.
+    const now = act[p] || [], last = now.length ? now[now.length - 1].t : -1;
+    act[p] = now.concat(rows.filter((r) => r.t > last));
+    lanes[p] = l;
   }));
 }
 
@@ -84,7 +86,7 @@ function logRows(p, st, ev) {
   }
   for (const d of (ev[p] || []).filter((e) => e.kind === "MOVE").slice(-80)) {
     const gain = d.S_a_kg != null && d.S_b_kg != null ? d.S_a_kg - d.S_b_kg : null;
-    const need = d.g_min_kg != null && d.w_ab_kg != null ? d.g_min_kg + d.theta * d.w_ab_kg : null;
+    const need = needed(d);
     lines.push({ t: d.time_s, o: 1, text: `<b>MOVE</b> ${esc(String(d.job_id).slice(0, 8))} ${esc(shortRegion(d.from))} → ${esc(shortRegion(d.to))}` + (gain != null ? ` &middot; gain ${num(gain, 3)}${need != null ? ` ≥ needed ${num(need, 3)}` : ""}` : "") });
   }
   lines.sort((a, b) => b.t - a.t || b.o - a.o);
@@ -105,7 +107,6 @@ function lane(host, p, st, ev, ymax, first) {
 
 export function update(s) {
   if (!root || !s || !s.status) return;
-  window.__fwState = s;
   const st = s.status, pick = root.querySelector("#pick");
   const opts = st.policies.filter((p) => p !== MAIN);
   if (!opts.includes(challenger)) challenger = opts.includes("fixed_savings") ? "fixed_savings" : opts[0];

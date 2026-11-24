@@ -16,13 +16,14 @@ from __future__ import annotations
 
 import argparse
 import datetime as dt
-import hashlib
 import json
 import re
 import ssl
 import time
 import urllib.request
 from pathlib import Path
+
+from flipwise.trace import sha256_file
 
 PSP_API = "https://webapi.grid-india.in/api/v1/file"
 PSP_CDN = "https://webcdn.grid-india.in/"
@@ -47,14 +48,6 @@ def _get(url: str, dest: Path, insecure: bool) -> None:
         while chunk := r.read(1 << 20):
             f.write(chunk)
     tmp.replace(dest)
-
-
-def _sha256(path: Path) -> str:
-    h = hashlib.sha256()
-    with path.open("rb") as f:
-        while chunk := f.read(1 << 20):
-            h.update(chunk)
-    return h.hexdigest()
 
 
 def _financial_year(d: dt.date) -> str:
@@ -108,7 +101,7 @@ def download_psp(start: dt.date, end: dt.date, insecure: bool) -> list[dict]:
                 "date": day.isoformat(),
                 "file": dest.relative_to(ROOT).as_posix(),
                 "url": PSP_CDN + path,
-                "sha256": _sha256(dest),
+                "sha256": sha256_file(dest),
             }
         )
     missing = [
@@ -167,7 +160,7 @@ def download_mendeley(start: dt.date, end: dt.date, insecure: bool) -> list[dict
             print(f"Mendeley: {name} ({f['size'] / 1e6:.0f} MB)")
             _get(url, dest, insecure)
         entries.append(
-            {"file": dest.relative_to(ROOT).as_posix(), "url": url, "sha256": _sha256(dest)}
+            {"file": dest.relative_to(ROOT).as_posix(), "url": url, "sha256": sha256_file(dest)}
         )
     print(f"Mendeley: {len(entries)} files")
     return entries

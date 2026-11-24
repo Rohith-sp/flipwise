@@ -22,3 +22,4 @@ build/
 .env
 *.pem
 .aws/
+.claude/worktrees/

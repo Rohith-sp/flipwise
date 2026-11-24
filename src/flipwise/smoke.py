@@ -55,7 +55,7 @@ def check(result: RunResult, expected: dict, t0: int) -> list[str]:
 def smoke(scenario_dir: Path = TOY_DIR, out_dir: Path | None = None) -> list[str]:
     from flipwise.reporting import write_run
 
-    expected = yaml.safe_load((scenario_dir / "expected.yaml").read_text())
+    expected = yaml.safe_load((scenario_dir / "expected.yaml").read_text(encoding="utf-8"))
     t0 = load_scenario(scenario_dir).start_s
     errs = []
     for policy, exp in expected["policies"].items():
