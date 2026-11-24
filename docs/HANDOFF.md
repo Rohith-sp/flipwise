@@ -58,7 +58,7 @@ To rebuild the review outputs: `uv run flipwise compare --config configs/base.ya
 4. **Phase 3, machine learning (D61, PRD 4.2 X10 to X12):** after the main Phase 3 runs, add learned runtime quantiles (X10) as an input to the same rules, then a learned Indian carbon forecaster (X11); an advisory learned trigger (X12) only as an ablation. Needs a PRD 12.1 edit to admit one ML library first.
 
 5. **Phase 2 review follow-ups (24 Nov, D63).** The guide's feedback and our answers (formula and parameter justification, complexity and CPU-time comparison) are in `docs/PROJECT_EXPLAINER.md` §17. Still open, all on **validation** data only:
-   - Run a `max_moves` sweep {1, 3, 10} and a `cooldown_s` sweep {1,800, 7,200}. No sweep config exists yet in `configs/sweeps/`; add one first. P1 holds only at `cooldown_s` = 1,800 (PRD §10).
+   - **Done 24 Nov (F26):** `max_moves` {1, 3, 10} and `cooldown_s` {1,800, 7,200} swept on validation (`configs/sweeps/max_moves_<policy>.yaml`, `cooldown_<policy>.yaml`, one file per policy because a grid key names one policy; `bash scripts/run_throttle_sweeps.sh`). All within noise of the defaults. P1 holds only at `cooldown_s` = 1,800 (PRD §10).
    - Run the ρ and slack sensitivity sweeps (`configs/sweeps/sens_rho.yaml`, `sens_slack_base.yaml`, `sens_k_slack.yaml`).
    - Add the complexity and CPU-time tables (§17.4, §17.5) and the parameter table (§17.3) to the Phase 2/3 slides.
    - Redraw the architecture diagram with labels (§17.6): numbered blocks, labelled arrows, a dashed information-boundary box, a legend.

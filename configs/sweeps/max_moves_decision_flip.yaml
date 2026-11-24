@@ -1,0 +1,4 @@
+# Move cap per job (PRD §10.10): 3 is the default. One file per re-planner, since a grid key names
+# one policy; run with --policies place_once,decision_flip. Validation only.
+grid:
+  policies.decision_flip.max_moves: [1, 3, 10]

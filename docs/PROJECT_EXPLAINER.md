@@ -1555,13 +1555,13 @@ Validation: 12 replicates, sampling 0.1. Selection rule (PRD §14.5): lowest kgC
 | `pred_error` ε | 5 % | Swept 5, 10, 20 % | kgCO2 14,077 / 14,114 / 14,161. Matches CarbonScaler's published 5 % deviation threshold. |
 | `fixed_savings` `g_rel` | 1 % (default 5 %) | Swept 1, 5, 10, 20 % | kgCO2 14,032 / 14,063 / 14,110 / 14,062; 1 % is lowest. |
 | `periodic` T | 30 min | Swept 30 min, 2 h, 6 h | kgCO2 14,057 / 14,067 / 14,089. Matches GREEN's 30-min rescheduling quantum. |
-| `cooldown_s` | 1,800 s | Design default; **open, not swept** (PRD grid 1,800, 7,200) | Equals the forecast update interval, so a job is re-checked at most once per new forecast. P1 holds only at this value. |
-| `max_moves` | 3 | Design default; **open, not swept** (PRD grid 1, 3, 10) | Stops thrashing: each move of a queued job loses its queue place. Applied identically to every re-planner, so it cannot favour `decision_flip`. |
+| `cooldown_s` | 1,800 s | Swept 1,800, 7,200 (validation, 12 replicates, 24 Nov) | `decision_flip` kgCO2 3,285 / 3,272 (paired diff −12.9, CI ±51.9), moves 2,289 / 1,518; `fixed_savings` 3,287 / 3,302 (+15.2, ±77.6), moves 5,938 / 3,306. Carbon is within noise either way, so the longer cooldown only trades moves for nothing measurable; 1,800 stays because it equals the forecast interval and P1 holds only there. |
+| `max_moves` | 3 | Swept 1, 3, 10 (validation, 12 replicates, 24 Nov) | `decision_flip` kgCO2 3,275 / 3,285 / 3,282 (1 and 10 against 3: −10.1 ±40.3, −3.1 ±40.5), moves 1,840 / 2,289 / 2,389; `fixed_savings` 3,281 / 3,287 / 3,240 (−5.9 ±47.0, −46.7 ±79.7), moves 3,797 / 5,938 / 6,326. Miss rate 4.1–4.3 % in every cell. Carbon is within noise of 3 at every cap, and 10 gives only about 4 % more moves than 3 for `decision_flip`, so 3 is not tuned but harmless. Stops thrashing: each move of a queued job loses its queue place. Applied identically to every re-planner, so it cannot favour `decision_flip`. |
 | `n_min` (runtime quantiles) | 20 jobs per user | Data rule | Below 20 jobs a q90 is unreliable. 756 of 1,307 users qualify, and they own 99.5 % of jobs. |
 | ρ (load) | 0.7 | Design default; **open**, sweep `configs/sweeps/sens_rho.yaml` not run | Default for a moderately loaded cluster. |
 | Slack | 4 h + 2·q90 | Design default; **open**, sweeps `sens_slack_base.yaml` and `sens_k_slack.yaml` not run | Default; sensitivity not yet measured. |
 
-Open items, so the paper does not overclaim: the `max_moves` sweep {1, 3, 10}, the `cooldown_s` sweep {1,800, 7,200}, and the ρ and slack sensitivity sweeps have not been run. Until they are, state these four values as design defaults, not as tuned values.
+Open items, so the paper does not overclaim: the `max_moves` and `cooldown_s` sweeps are done (above, F26; no setting is distinguishable from the default on carbon), and the ρ and slack sensitivity sweeps have not been run. Until they are, state these four values as design defaults, not as tuned values.
 
 ### 17.4 Cost comparison: time complexity
 

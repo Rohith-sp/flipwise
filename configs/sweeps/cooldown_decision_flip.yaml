@@ -1,0 +1,4 @@
+# Cooldown between moves of one job (PRD §10.10): 1800 s is the default (P1 needs it).
+# One file per re-planner; run with --policies place_once,decision_flip. Validation only.
+grid:
+  policies.decision_flip.cooldown_s: [1800, 7200]
