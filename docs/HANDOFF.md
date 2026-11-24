@@ -38,6 +38,8 @@ To explore the code, use `graphify query "<question>"` if the graph is built.
 
 ## Next steps
 
+**Phase 3 plan: PRD §18.2 (D64).** Order: WP1 open sweeps and ablations (step 2 below) and WP2 rigor (P1 proof, complexity, Holm-corrected stats) together with WP3 scaling study; then WP4 X10 (step 4); WP5 X11 as stretch; WP6 the pre-registered final run (needs team and guide agreement first); WP7 paper. Every choice before WP6 uses validation data only.
+
 1. **DT2 is done** (Linux, including a clean clone). The team waived the Windows/Docker Desktop run on 12 Nov; PowerShell commands stay documented but untested with Docker.
 0a. **Live demo mode (D60): done and merged 12 Nov.** `uv run flipwise live --config configs/base.yaml`, dashboard at http://localhost:8100 (or `docker compose --profile live up --build dc-delhi dc-mumbai dc-chennai live`); demo script and page-by-page explanation in `docs/PROJECT_EXPLAINER.md` §10. Rehearse once on the presenting laptop. The algorithm alone is explained in §5 of the same file.
 0b. **Docs consolidated (13 Nov):** `WALKTHROUGH.md`, `explanation.md`, `DECISION_FLIP.md`, `USAGE.md`, `DEMO.md`, `WEB_EXPLAINER.md`, `project_journey.md` and `helpfullinks.md` were replaced by one file, `docs/PROJECT_EXPLAINER.md`; a formatted copy (`Flipwise_Project_Explainer.docx` and `.pdf`, 38 pages) is kept outside the repo in the EL folder.
@@ -55,7 +57,7 @@ To explore the code, use `graphify query "<question>"` if the graph is built.
    ```
 To rebuild the review outputs: `uv run flipwise compare --config configs/base.yaml --jobs 7`, `uv run flipwise sweep --config configs/base.yaml --sweep configs/sweeps/theta.yaml --policies fcfs,place_once,fixed_savings,decision_flip --jobs 4`, then `uv run flipwise dashboard --runs results/compare_<hash> --sweep results/sweep_<hash>`. Finished runs are reused; a dev week takes about 8 minutes with 7 jobs.
 
-4. **Phase 3, machine learning (D61, PRD 4.2 X10 to X12):** after the main Phase 3 runs, add learned runtime quantiles (X10) as an input to the same rules, then a learned Indian carbon forecaster (X11); an advisory learned trigger (X12) only as an ablation. Needs a PRD 12.1 edit to admit one ML library first.
+4. **Phase 3, machine learning (D61; WP4 and WP5 of PRD 18.2):** after WP1, add learned runtime quantiles (X10) as an input to the same rules, then a learned Indian carbon forecaster (X11); an advisory learned trigger (X12) only as an ablation. Needs a PRD 12.1 edit to admit one ML library first.
 
 5. **Phase 2 review follow-ups (24 Nov, D63).** The guide's feedback and our answers (formula and parameter justification, complexity and CPU-time comparison) are in `docs/PROJECT_EXPLAINER.md` §17. Still open, all on **validation** data only:
    - **Done 24 Nov (F26):** `max_moves` {1, 3, 10} and `cooldown_s` {1,800, 7,200} swept on validation (`configs/sweeps/max_moves_<policy>.yaml`, `cooldown_<policy>.yaml`, one file per policy because a grid key names one policy; `bash scripts/run_throttle_sweeps.sh`). All within noise of the defaults. P1 holds only at `cooldown_s` = 1,800 (PRD §10).

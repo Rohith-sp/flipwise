@@ -17,6 +17,7 @@
 
 | Version | Date | Changes |
 |---|---|---|
+| 0.9.4 | 24 Nov 2026 | EL Phase 3 research plan (18.2, D64): four research questions mapped to H1–H4 plus a scaling question; work packages WP1–WP7 (open sweeps and ablations, rigor and complexity, scaling study, X10, X11 as stretch, a pre-registered held-out protocol since the trace has no unused days, paper). X12 and DT3 lowered in priority. |
 | 0.9.3 | 12 Nov 2026 | Machine-learning extensions planned for EL Phase 3 (4.2, X10 to X12, D61): learned runtime quantiles first, then a learned Indian carbon forecaster, then an advisory learned trigger. The policies stay rule-based; no ML code yet. |
 | 0.9.2 | 12 Nov 2026 | Live demo mode (13.6, D60): `flipwise live` paces the simulator on the wall clock for several policies at once, accepts submitted jobs and serves a JSON/SSE API and a static dashboard. For showing only; `Simulator.run` and every result are unchanged. |
 | 0.9.1 | 12 Nov 2026 | Power model resolves most of B3 (7.2, D58, F22, F24): GPU power per type from NVIDIA datasheets, measured GPU and CPU use per job from Alibaba's `pai_sensor_table`, and emissions reported as a bracket between `nameplate` (upper) and `measured` (lower). The scheduler keeps the uniform v0.8 scoring scale, so decisions are unchanged. New `flipwise ingest usage` and `data/processed/job_usage.csv`. CPU power per core stays an assumption. |
@@ -1368,6 +1369,36 @@ EL Phase 1 (pitch) is complete. Scope must be confirmed with the mentor (B1) bef
 |---|---|---|
 | **2. Partial results** | Roadmap phases 1–6 on a small slice: one week of the Alibaba trace (one validation slice, dev sampling) and the matching Indian truth and forecast vintages. Policies: `fcfs`, `place_once`, `periodic(T)`, `fixed_savings(g)`, `decision_flip(g, θ)`. `pred_error(ε)` is moved to EL Phase 3. Only the minimum of roadmap phase 7 needed to produce one table and `dashboard.html` (`run`, metrics, `dashboard`). | (1) Toy scenario whose kgCO2 is checked by hand (R-EN-1, toy `expected.yaml`), showing the simulator is correct. (2) At θ = 0, decision-flip makes exactly the same decisions as fixed-savings with fewer `stage2_calls` (P1, R-TRIG-2), the core claim. (3) One comparison table for the validation week: kgCO2, deadline-miss rate and re-score count per policy. (4) `dashboard.html` with the timeline, Pareto and results-table tabs (θ-sweep tab may show "no data"). kgCO2 labelled relative until B3 is resolved. (5) Deployment track **DT1**: three local datacentre services giving outputs identical to the in-process run, verified with the toy simulation (R-DEP-1) and on the dev week [v0.8.8: the scripted driver was dropped, D53]. (6) **DT2**, the same run via `docker compose up` [v0.8.8: required for EL Phase 2, no longer a stretch goal; D52]. Items 5–6 never hold back items 1–4. |
 | **3. Full results and paper** | Remainder of roadmap phase 5 (`pred_error(ε)`, with `pig`), phase 7 (`compare`, `sweep`, `report`), phases 8–9: full validation and test split, threshold freeze, all sweeps and ablations, interval calibration. Deployment track: finish **DT2** (Docker) if not done in Phase 2, including the dev replicate (R-DEP-2); then **DT3** (AWS) once the main test results exist. Optional extensions X1 (DRO) and X9 (Streamlit viewer) only after the main results exist. | Final test results, worse-regime table, full dashboard including θ sweep, reproducibility package, paper/report. DT2: `docker compose up` reproduces the results. DT3: a live run on AWS matching the in-process output, with its latency and cost reported. |
+
+
+### 18.2 EL Phase 3 research plan [Proposed, v0.9.4, D64]
+
+Phase 2 established the claim that survived the test run (F21): decision-flip gives about the same carbon as the other re-planners and `place_once`, at 54 % fewer full re-scorings and 60 % fewer moves than `fixed_savings`, and 42 % less scheduler CPU time (PROJECT_EXPLAINER §17.5). Phase 3 turns this into a research result: it explains *when* the method pays, makes the evidence statistically and analytically sound, fixes the two measured weaknesses through better inputs, and checks the claim on data not yet seen.
+
+**Research questions.**
+
+| RQ | Question | Evidence | Hypothesis |
+|---|---|---|---|
+| RQ1 | How much re-planning work does a decision-relevance trigger save, at what carbon and deadline cost? | Test result (F21), CPU time, complexity analysis | H1, H2 |
+| RQ2 | Under which conditions (load, slack, carbon spread) does re-planning beat planning once? | Sensitivity sweeps, worse-regime table | H3 |
+| RQ3 | How do runtime and forecast uncertainty affect the trigger, and do better inputs help? | Interval-scaling sweep; X10, X11 | H4 |
+| RQ4 | How does scheduler cost grow with the number of waiting jobs? | Scaling study | new |
+
+**Work packages, in order.** Tuning and every choice in WP1 to WP4 use calibration and validation data only (14.3).
+
+| WP | Work | Output | Main change to the earlier plan |
+|---|---|---|---|
+| WP1 | Close the open sweeps on validation: `sens_rho`, `sens_slack_base`, `sens_k_slack`; an interval-scaling sweep (H4: widths × 0.5, 1, 2; needs a small config switch first, HANDOFF step 2); the existing ablations (`ablation_screen`, `ablation_width`, `ablation_feasibility`). Build the worse-regime table (14.8). | Sweep curves; regime table answering RQ2 | H4 gets a sweep config; ablations become required, not optional |
+| WP2 | Rigor. (a) Write P1 as a lemma with proof (the screen bound is a true lower bound, so at θ = 0 every skipped job would not have moved). (b) Formal per-update complexity (PROJECT_EXPLAINER §17.4) with the expected-cost term `p`. (c) Statistics: paired bootstrap CIs as now, plus Holm correction across the policy comparisons and effect sizes. (d) Report both power brackets (D58) in every headline table. | Proof and complexity sections of the paper; corrected tables | New |
+| WP3 | Scaling study (RQ4): one validation replicate at sampling 0.1, 0.25, 0.5 and 1.0; measure scheduler CPU time and full re-scorings against mean waiting jobs `N`; fit the log-log slope per policy. | Figure: CPU time vs `N`; empirical check of the complexity table | Replaces the vague "scaling study up to the full trace" |
+| WP4 | X10, learned runtime quantiles (4.2): fit on trace days 0–20, choose features and hyperparameters on validation; report pinball loss and q05–q95 coverage against the per-user tables, then rerun the frozen policies with X10 inputs on validation. Needs a 12.1 edit admitting one library (scikit-learn or LightGBM) first. | Coverage table; miss-rate change (93 % of misses are runtime underestimates, F21) | Unchanged in scope; now gated by WP1 |
+| WP5 | X11, learned Indian carbon forecaster (stretch): train before 1 Jul 2023; compare MAE and interval coverage with the synthetic forecasts of 6.2.4; rerun on validation. | Forecast-accuracy table; removes the "borrowed GB errors" limitation if it matches | Stretch, after WP4 |
+| WP6 | Held-out evaluation. The trace has no unused days (0–20 fit, 25–45 validation, 46–73 test), so there is no untouched in-domain test set. Protocol: (a) freeze the final configuration and write it to `decisions.md` before running; (b) run the 16 test replicates once more as a declared second look, reporting the Phase 2 first look beside it; (c) stretch: external validity on a second public GPU trace (Microsoft Philly or Alibaba GPU v2023), run once with the frozen configuration. | Final tables; generalisation check | New; needs the team and guide to agree (B1) |
+| WP7 | Paper and package: problem, method (trigger, screen, gate, P1), setup (Indian data, splits), results (RQ1–RQ4), threats to validity (synthetic forecasts, rule-based deadlines, power bracket, sampling), reproducibility (R-REP-2 from a clean clone). | Paper draft; final EL report and slides | Was roadmap phase 9 |
+
+**Lowered priority.** X12 (learned trigger) only as an ablation if time remains, since it loses P1. DT3 (AWS) is optional and for the demo only; it adds no research evidence.
+
+**Order and gates.** WP1 and WP2 first (no new code beyond one sweep config), in parallel with WP3. WP4 starts when WP1 results exist. WP6 runs once, after every earlier choice is frozen. WP7 is written alongside, with numbers filled from frozen outputs only.
 
 ---
 
