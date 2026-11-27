@@ -5,6 +5,7 @@ from __future__ import annotations
 import datetime as dt
 import hashlib
 import json
+import math
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -279,6 +280,12 @@ def build_replicate(
     jobs.sort(key=lambda j: (j.arrival_s, j.job_id))
 
     residuals, residual_report = load_or_fit_residuals(cfg, root)
+    # Interval scaling (PRD §14.4, H4): multiply e05, e95 by s. Scores and the screen use point
+    # forecasts only, so θ = 0 decisions (P1) do not depend on s; 1.0 leaves everything unchanged.
+    interval_scale = float(params.get("interval_scale", 1.0))
+    if not (math.isfinite(interval_scale) and interval_scale > 0):
+        raise ConfigError(f"scenario.interval_scale: expected > 0, got {interval_scale}")
+    residuals = residuals.scaled(interval_scale)
     start_s = c0_s + min(shift_s, 0)
     # A day of earlier captures guarantees a vintage is already visible when the run starts.
     lead_in_s = start_s - 86400
@@ -315,11 +322,7 @@ def build_replicate(
         power=power,
         start_s=start_s,
         end_s=end_s,
-        params=PlannerParams(
-            int(params["h_defer_s"]),
-            str(params["feasibility"]),
-            float(params.get("interval_scale", 1.0)),  # PRD §14.4 H4 sweep key
-        ),
+        params=PlannerParams(int(params["h_defer_s"]), str(params["feasibility"])),
         residuals=residuals,
         scenario_hash=h.hexdigest(),
         build_report=report,

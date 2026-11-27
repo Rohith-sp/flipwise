@@ -36,6 +36,16 @@ class Residuals:
     e95: tuple[float, ...] = (0.0, 0.0, 0.0, 0.0)
     by_region: dict[int, tuple[tuple[float, ...], tuple[float, ...]]] | None = None
 
+    def scaled(self, s: float) -> Residuals:
+        """Every quantile times `s`: the interval-scaling sweep (PRD §14.4, H4). 1.0 is identity."""
+        if s == 1.0:
+            return self
+        sc = lambda q: tuple(s * x for x in q)  # noqa: E731
+        by = None if self.by_region is None else {
+            r: (sc(lo), sc(hi)) for r, (lo, hi) in self.by_region.items()
+        }  # fmt: skip
+        return Residuals(sc(self.e05), sc(self.e95), by)
+
     def for_region(self, region_id: int) -> tuple[tuple[float, ...], tuple[float, ...]]:
         if self.by_region is not None:
             return self.by_region[region_id]
