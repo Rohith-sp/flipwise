@@ -4,6 +4,7 @@
 # are reused, so re-running resumes. Progress: results/scaling_progress.txt.
 # Env: LIMIT=6h time limit for each 1.0 sweep cell; REPS=2 replicates.
 set -u
+cd "$(dirname "$0")/.." || exit 1
 LIMIT=${LIMIT:-6h}
 REPS=${REPS:-2}
 LOG=results/scaling_progress.txt
