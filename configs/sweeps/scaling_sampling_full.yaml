@@ -1,0 +1,3 @@
+# Full sampling (1.0) for place_once and decision_flip only, under a time limit (D66).
+grid:
+  splits.validation.sampling: [1.0]

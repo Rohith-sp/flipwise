@@ -41,6 +41,12 @@ ALL_POLICIES = (
     "decision_flip",
     "pig",
 )
+SCHED_COLS = (
+    "scheduler_placement_s",
+    "scheduler_screen_s",
+    "scheduler_rescore_s",
+    "scheduler_rescue_s",
+)
 TRACE_SLICE_DAYS = 7  # PRD §14.2
 PACKAGES = ("pandas", "numpy", "pyyaml", "matplotlib")
 
@@ -294,6 +300,7 @@ def compare(
     scenario_dir: Path | None = None,
     jobs: int = 1,
     debug: bool = False,
+    replicates_n: int | None = None,
 ) -> Path:
     """Every policy on identical replicates → `results/compare_<hash>/` (PRD §16.2)."""
     if not policies:
@@ -303,6 +310,10 @@ def compare(
     replicates: list[Replicate | None] = (
         [None] if scenario_dir is not None else list(replicates_for(cfg, split))
     )
+    if replicates_n is not None:
+        if replicates_n < 1:
+            raise ConfigError(f"--replicates must be at least 1, got {replicates_n}")
+        replicates = replicates[:replicates_n]  # first N in the fixed replicate order
     specs = [
         RunSpec(cfg, p, seed, out, r, scenario_dir, debug)
         for r, p in itertools.product(replicates, policies)
@@ -369,6 +380,7 @@ def sweep(
     out: Path = Path("results"),
     scenario_dir: Path | None = None,
     jobs: int = 1,
+    replicates_n: int | None = None,
 ) -> Path:
     """A grid over config values; each cell is one `compare` (PRD §13.4, §14.8)."""
     spec = yaml.safe_load(Path(sweep_path).read_text(encoding="utf-8"))
@@ -383,7 +395,9 @@ def sweep(
     for values in itertools.product(*(grid[k] for k in names)):
         overrides = [f"{k}={json.dumps(v)}" for k, v in zip(names, values, strict=True)]
         cell_cfg = apply_overrides(cfg, overrides)
-        cmp_dir = compare(cell_cfg, policies, split, seed, out, scenario_dir, jobs)
+        cmp_dir = compare(
+            cell_cfg, policies, split, seed, out, scenario_dir, jobs, replicates_n=replicates_n
+        )
         summary = pd.read_csv(cmp_dir / "summary.csv")
         means = summary.groupby("policy", sort=True).mean(numeric_only=True)
         worse = _baselines_worse(means)
@@ -400,6 +414,8 @@ def sweep(
                     "miss_rate": row["miss_rate"],
                     "stage2_calls": row["stage2_calls"],
                     "moves": row["moves"],
+                    "mean_waiting_jobs": row["mean_waiting_jobs"],
+                    **{c: row[c] for c in SCHED_COLS},
                     "dflip_worse_than": worse,
                 }
             )

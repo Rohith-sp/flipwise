@@ -77,6 +77,12 @@ def compute_metrics(
 
     horizon_s = end_s - start_s
     clipped = started["end_s"].fillna(end_s).clip(upper=end_s) - started["start_s"]
+    # Little's law: time-average of jobs waiting = total (arrival to start, or to the horizon end
+    # if never started) / horizon. Used as N in the load-scaling study (PRD 18.2 WP3).
+    start_or_end = jobs["start_s"].fillna(end_s).clip(upper=end_s)
+    m["mean_waiting_jobs"] = _ratio(
+        (start_or_end - jobs["arrival_s"]).clip(lower=0).sum(), horizon_s
+    )
     for dc in dcs:
         here = started["dc_id"] == dc["dc_id"]
         for label, col, cap in (
