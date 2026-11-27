@@ -153,6 +153,69 @@ def bootstrap_ci(diff: np.ndarray, rng: np.random.Generator) -> tuple[float, flo
     return float(np.percentile(boot, 2.5)), float(np.percentile(boot, 97.5))
 
 
+PERM_EXACT_MAX_N = 16  # 2**16 sign patterns are enumerated; above that, Monte Carlo flips
+PERM_RESAMPLES = 20_000
+
+
+def paired_p_value(diff: np.ndarray, seed: int = BOOTSTRAP_SEED) -> float:
+    """Two-sided paired sign-flip permutation p-value for mean(diff) = 0.
+
+    Exact for n <= 16, else seeded Monte Carlo with the +1 correction, so it is never 0.
+    A separate generator keeps the bootstrap CI draws unchanged.
+    """
+    diff = np.asarray(diff, dtype=float)
+    n = len(diff)
+    if n == 0 or not np.any(diff):
+        return 1.0
+    obs = abs(diff.sum())
+    tol = 1e-12 * max(1.0, float(np.abs(diff).sum()))
+    if n <= PERM_EXACT_MAX_N:
+        bits = (np.arange(2**n)[:, None] >> np.arange(n)) & 1
+        sums = np.abs(((1 - 2 * bits) * diff).sum(axis=1))
+        return float(np.mean(sums >= obs - tol))
+    signs = np.random.default_rng(seed).choice([-1.0, 1.0], size=(PERM_RESAMPLES, n))
+    sums = np.abs((signs * diff).sum(axis=1))
+    return float((np.sum(sums >= obs - tol) + 1) / (PERM_RESAMPLES + 1))
+
+
+def cohens_dz(diff: np.ndarray) -> float:
+    """Paired effect size mean(diff) / sd(diff, ddof=1); NaN when undefined (n < 2, sd = 0)."""
+    diff = np.asarray(diff, dtype=float)
+    if len(diff) < 2:
+        return float("nan")
+    sd = float(diff.std(ddof=1))
+    return float(diff.mean() / sd) if sd > 0 else float("nan")
+
+
+def holm_adjust(p: np.ndarray | list[float]) -> np.ndarray:
+    """Holm-Bonferroni adjusted p-values (step-down, monotone, capped at 1), input order."""
+    p = np.asarray(p, dtype=float)
+    m = len(p)
+    order = np.argsort(p, kind="stable")
+    adj = np.minimum(1.0, (m - np.arange(m)) * p[order])
+    adj = np.maximum.accumulate(adj)
+    out = np.empty(m)
+    out[order] = adj
+    return out
+
+
+STAT_COLS = ["p_value", "p_holm", "cohens_dz"]
+
+
+def add_holm(table: pd.DataFrame, family: str = "metric") -> pd.DataFrame:
+    """Add `p_holm` (Holm across the policy comparisons within each `family` group), and put
+    the statistics columns last, after the existing CI columns."""
+    table = table.copy()
+    if table.empty:
+        table["p_holm"] = pd.Series(dtype=float)
+    else:
+        table["p_holm"] = table.groupby(family)["p_value"].transform(
+            lambda s: pd.Series(holm_adjust(s.to_numpy()), index=s.index)
+        )
+    keep = [c for c in STAT_COLS if c in table.columns]
+    return table[[c for c in table.columns if c not in STAT_COLS] + keep]
+
+
 def _paired(summary: pd.DataFrame) -> pd.DataFrame:
     """Mean difference from `place_once` with a percentile bootstrap over replicates (§14.7)."""
     rows = []
@@ -160,7 +223,7 @@ def _paired(summary: pd.DataFrame) -> pd.DataFrame:
     if PAIRED_BASE not in set(summary["policy"]):
         return pd.DataFrame(
             columns=["policy", "metric", "n_replicates", "mean", "mean_base", "mean_diff"]
-            + ["ci95_lo", "ci95_hi"]
+            + ["ci95_lo", "ci95_hi", "p_value", "p_holm", "cohens_dz"]
         )
     base = summary[summary["policy"] == PAIRED_BASE].set_index("replicate")
     for policy in sorted(set(summary["policy"]) - {PAIRED_BASE}):
@@ -181,9 +244,11 @@ def _paired(summary: pd.DataFrame) -> pd.DataFrame:
                     "mean_diff": diff.mean(),
                     "ci95_lo": lo,
                     "ci95_hi": hi,
+                    "p_value": paired_p_value(diff),
+                    "cohens_dz": cohens_dz(diff),
                 }
             )
-    return pd.DataFrame(rows)
+    return add_holm(pd.DataFrame(rows))
 
 
 def read_summary(runs_dir: Path) -> pd.DataFrame | None:

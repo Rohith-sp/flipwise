@@ -24,7 +24,14 @@ import yaml
 
 from flipwise import figures
 from flipwise.dashboard import build_dashboard
-from flipwise.reporting import BOOTSTRAP_SEED, MISS_ALLOWANCE, bootstrap_ci
+from flipwise.reporting import (
+    BOOTSTRAP_SEED,
+    MISS_ALLOWANCE,
+    add_holm,
+    bootstrap_ci,
+    cohens_dz,
+    paired_p_value,
+)
 
 BASE = "place_once"
 PROPOSED = "decision_flip"
@@ -67,6 +74,8 @@ def diff_rows(a: pd.DataFrame, b: pd.DataFrame, rng: np.random.Generator, **labe
                 "mean_diff": diff.mean(),
                 "ci95_lo": lo,
                 "ci95_hi": hi,
+                "p_value": paired_p_value(diff),
+                "cohens_dz": cohens_dz(diff),
             }
         )
     return rows
@@ -83,7 +92,7 @@ def pairwise(summary: pd.DataFrame) -> pd.DataFrame:
     rows = []
     for other in sorted(set(summary["policy"]) - {PROPOSED}):
         rows += diff_rows(mine, _policy_rows(summary, other), rng, policy=PROPOSED, against=other)
-    return pd.DataFrame(rows)
+    return add_holm(pd.DataFrame(rows))
 
 
 def _sweep_info(data: pd.DataFrame) -> tuple[str, str, list[str]]:
