@@ -5,8 +5,8 @@
 | Field | Value |
 |---|---|
 | Document status | Implementation-ready draft. Supersedes v0.8.7 (5 Nov 2026), v0.8.6 (5 Nov 2026), v0.8.5 (4 Nov 2026), v0.8.4 (4 Nov 2026), v0.8.3 (4 Nov 2026), v0.8.2 (4 Nov 2026), v0.8.1 (4 Nov 2026), v0.8 (2 Nov 2026), v0.7 (29 Oct 2026), v0.6, v0.5.1 and v0.5 (29 Oct 2026), v0.4 (28 Oct 2026), v0.3 (24 Oct 2026), v0.2 (24 Oct 2026) and v0.1 (23 Oct 2026). Changes are listed in the changelog below. |
-| Version | 0.9.3 |
-| Revised | 5 November 2026 |
+| Version | 0.9.6 |
+| Revised | 27 November 2026 |
 | Project name | **Flipwise** (Python package and CLI `flipwise`) [Decision]: it re-evaluates decision flips wisely. Renamed from FlipSim on 25 Oct 2026. Availability of the name on GitHub and PyPI is [Open], not yet checked. |
 | Project context | RV College of Engineering, Experiential Learning, V Semester, AY 2026–27; SDG 9 |
 | Deliverable | Offline, command-line research simulator and reproducible evaluation pipeline, plus a static, self-contained HTML results dashboard generated from result CSVs. Not a production scheduler. No web app in the MVP. From v0.4, a **deployment track** (Section 13.5) runs the same simulation with each virtual datacentre as a separate service: first as local processes, then in Docker, then on AWS. Research results always come from the in-process mode; the deployment modes must reproduce them exactly. |
@@ -17,6 +17,7 @@
 
 | Version | Date | Changes |
 |---|---|---|
+| 0.9.6 | 27 Nov 2026 | EL Phase 3 scope and schedule fixed (18.2 "Scope and schedule", D66): seven goals for the review on 16 Dec 2026; scaling now covers load (sampling 0.05 to 1.0) and, if Indian data allows, region count (4–5 sites); scikit-learn admitted for X10 and X13 (12.1); DT3 (AWS) dropped, everything runs locally; four stages A–D, with the last two days for the paper, slides and report only. |
 | 0.9.5 | 24 Nov 2026 | X13 learned move gate (offline contextual bandit behind the screen) added to 4.2 and 18.2 (D65); a full RL scheduler ruled out with reasons. |
 | 0.9.4 | 24 Nov 2026 | EL Phase 3 research plan (18.2, D64): four research questions mapped to H1–H4 plus a scaling question; work packages WP1–WP7 (open sweeps and ablations, rigor and complexity, scaling study, X10, X11 as stretch, a pre-registered held-out protocol since the trace has no unused days, paper). X12 and DT3 lowered in priority. |
 | 0.9.3 | 12 Nov 2026 | Machine-learning extensions planned for EL Phase 3 (4.2, X10 to X12, D61): learned runtime quantiles first, then a learned Indian carbon forecaster, then an advisory learned trigger. The policies stay rule-based; no ML code yet. |
@@ -819,6 +820,7 @@ Note on `pig`: its wait profile uses actual runtimes of committed jobs, so its w
 | ruff ≥ 0.17 | Lint and format | One tool for both | MVP (dev) |
 | hypothesis | Property tests for bound and invariants | Only if hand-written randomised tests prove insufficient | Optional |
 | graphify (`graphifyy` on PyPI, Apache-2.0) | Developer navigation only: a queryable graph of code and of `docs/decisions.md`, built by `scripts/build_graph.py` | Makes context transfer cheaper. Installed as a tool (`uv tool install graphifyy`), not in `pyproject.toml`; `src/flipwise/` never imports it, so results cannot depend on it | Optional (dev) |
+| scikit-learn ≥ 1.7 | X10 learned runtime quantiles (`HistGradientBoostingRegressor`, quantile loss) and the X13 gate model | EL Phase 3 (D66); one library for both, fixed `random_state` so runs stay deterministic (R-SIM-1). Chosen over LightGBM: already supports quantile loss, smaller install, enough speed for about 10^5 training rows | Phase 3 (extra `flipwise[ml]`) |
 | pyarrow | Parquet | Only if CSV I/O becomes a measured bottleneck | Optional |
 | openpyxl, xlrd | Read Grid-India `.xlsx`/`.xls` reports and SCADA workbooks | Only `scripts/build_india_generation.py`; extra `flipwise[india-data]` (`uv sync --extra india-data`) | Optional |
 | `http.server` (`ThreadingHTTPServer`), `urllib.request` (stdlib) | Datacentre service and coordinator client, JSON over HTTP | DT1–DT3 need a transport; the stdlib adds no dependency and the API is seven endpoints (13.5) | Deployment track |
@@ -1403,6 +1405,36 @@ Phase 2 established the claim that survived the test run (F21): decision-flip gi
 **Lowered priority.** X12 (learned trigger) only as an ablation if time remains, since it loses P1. DT3 (AWS) is optional and for the demo only; it adds no research evidence.
 
 **Order and gates.** WP1 and WP2 first (no new code beyond one sweep config), in parallel with WP3. WP4 starts when WP1 results exist. WP6 runs once, after every earlier choice is frozen. WP7 is written alongside, with numbers filled from frozen outputs only.
+
+#### Scope and schedule for the Phase 3 review [Decision, v0.9.6, D66]
+
+The Phase 3 review is on 16 Dec 2026 and carries 60 marks. The published part of the rubric gives 15 to the prototype demonstration (functionality, innovation, usability) and 10 to the clarity of results and discussion; the rest is expected to cover the paper, report and viva. Everything runs locally; DT3 (AWS) is dropped.
+
+**Goals.** Phase 3 is complete when goals 1–7 are done and the demo, paper and slides use the same frozen numbers.
+
+| # | Goal | Done when | WP |
+|---|---|---|---|
+| 1 | Where re-planning wins and loses (RQ2) | `sens_rho`, `sens_slack_base`, `sens_k_slack` and the screen/width ablations run on validation; one table "decision-flip helps when …, loses when …" | WP1 |
+| 2 | Cost, proved and measured (RQ4) | P1 written as a lemma with proof; per-update Big‑O table; load-scaling plot (below) | WP2, WP3 |
+| 2b | Region scaling | 4–5 sites instead of 3; plot of screen vs full re-scoring cost against the number of sites. Only if Indian generation data exists for the extra grid (go/no-go by 30 Nov), else a second site on an existing grid, else dropped | WP3 |
+| 3 | Sound statistics | Every headline table has paired bootstrap CIs, Holm-corrected p-values, effect sizes and the measured–nameplate kgCO2 range | WP2 |
+| 4 | One learned component | X10 compared with the per-user tables on validation: fewer misses, or an honest "no gain" | WP4 |
+| 5 | Reliable, easy demo | Dashboard polish, a "why this job moved" view, a guided flow; runs end to end twice on the presenting laptop; backup recording | — |
+| 6 | IEEE paper | IEEEtran, about 6 pages: problem, method, proof, results, limits | WP7 |
+| 7 | Slides, report, results section | Same figures as the paper | WP7 |
+
+Only if time remains: X13 (only if X10 is done by 6 Dec) and the WP6 second look at the test replicates (only with the guide's approval). Out of scope: X11, X12, a second trace, DT3.
+
+**Load scaling (WP3, revised).** 2 validation replicates at sampling 0.05, 0.1, 0.25 and 0.5 for `place_once`, `fixed_savings`, `periodic` and `decision_flip`; sampling 1.0 for `place_once` and `decision_flip` only. A re-planner that does not finish within a set time limit at 1.0 is reported as such. Timing runs use `--jobs 1` and never overlap other runs, because they measure CPU time.
+
+**Schedule.**
+
+| Stage | Dates | Work |
+|---|---|---|
+| A: setup and long runs | 27–29 Nov | Docs (this section, D66); overnight validation queue for goal 1; Holm statistics and effect sizes in `reporting.py`; load-scaling setup; region-data go/no-go |
+| B: evidence and learned component | 30 Nov – 5 Dec | X10 built and compared on validation; load-scaling runs; P1 proof and Big‑O; region-scaling code (if go); win/lose table |
+| C: freeze, demo, figures | 6–13 Dec | Region-scaling runs; freeze recorded in `decisions.md`; one script that builds every paper figure from the result CSVs; demo polish; X13 and WP6 if allowed; demo rehearsed twice plus a backup recording; final cleanup and push |
+| D: paperwork only | 14–15 Dec | 14 Dec: paper and EL report. 15 Dec: slides and a check that every number matches across the three. No new runs or code |
 
 ---
 

@@ -218,7 +218,7 @@ Dockerfile, docker-compose.yml   one image: three datacentre services, coordinat
 ## Roadmap
 
 - **EL Phase 2 (current):** simulator, seven policies, validation and test results, distributed deployment (local services and Docker), live demo.
-- **EL Phase 3 (research):** see [PRD §18.2](docs/prd.md): open sensitivity sweeps and ablations (when does re-planning pay), a proof of P1 and a complexity and scaling study, learned runtime quantiles and (stretch) a learned Indian carbon forecaster as inputs to the same rules, a learned move gate (X13, RL-style bandit) as an ablation ([D61](docs/decisions.md)), a pre-registered final evaluation, and the paper. AWS deployment is optional.
+- **EL Phase 3 (research, review on 16 Dec 2026):** see [PRD §18.2](docs/prd.md) "Scope and schedule" ([D66](docs/decisions.md)): sensitivity sweeps and ablations (when does re-planning pay), a proof of P1 with a complexity, load-scaling and (if data allows) region-scaling study, Holm-corrected statistics, learned runtime quantiles (X10), a polished demo, and an IEEE paper, slides and report. A learned move gate (X13) and a second look at the test weeks only if time and the guide allow. Everything runs locally; AWS is dropped.
 
 ## Acknowledgements
 

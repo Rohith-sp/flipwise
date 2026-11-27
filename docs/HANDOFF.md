@@ -2,9 +2,22 @@
 
 Current state of the work, for a teammate or a new Claude Code session. Keep it short and overwrite it as things change; history belongs in `decisions.md`.
 
-**Last updated:** 24 Nov 2026 · **PRD version: 0.9.3**
+**Last updated:** 27 Nov 2026 · **PRD version: 0.9.6**
 
-## Done 24 Nov 2026: code cleanup merged into `main`, not yet committed
+## Phase 3 plan (27 Nov 2026, D66): review on 16 Dec
+
+Scope, goals and dates are in PRD §18.2 "Scope and schedule". Everything runs locally (no AWS). Validation data only until any frozen final run.
+
+| Stage | Dates | Work | Status |
+|---|---|---|---|
+| A | 27–29 Nov | Docs (done); overnight validation queue (`sens_rho`, `sens_slack_base`, `sens_k_slack`, `ablation_screen`, `ablation_width`); Holm statistics and effect sizes in `reporting.py`; load-scaling setup; ER-grid data go/no-go for region scaling | next |
+| B | 30 Nov – 5 Dec | X10 (scikit-learn) built and compared on validation; load-scaling runs; P1 proof and Big‑O; region-scaling code if go; win/lose table | — |
+| C | 6–13 Dec | Region-scaling runs; freeze in `decisions.md`; one figure script; demo polish ("why this job moved", guided flow); X13 if X10 done by 6 Dec; WP6 only with guide approval; rehearse demo twice plus backup recording; final cleanup and push | — |
+| D | 14–15 Dec | Paperwork only: 14 Dec paper (IEEEtran) and EL report; 15 Dec slides and number check | — |
+
+Rules for the runs: timing (scaling) runs use `--jobs 1` and never overlap other runs; about 6 GB RAM is free, so sampling 1.0 may not fit. Open: LaTeX tool (Overleaf or local `pdflatex`), WP6 approval from the guide.
+
+## Done 24 Nov 2026: code cleanup merged into `main` and committed
 
 Three cleanup agents (bugs, latency, redundancy) finished and their work is merged; worktrees removed. Outputs are byte-identical (33 `events.log`/`jobs.csv`/`decisions.csv` hashes checked), P1 holds, ruff clean, 282 tests pass.
 
@@ -12,7 +25,7 @@ Three cleanup agents (bugs, latency, redundancy) finished and their work is merg
 - Live dashboard and services: `/status` 2,170 ms to 13 ms; skips no longer block the API; static files cached and gzipped (`webstatic.send_static`); Datacentres page now follows the policy picker; several POST and JSON-body bugs fixed; unused `tabler.min.js` dropped.
 - CLI and scripts: `ingest india` default truth kind fixed (rebuilds the committed truth file); UTF-8 YAML reads for Windows; empty policy list fails early; shared `bootstrap_ci`; `scripts/rerun_power.sh` removed.
 
-Known, not fixed: Overview KPI delta always green; in Docker each dc page subtitle says port 8101; sweep YAML keys other than `grid` are ignored. Commit when the user asks.
+The three known issues listed then (KPI delta colour, Docker port subtitle, ignored sweep keys) were fixed and pushed.
 
 Also pending from the Phase 2 review: see next step 5 below and `PROJECT_EXPLAINER.md` §17.
 
@@ -38,7 +51,7 @@ To explore the code, use `graphify query "<question>"` if the graph is built.
 
 ## Next steps
 
-**Phase 3 plan: PRD §18.2 (D64).** Order: WP1 open sweeps and ablations (step 2 below) and WP2 rigor (P1 proof, complexity, Holm-corrected stats) together with WP3 scaling study; then WP4 X10 (step 4); WP5 X11 as stretch; WP6 the pre-registered final run (needs team and guide agreement first); WP7 paper. Every choice before WP6 uses validation data only.
+**Phase 3 plan: PRD §18.2 (D64), scope and dates fixed by D66 (see the top of this file).** Order: WP1 open sweeps and ablations (step 2 below) and WP2 rigor (P1 proof, complexity, Holm-corrected stats) together with WP3 scaling study; then WP4 X10 (step 4); WP5 X11 as stretch; WP6 the pre-registered final run (needs team and guide agreement first); WP7 paper. Every choice before WP6 uses validation data only.
 
 1. **DT2 is done** (Linux, including a clean clone). The team waived the Windows/Docker Desktop run on 12 Nov; PowerShell commands stay documented but untested with Docker.
 0a. **Live demo mode (D60): done and merged 12 Nov.** `uv run flipwise live --config configs/base.yaml`, dashboard at http://localhost:8100 (or `docker compose --profile live up --build dc-delhi dc-mumbai dc-chennai live`); demo script and page-by-page explanation in `docs/PROJECT_EXPLAINER.md` §10. Rehearse once on the presenting laptop. The algorithm alone is explained in §5 of the same file.
