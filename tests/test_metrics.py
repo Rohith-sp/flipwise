@@ -124,3 +124,9 @@ def test_carbon_coverage_on_the_toy_r_met_1(toy):
     assert [r["lead_bucket"] for r in rows] == [0, 1, 2, 3]
     assert rows[0]["n"] > 0 and rows[0]["mean_width_g_per_kwh"] == 0.0
     assert rows[3]["coverage"] is None  # no lead time that long on the toy
+
+
+def test_mean_waiting_jobs_is_little_law_total_wait_over_horizon_r_met_1():
+    """a waited 0 s, b 3600 s, c never started so waits to the 86400 s end: 90000 / 86400."""
+    m = compute_metrics(_jobs(), NO_DECISIONS, {}, DCS, 0, 86400)
+    assert m["mean_waiting_jobs"] == pytest.approx(90000 / 86400)

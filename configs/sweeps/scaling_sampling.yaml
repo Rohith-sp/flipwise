@@ -1,0 +1,4 @@
+# Load scaling (PRD 18.2 WP3, D66): job sampling 0.05 to 0.5. Validation only; run with
+# --replicates 2 --jobs 1 so CPU times are not disturbed. 1.0 is in scaling_sampling_full.yaml.
+grid:
+  splits.validation.sampling: [0.05, 0.1, 0.25, 0.5]

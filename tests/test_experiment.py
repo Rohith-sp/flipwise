@@ -272,3 +272,33 @@ def test_git_commit_falls_back_to_the_image_environment(monkeypatch):
     assert experiment._git_commit() == {"commit": "abc123", "dirty": None}
     monkeypatch.delenv("FLIPWISE_GIT_COMMIT")
     assert experiment._git_commit() == {"commit": None, "dirty": None}
+
+
+def test_replicates_option_must_be_positive_and_keeps_the_toy_run(tmp_path):
+    with pytest.raises(ConfigError, match="--replicates"):
+        compare({"policies": {}}, ["fcfs"], out=tmp_path, scenario_dir=TOY_DIR, replicates_n=0)
+    cmp_dir = compare(
+        {"policies": {}}, ["fcfs"], out=tmp_path, scenario_dir=TOY_DIR, replicates_n=1
+    )
+    assert len(pd.read_csv(cmp_dir / "summary.csv")) == 1
+
+
+def test_sweep_can_vary_validation_sampling_and_reports_timing_columns(tmp_path):
+    """Grid key splits.validation.sampling is a valid override; timing columns reach the summary."""
+    from flipwise.config import apply_overrides
+
+    cfg = load_config("configs/base.yaml")
+    changed = apply_overrides(cfg, ["splits.validation.sampling=0.25"])
+    assert changed["splits"]["validation"]["sampling"] == 0.25
+    grid = tmp_path / "g.yaml"
+    grid.write_text(yaml.safe_dump({"grid": {"policies.decision_flip.theta": [0.5]}}))
+    out = sweep(
+        {"policies": {"decision_flip": {"theta": 0.1}}},
+        grid,
+        ["decision_flip"],
+        out=tmp_path,
+        scenario_dir=TOY_DIR,
+        replicates_n=1,
+    )
+    data = pd.read_csv(out / "summary.csv")
+    assert {"mean_waiting_jobs", "scheduler_rescore_s"} <= set(data.columns)

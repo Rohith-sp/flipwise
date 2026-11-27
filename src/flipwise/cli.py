@@ -197,6 +197,7 @@ def _cmd_compare(args: argparse.Namespace) -> int:
         args.scenario,
         args.jobs,
         debug=args.scenario is not None,
+        replicates_n=args.replicates,
     )
     print(f"wrote {out}")
     return 0
@@ -214,6 +215,7 @@ def _cmd_sweep(args: argparse.Namespace) -> int:
         args.out,
         args.scenario,
         args.jobs,
+        replicates_n=args.replicates,
     )
     print(f"wrote {out}")
     return 0
@@ -351,6 +353,7 @@ def build_parser() -> argparse.ArgumentParser:
     cp.add_argument("--policies", default="all", help="comma-separated, or all")
     cp.add_argument("--split", default="dev", choices=["dev", "validation", "test"])
     cp.add_argument("--jobs", type=int, default=1, help="parallel runs")
+    cp.add_argument("--replicates", type=int, default=None, help="only the first N replicates")
     cp.set_defaults(func=_cmd_compare)
 
     sw = sub.add_parser("sweep", help="grid over parameters; each cell is a compare")
@@ -359,6 +362,7 @@ def build_parser() -> argparse.ArgumentParser:
     sw.add_argument("--policies", default="all", help="comma-separated, or all")
     sw.add_argument("--split", default="dev", choices=["dev", "validation", "test"])
     sw.add_argument("--jobs", type=int, default=1, help="parallel runs")
+    sw.add_argument("--replicates", type=int, default=None, help="only the first N replicates")
     sw.set_defaults(func=_cmd_sweep)
 
     ds = sub.add_parser("dc-serve", help="run one datacentre as an HTTP service (PRD §13.5)")
