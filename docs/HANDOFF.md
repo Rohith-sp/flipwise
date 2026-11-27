@@ -15,6 +15,15 @@ Scope, goals and dates are in PRD §18.2 "Scope and schedule". Everything runs l
 | C | 6–13 Dec | Region-scaling runs; freeze in `decisions.md`; one figure script; demo polish ("why this job moved", guided flow); X13 if X10 done by 6 Dec; WP6 only with guide approval; rehearse demo twice plus backup recording; final cleanup and push | — |
 | D | 14–15 Dec | Paperwork only: 14 Dec paper (IEEEtran) and EL report; 15 Dec slides and number check | — |
 
+**For Stavan: long runs (A2, then B3).** These take hours, so run them on a machine that can stay on overnight. Validation only; never `--split test`.
+
+1. `git pull`, then `uv sync`.
+2. Goal 1 queue (A2, about 12–15 h; resumes if interrupted, since finished runs are reused):
+   - Linux or Git Bash: `bash scripts/run_phase3_queue.sh`
+   - Progress: `results/phase3_progress.txt`; logs in `results/sweeps_logs/`.
+3. When it ends with `ALL DONE`, tell the team; the outputs are exported to `docs/` in Stage B.
+4. Load-scaling timing runs (B3) come after A4 is merged: run nothing else on the machine at the same time, because they measure CPU time.
+
 Rules for the runs: timing (scaling) runs use `--jobs 1` and never overlap other runs; about 6 GB RAM is free, so sampling 1.0 may not fit. Open: LaTeX tool (Overleaf or local `pdflatex`), WP6 approval from the guide.
 
 ## Done 24 Nov 2026: code cleanup merged into `main` and committed
