@@ -272,9 +272,11 @@ def build_replicate(
         if r.gpu_req > cap_gpu or r.cpu_req > cap_cpu or r.mem_req_gb > cap_mem:
             excluded += 1  # fits no datacentre, and all three are equal (PRD §8.1)
             continue
-        if learned is None:
-            (q05, q50, q90, q95), source = runtime_model.estimate(r.user, float(r.gpu_req))
-        else:
+        (q05, q50, q90, q95), source = runtime_model.estimate(r.user, float(r.gpu_req))
+        # The deadline always comes from the per-user table (PRD §6.6), so `x10` changes only what
+        # the scheduler believes about runtime, never the workload it is judged on (D66).
+        table_q90 = q90
+        if learned is not None:
             (q05, q50, q90, q95), source = learned[k], "x10"
         sources[source] += 1
         arrival_s = c0_s + shift_s + int(r.trace_arrival_s) - t0_s
@@ -283,7 +285,7 @@ def build_replicate(
                 job_id=r.job_id, user=r.user, arrival_s=arrival_s, gpu_req=float(r.gpu_req),
                 cpu_req=float(r.cpu_req), mem_req_gb=float(r.mem_req_gb), r_q05_s=q05,
                 r_q50_s=q50, r_q90_s=q90, r_q95_s=q95,
-                deadline_s=arrival_s + slack_s + int(k_slack * q90),
+                deadline_s=arrival_s + slack_s + int(k_slack * table_q90),
                 runtime_actual_s=int(r.runtime_actual_s), gpu_type=str(r.gpu_type),
                 gpu_used=None if gpu_used is None else float(gpu_used),
                 cpu_used=None if cpu_used is None else float(cpu_used),

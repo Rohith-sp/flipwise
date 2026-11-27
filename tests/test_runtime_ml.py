@@ -96,3 +96,17 @@ def test_default_runtime_model_is_table_and_bad_value_rejected():
     cfg["scenario"]["runtime_model"] = "nope"
     with pytest.raises(ConfigError):
         build_replicate(cfg, Replicate("t", (25, 26), "2023-07-03", 0.01))
+
+
+def test_x10_keeps_table_deadlines_d66():
+    """X10 changes the scheduler's runtime belief only; deadlines stay from the table (PRD §6.6)."""
+    pytest.importorskip("sklearn")
+    cfg = load_config(Path("configs/base.yaml"))
+    if not Path(cfg["data"]["jobs"]).exists():
+        pytest.skip("real jobs file not present")
+    rep = Replicate("t", (25, 26), "2023-07-03", 0.01)
+    table = build_replicate(cfg, rep)
+    cfg["scenario"]["runtime_model"] = "x10"
+    learned = build_replicate(cfg, rep)
+    assert [j.deadline_s for j in learned.jobs] == [j.deadline_s for j in table.jobs]
+    assert [j.r_q90_s for j in learned.jobs] != [j.r_q90_s for j in table.jobs]
