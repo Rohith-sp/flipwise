@@ -5,7 +5,7 @@
 | Field | Value |
 |---|---|
 | Document status | Implementation-ready draft. Supersedes v0.8.7 (5 Nov 2026), v0.8.6 (5 Nov 2026), v0.8.5 (4 Nov 2026), v0.8.4 (4 Nov 2026), v0.8.3 (4 Nov 2026), v0.8.2 (4 Nov 2026), v0.8.1 (4 Nov 2026), v0.8 (2 Nov 2026), v0.7 (29 Oct 2026), v0.6, v0.5.1 and v0.5 (29 Oct 2026), v0.4 (28 Oct 2026), v0.3 (24 Oct 2026), v0.2 (24 Oct 2026) and v0.1 (23 Oct 2026). Changes are listed in the changelog below. |
-| Version | 0.9.6 |
+| Version | 0.9.7 |
 | Revised | 27 November 2026 |
 | Project name | **Flipwise** (Python package and CLI `flipwise`) [Decision]: it re-evaluates decision flips wisely. Renamed from FlipSim on 25 Oct 2026. Availability of the name on GitHub and PyPI is [Open], not yet checked. |
 | Project context | RV College of Engineering, Experiential Learning, V Semester, AY 2026–27; SDG 9 |
@@ -17,6 +17,7 @@
 
 | Version | Date | Changes |
 |---|---|---|
+| 0.9.7 | 27 Nov 2026 | Built for Phase 3: X10 learned runtime quantiles as `scenario.runtime_model: x10`, deadlines still from the per-user table (D68, F27); interval scaling `scenario.interval_scale` multiplies e05, e95 (14.4); 5-site region-scaling config with Kolkata (ER) and Hyderabad (SR), total capacity fixed, ER errors from GB region 9 as an assumption (6.2.4, D67); Holm-adjusted p-values and Cohen's d_z in paired tables; `--replicates N`; `mean_waiting_jobs` metric. |
 | 0.9.6 | 27 Nov 2026 | EL Phase 3 scope and schedule fixed (18.2 "Scope and schedule", D66): seven goals for the review on 16 Dec 2026; scaling now covers load (sampling 0.05 to 1.0) and, if Indian data allows, region count (4–5 sites); scikit-learn admitted for X10 and X13 (12.1); DT3 (AWS) dropped, everything runs locally; four stages A–D, with the last two days for the paper, slides and report only. |
 | 0.9.5 | 24 Nov 2026 | X13 learned move gate (offline contextual bandit behind the screen) added to 4.2 and 18.2 (D65); a full RL scheduler ruled out with reasons. |
 | 0.9.4 | 24 Nov 2026 | EL Phase 3 research plan (18.2, D64): four research questions mapped to H1–H4 plus a scaling question; work packages WP1–WP7 (open sweeps and ablations, rigor and complexity, scaling study, X10, X11 as stretch, a pre-registered held-out protocol since the trace has no unused days, paper). X12 and DT3 lowered in priority. |
@@ -268,7 +269,7 @@ For each GB source region `g`: `F_gb(g, k, v)` is the forecast for slot `k` as o
 - Same UTC slot `k` and capture `v` as the archive, so the Indian forecasts inherit the archive's capture schedule, missing captures, lead-time growth of error, revision timing and correlation across slots and regions.
 - `s_r = mean A(r, ·) / mean A_gb(g(r), ·)` over the calibration window scales GB errors (gCO2/kWh) to the Indian intensity level. Additive scaled errors are used instead of relative errors because relative errors explode where GB intensity is near zero.
 - `α` is the forecast-error scaling of 14.4 (base 1).
-- Source mapping `g(r)` [Decision; IDs verified at ingest, O3]: three different mid-to-high-intensity England/Wales regions, NR ← London, WR ← South Wales, SR ← East Midlands. Scottish regions are excluded because their near-zero intensity makes `s_r` unstable. Sensitivity: a permuted mapping.
+- Source mapping `g(r)` [Decision; IDs verified at ingest, O3]: three different mid-to-high-intensity England/Wales regions, NR ← London, WR ← South Wales, SR ← East Midlands. Scottish regions are excluded because their near-zero intensity makes `s_r` unstable. Sensitivity: a permuted mapping. [v0.9.7, D67] The 5-site region-scaling config adds ER ← East Midlands (shared with SR, an assumption: only these three GB paths are ingested); its `s_r` uses ER's own truth, so the error level is scaled to ER, but its error shape is SR's.
 - Why not random noise: independent noise per `(k, v)` would make forecasts jitter between consecutive captures, inflating churn for every re-planning policy and unfairly favouring a noise margin. Real error paths revise smoothly, as operational forecasts do.
 - Limitation, stated in every report: the errors have the statistical structure of a real operational forecast, but their causes are British weather, not Indian monsoon or solar variability.
 

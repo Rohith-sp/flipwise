@@ -2,7 +2,7 @@
 
 Current state of the work, for a teammate or a new Claude Code session. Keep it short and overwrite it as things change; history belongs in `decisions.md`.
 
-**Last updated:** 27 Nov 2026 · **PRD version: 0.9.6**
+**Last updated:** 27 Nov 2026 · **PRD version: 0.9.7**
 
 ## Phase 3 plan (27 Nov 2026, D66): review on 16 Dec
 
@@ -11,20 +11,22 @@ Scope, goals and dates are in PRD §18.2 "Scope and schedule". Everything runs l
 | Stage | Dates | Work | Status |
 |---|---|---|---|
 | A | 27–29 Nov | Docs; Holm p-values and Cohen's d_z in paired tables (`p_value`, `p_holm`, `cohens_dz`); load-scaling setup (`--replicates N`, `mean_waiting_jobs`, `scripts/run_scaling.sh`); ER go/no-go (**go**, see below); P1 proof and expected-cost derivation (B4, PROJECT_EXPLAINER §17.4, §17.7). **Only the long sweep queue is left (below).** | done 27 Nov except the queue |
-| B | 30 Nov – 5 Dec | X10 (scikit-learn) built and compared on validation; load-scaling runs; P1 proof and Big‑O; region-scaling code if go; win/lose table | — |
+| B | 30 Nov – 5 Dec | **Code done 27 Nov:** X10 (`runtime_model: x10`, D68, F27), 5-site region scaling (`configs/regions5.yaml`, D67), interval-scaling switch, figure script (`scripts/make_figures.py`, figures in `docs/figures/`), demo polish ("Why this job moved" card on Scheduler, Guided tour button, unit labels and tooltips). **Left:** the long runs below, then the win/lose table | code done |
 | C | 6–13 Dec | Region-scaling runs; freeze in `decisions.md`; one figure script; demo polish ("why this job moved", guided flow); X13 if X10 done by 6 Dec; WP6 only with guide approval; rehearse demo twice plus backup recording; final cleanup and push | — |
 | D | 14–15 Dec | Paperwork only: 14 Dec paper (IEEEtran) and EL report; 15 Dec slides and number check | — |
 
 **Long runs, for Rohith or Stavan (from Mon 30 Nov).** These take hours; run them on a machine that can stay on, one script at a time. Validation only; never `--split test`. First `git pull` and `uv sync`. Both scripts resume if interrupted (finished runs are reused).
 
 1. Goal 1 queue (A2, about 12–15 h with `--jobs 5`): `bash scripts/run_phase3_queue.sh`. Progress in `results/phase3_progress.txt`, logs in `results/sweeps_logs/`; done when the file ends with `ALL DONE`.
+   The queue now also runs `sens_interval_scale` and `runtime_model` (X10; run `uv sync --extra ml` first).
 2. Load scaling (B3): `bash scripts/run_scaling.sh` (2 replicates; 0.05–0.5 for four policies, then 1.0 for `place_once` and `decision_flip` with a 6 h limit each; change with `LIMIT=8h REPS=2`). Progress in `results/scaling_progress.txt`. **Nothing else may run on the machine meanwhile**, because it measures CPU time. Expect about a day; a timeout at 1.0 is a result, not a failure.
-3. Copy the finished `results/sweep_<hash>/` folder names into this file so the export step can find them.
+3. Region scaling: `bash scripts/run_region_scaling.sh` (builds `data/processed/carbon_forecast_5dc.csv` first if missing, about 1 min; then 3- vs 5-site compare, 2 replicates, `--jobs 1`, machine otherwise idle).
+4. Copy the finished `results/sweep_<hash>/` folder names into this file so the export step can find them.
 
-**Short work for Monday (agents, no long compute):**
-- B1: X10 learned runtime quantiles with scikit-learn (add the `ml` extra to `pyproject.toml` first; PRD §12.1). Validation comparison runs come after it.
-- B5: region-scaling code. ER (region 4) is already in `carbon_truth.csv`, so data is not a blocker. Decide first: keep total capacity fixed and split it over more sites, or keep per-site capacity fixed (`scenario.py` divides capacity by the number of sites). ER needs a NESO error-path stand-in (GB region 3, Eastern England, unverified; needs a NESO ingest pass and a PRD §6.2.4 edit). A 5th site: a second site on an existing grid (Hyderabad on SR). About 10–14 h of code.
-- B6: the win/lose table, once the A2 queue has finished.
+**Monday checks (short):**
+- Open the live dashboard (`uv run flipwise live --config configs/base.yaml`, http://localhost:8100) and click through the Guided tour and a "Why this job moved" card: no browser was available here, so the new page code is syntax-checked only.
+- After the runs: `uv run python scripts/make_figures.py --out docs/figures --sweep rho=results/sweep_<hash> --scaling results/sweep_<hash>`; then the win/lose table (B6).
+- Run IDs changed on 27 Nov (new config keys `interval_scale`, `runtime_model`), so no older `results/` run is reused: expected.
 
 Rules for the runs: timing (scaling) runs use `--jobs 1` and never overlap other runs; about 6 GB RAM is free, so sampling 1.0 may not fit. Open: LaTeX tool (Overleaf or local `pdflatex`), WP6 approval from the guide.
 

@@ -17,4 +17,7 @@ run ablation_width place_once,decision_flip
 run sens_slack_base place_once,fixed_savings,decision_flip
 run sens_k_slack place_once,fixed_savings,decision_flip
 run sens_rho all
+run sens_interval_scale place_once,fixed_savings,decision_flip
+# X10 (goal 4); needs `uv sync --extra ml` first
+run runtime_model place_once,fixed_savings,decision_flip
 echo "ALL DONE $(date '+%F %T')" >> results/phase3_progress.txt
