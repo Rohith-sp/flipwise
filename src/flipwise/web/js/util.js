@@ -145,3 +145,52 @@ export function policySelect(sel, names, current) {
 export const dcPageUrl = (dcId) => `${location.protocol}//${location.hostname}:${8101 + dcId}/?scheduler=${encodeURIComponent(location.origin)}`;
 export const dcLink = (d) => (d.remote
   ? `<a class="small" href="${dcPageUrl(d.dc_id)}" target="_blank" rel="noopener">Open its own page</a>` : "");
+
+// ---- plain-words helpers: jargon tooltips and the "why" explanation -----------------------------
+export const GLOSSARY = {
+  screen: "A cheap check that bounds the best possible saving. If even that bound cannot clear the gate, the expensive re-score is skipped.",
+  gate: "The minimum saving (g_min) a move must beat, plus a noise margin for forecast error. Stops jobs hopping for tiny gains.",
+  "re-score": "Re-running the full planner on the latest forecast to compare the current plan against the best alternative.",
+  "S_a": "Estimated emissions (kg CO2) of the current plan, using today's forecast.",
+  "S_b": "Estimated emissions (kg CO2) of the best alternative plan.",
+  "g_min": "Smallest saving worth acting on (the gate floor).",
+  "w_ab": "Forecast uncertainty on the saving, in kg CO2. Multiplied by theta to form the noise margin.",
+  theta: "How many noise-margin widths the saving must clear. Larger means more cautious.",
+};
+export const tip = (term, label) => `<abbr class="tip" tabindex="0" title="${esc(GLOSSARY[term] || "")}">${label || esc(term)}</abbr>`;
+
+const siteSlot = (d) => {
+  const from = shortRegion(d.from), to = shortRegion(d.to);
+  const at = d.to_slot ? ` from ${esc(timeOnly(d.to_slot))} IST` : "";
+  return d.from && d.to && d.from !== d.to ? `${esc(from)} &rarr; ${esc(to)}${at}` : esc(to === "?" ? from : to) + at;
+};
+
+// Plain-words headline for one decision, e.g. "Moved: saves 1.8 kg (needed 1.2 kg = ...)".
+export function whyHeadline(d) {
+  const saves = d.S_a_kg != null && d.S_b_kg != null ? d.S_a_kg - d.S_b_kg : null, need = needed(d);
+  const bar = need == null ? "" : `needed ${num(need, 3)} kg = ${num(d.g_min_kg, 3)} kg gate + noise margin`;
+  switch (d.kind) {
+    case "MOVE": return `Moved: saves ${num(saves, 3)} kg${bar ? ` (${bar})` : ""}`;
+    case "KEEP": return `Kept: best alternative saves only ${num(saves, 3)} kg${bar ? ` (${bar})` : ""}`;
+    case "SCREEN_FAIL": return `Not re-scored: the cheap screen ruled out any move${d.LB_kg != null ? ` (best possible saving bound ${num(d.LB_kg, 3)} kg)` : ""}`;
+    case "PLACE": return `Placed: estimated ${num(d.S_b_kg, 3)} kg`;
+    default: return `${String(d.kind).replace("_", " ")}${d.reason ? ": " + d.reason : ""}`;
+  }
+}
+
+// Card body: old vs new site and slot, the numbers, and the reason code.
+export function whyCard(d, policy) {
+  const saves = d.S_a_kg != null && d.S_b_kg != null ? d.S_a_kg - d.S_b_kg : null, need = needed(d);
+  const row = (l, v) => `<div class="why-row"><span class="why-l">${l}</span><span>${v}</span></div>`;
+  return `<div class="why-head">${badge(d.kind)}<b>${esc(d.job_id)}</b><span class="fw-muted small">${esc(policy || "")} &middot; ${esc(timeOnly(d.time))} IST</span></div>
+    <p class="why-line">${esc(whyHeadline(d))}</p>
+    ${row("Old plan", d.from ? esc(shortRegion(d.from)) : "none yet")}
+    ${row("New plan", d.to ? siteSlot(d) : "unchanged")}
+    ${row(tip("S_a", "Current plan (S_a)"), d.S_a_kg == null ? "--" : `${num(d.S_a_kg, 3)} kg CO2`)}
+    ${row(tip("S_b", "Best alternative (S_b)"), d.S_b_kg == null ? "--" : `${num(d.S_b_kg, 3)} kg CO2`)}
+    ${row("Saving", saves == null ? "--" : `${num(saves, 3)} kg CO2`)}
+    ${row(tip("gate", "Gate") + " " + tip("g_min", "(g_min)"), d.g_min_kg == null ? "--" : `${num(d.g_min_kg, 3)} kg`)}
+    ${row(tip("theta", "theta") + " &times; " + tip("w_ab", "w_ab"), d.w_ab_kg == null ? "--" : `${num(d.theta, 2)} &times; ${num(d.w_ab_kg, 3)} = ${num(d.theta * d.w_ab_kg, 3)} kg`)}
+    ${row("Needed to move", need == null ? "--" : `${num(need, 3)} kg`)}
+    ${row("Reason code", `<code>${esc(d.reason || d.kind)}</code>`)}`;
+}

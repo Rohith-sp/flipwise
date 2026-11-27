@@ -9,6 +9,7 @@ import * as compare from "./compare.js";
 import * as scale from "./scale.js";
 import * as results from "./results.js";
 import * as architecture from "./architecture.js";
+import * as tour from "./tour.js";
 import { disposeCharts, esc, shortRegion, timeOnly } from "./util.js";
 
 const PAGES = { overview, h2h, scheduler, datacentres, compare, jobs, scale, results, architecture };
@@ -82,6 +83,7 @@ async function control(body) {
 }
 
 function wireHeader() {
+  $("btn-tour").addEventListener("click", () => tour.open());
   $("speed-seg").innerHTML = SPEEDS.map(([v, l]) => `<button type="button" data-speed="${v}">${l}</button>`).join("");
   $("speed-seg").addEventListener("click", (e) => { const b = e.target.closest("button"); if (b) control({ speed: +b.dataset.speed }); });
   $("btn-play").addEventListener("click", () => control({ paused: !(state.clock && state.clock.paused) }));

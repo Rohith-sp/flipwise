@@ -74,6 +74,44 @@ def _call(base: str, path: str, body: dict | None = None):
         return e.code, e.headers.get("Content-Type"), e.read()
 
 
+def test_live_why_view_fields_and_assets():
+    """D66: the 'why this job moved' card and tour need no API change: every decision already
+    carries the gate numbers, and the new static files are served."""
+    s = _session()
+    server = ThreadingHTTPServer(("127.0.0.1", 0), make_handler(s))
+    base = f"http://127.0.0.1:{server.server_address[1]}"
+    thread = threading.Thread(target=server.serve_forever, daemon=True)
+    thread.start()
+    try:
+        _call(base, "/jobs", {"runtime_h": 1})
+        s.control({"skip_hours": 2})
+        by_policy = json.loads(_call(base, "/jobs/USER-1")[2])["by_policy"]
+        decisions = [d for v in by_policy.values() for d in v["decisions"]]
+        assert decisions
+        for key in (
+            "kind",
+            "from",
+            "to",
+            "to_slot",
+            "S_a_kg",
+            "S_b_kg",
+            "g_min_kg",
+            "w_ab_kg",
+            "theta",
+            "reason",
+        ):
+            assert key in decisions[0]
+        for asset in ("/static/js/tour.js", "/static/js/util.js"):
+            code, _, body = _call(base, asset)
+            assert code == 200 and body
+        assert b"whyCard" in _call(base, "/static/js/util.js")[2]
+    finally:
+        server.shutdown()
+        server.server_close()
+        s.closed.set()
+        thread.join(timeout=5)
+
+
 def test_live_http_smoke():
     s = _session()
     server = ThreadingHTTPServer(("127.0.0.1", 0), make_handler(s))
