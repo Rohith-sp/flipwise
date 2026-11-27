@@ -1,0 +1,32 @@
+# Runs the checks from CLAUDE.md on GitHub's machines, so nobody's laptop has to (overheating).
+# The test suite needs no real data: it uses the toy scenario only (PRD §15.2). Long research runs
+# (sweeps, scaling) are NOT run here: they need data/processed, which is never committed.
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  checks:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+        with:
+          version: "0.13.5"  # the version uv.lock was written with (Dockerfile pins the same)
+      - name: Install (with the X10 extra, so its tests run instead of being skipped)
+        run: uv sync --frozen --extra ml
+      - name: Lint
+        run: uv run ruff check . && uv run ruff format --check .
+      - name: Tests
+        run: uv run pytest -q
+      - name: Toy smoke (every policy against expected.yaml)
+        run: uv run flipwise smoke
