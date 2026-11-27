@@ -1,8 +1,8 @@
-import { whyCard, esc, num, badge, kindClass, colourOf, shortRegion, timeOnly, needed, explain } from "./util.js";
+import { whyCard, esc, num, badge, kindClass, colourOf, shortRegion, timeOnly, needed, pairOf } from "./util.js";
 import { getJob, getJobs, postJob } from "./api.js";
 
-export const title = ["Job tracker", "Submit a job and watch what every policy does with it"];
-let root = null, timer = null, selected = null, data = null, chip = null, busy = false;
+export const title = ["Job tracker", "Submit a job and watch where each policy puts it, and why"];
+let root = null, timer = null, selected = null, data = null, chip = null, busy = false, showAll = false;
 const STATE_KINDS = new Set(["RUNNING", "COMPLETED"]);
 
 export function mount(view, ctx) {
@@ -21,7 +21,8 @@ export function mount(view, ctx) {
       <button class="btn btn-primary" type="submit" id="f-go">Submit job</button><span id="f-err" class="err" role="alert"></span></div></form></section>
   <section class="fw-card fw-section"><div style="display:flex;flex-wrap:wrap;gap:12px;align-items:center;justify-content:space-between">
     <div><h2 id="jt">No job submitted yet</h2><p class="sub" style="margin:0">Fill in the form and press Submit to see each policy's decisions.</p></div>
-    <div><label for="jsel" class="small fw-muted" style="display:block">Job</label><select class="form-select" id="jsel" disabled><option>none</option></select></div></div>
+    <div style="display:flex;gap:16px;align-items:end"><label class="small" style="display:flex;gap:6px;align-items:center"><input type="checkbox" id="jall"> Show all policies</label>
+    <div><label for="jsel" class="small fw-muted" style="display:block">Job</label><select class="form-select" id="jsel" disabled><option>none</option></select></div></div></div>
     <div id="lanes" class="fw-section"></div></section>
   <section class="fw-card fw-section" id="detail"><h2>Select a decision to see the numbers behind it</h2><p class="sub">Click any chip in a lane above.</p></section>`;
   const $ = (id) => view.querySelector(id);
@@ -38,6 +39,8 @@ export function mount(view, ctx) {
     } catch (err) { $("#f-err").textContent = err.message; } finally { $("#f-go").disabled = false; }
   });
   $("#jsel").addEventListener("change", (e) => { selected = e.target.value; chip = null; refresh(); });
+  $("#jall").checked = showAll;
+  $("#jall").addEventListener("change", (e) => { showAll = e.target.checked; draw(); });
   $("#lanes").addEventListener("click", (e) => {
     const b = e.target.closest("button.chip"); if (!b) return;
     chip = { policy: b.dataset.p, idx: +b.dataset.i }; draw();
@@ -77,7 +80,9 @@ function lane(p, v) {
 function draw() {
   if (!root || !data) return;
   root.querySelector("#jt").textContent = `${data.job_id} · one lane per policy`;
-  root.querySelector("#lanes").innerHTML = Object.entries(data.by_policy).map(([p, v]) => lane(p, v)).join("");
+  const pair = pairOf(window.__fwState);
+  root.querySelector("#lanes").innerHTML = Object.entries(data.by_policy).filter(([p]) => showAll || pair.includes(p))
+    .sort(([x], [y]) => (pair.indexOf(y) >= 0) - (pair.indexOf(x) >= 0)).map(([p, v]) => lane(p, v)).join("");
   const host = root.querySelector("#detail");
   if (!chip || !data.by_policy[chip.policy]) return;
   const d = data.by_policy[chip.policy].decisions[chip.idx];

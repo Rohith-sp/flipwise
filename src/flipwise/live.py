@@ -32,11 +32,10 @@ from flipwise.models import SLOT_S, Job, JobState, floor_to_slot
 from flipwise.policies import make_policy
 from flipwise.scenario import build_replicate, dev_replicate, load_scenario
 from flipwise.simulator import Scenario, Simulator, job_outcome
+from flipwise.sites import site, site_name
 from flipwise.webstatic import CLIENT_GONE, QuietHTTPServer, send_static
 
 IST = dt.timezone(dt.timedelta(hours=5, minutes=30))
-REGION_NAMES = {1: "Delhi NCR (Northern grid)", 2: "Mumbai (Western grid)",
-                3: "Chennai (Southern grid)", 4: "Eastern grid"}  # fmt: skip
 MAX_SKIP_H = 7 * 24
 MESSAGE_LOG = 200
 LANE_CAP = 60
@@ -242,8 +241,15 @@ class LiveSession:
             self.sims[name] = sim
             self._pending[name] = list(sim.jobs)
         self.start_s, self.end_s = scenario.start_s, scenario.end_s
-        self._dc_names = {d.dc_id: REGION_NAMES.get(d.region_id, f"region {d.region_id}")
-                          for d in scenario.dcs}  # fmt: skip
+        # Named by dc_id, not region: two sites may share a grid (Chennai, Hyderabad on SR).
+        self._dc_names = {d.dc_id: site_name(d.dc_id, d.region_id) for d in scenario.dcs}
+        self.sites = []
+        for d in scenario.dcs:
+            short, grid = site(d.dc_id, d.region_id)
+            self.sites.append({"dc_id": d.dc_id, "name": self._dc_names[d.dc_id],
+                               "short": short, "grid": grid, "region_id": d.region_id,
+                               "capacity": {"gpus": d.cap_gpu, "cpus": d.cap_cpu,
+                                            "mem_gb": d.cap_mem_gb}})  # fmt: skip
         self._caps = sorted(
             c for c in scenario.forecast.captures if self.start_s <= c <= self.end_s
         )
@@ -376,10 +382,14 @@ class LiveSession:
         if not 0 <= util <= 1:
             raise ValueError("gpu_util must be between 0 and 1")
         with self.lock:
-            dc0 = self.sims[self.policies[0]].scenario.dcs[0]
-            if gpus > dc0.cap_gpu or cpus > dc0.cap_cpu or mem > dc0.cap_mem_gb:
-                raise ValueError(f"job too large: a datacentre has {dc0.cap_gpu:.0f} GPUs, "
-                                 f"{dc0.cap_cpu:.0f} cores, {dc0.cap_mem_gb:.0f} GB")  # fmt: skip
+            # Any one site must hold the whole job (no splitting); sites need not be equal.
+            dcs = self.sims[self.policies[0]].scenario.dcs
+            if not any(gpus <= d.cap_gpu and cpus <= d.cap_cpu and mem <= d.cap_mem_gb
+                       for d in dcs):  # fmt: skip
+                big = max(dcs, key=lambda d: (d.cap_gpu, d.cap_cpu, d.cap_mem_gb))
+                raise ValueError(f"job too large: the largest of the {len(dcs)} datacentres has "
+                                 f"{big.cap_gpu:.0f} GPUs, {big.cap_cpu:.0f} cores, "
+                                 f"{big.cap_mem_gb:.0f} GB")  # fmt: skip
             job_id = f"USER-{len(self.user_jobs) + 1}"
             now = self._now()
             r = int(runtime_h * 3600)
@@ -536,7 +546,7 @@ class LiveSession:
         out = []
         for d in sc.dcs:
             f = sim.vintage.get(d.region_id, slot) if sim.vintage is not None else None
-            out.append({"dc_id": d.dc_id, "region": REGION_NAMES.get(d.region_id),
+            out.append({"dc_id": d.dc_id, "region": self._dc_names[d.dc_id],
                         "forecast_g_per_kwh": _round(f.g_per_kwh if f else None, 1),
                         "actual_g_per_kwh": _round(_truth(sc, d.region_id, slot), 1),
                         "forecast_next_6h": [_round(v.g_per_kwh, 1) if v else None for v in (
@@ -548,7 +558,7 @@ class LiveSession:
         with self.lock:
             main = self.sims[self.policies[0]]
             return {"clock": self.clock(), "policies": self.policies,
-                    "replicate": self.replicate_info(),
+                    "replicate": self.replicate_info(), "sites": self.sites,
                     "remote_policy": self.remote_policy, "carbon": self._carbon_now(main),
                     "compare": {p: self._totals(p) for p in self.sims},
                     "user_jobs": self.user_jobs,

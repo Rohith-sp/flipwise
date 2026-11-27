@@ -21,6 +21,7 @@ from urllib.parse import parse_qs, urlsplit
 from flipwise.datacentre import InProcDatacentre, Started
 from flipwise.errors import DeploymentError, MigrationError, SimulationInvariantError
 from flipwise.models import DcConfig, DcState, Request, RunningInfo
+from flipwise.sites import SITES
 from flipwise.webstatic import QuietHTTPServer, ist_string, send_static
 
 PROTOCOL_VERSION = 1
@@ -35,8 +36,7 @@ NOT_QUEUED = "NOT_QUEUED"
 NOT_RUNNING = "NOT_RUNNING"
 
 # Display only (the dashboard): site names, and bounds on what the service remembers.
-DC_SITES = {0: ("Delhi NCR", "Northern grid"), 1: ("Mumbai", "Western grid"),
-            2: ("Chennai", "Southern grid")}  # fmt: skip
+DC_SITES = {i: (city, grid) for i, (city, grid, _) in SITES.items()}
 LOG_KEEP = 200
 STARTS_KEEP = 20
 HISTORY_KEEP = 2000

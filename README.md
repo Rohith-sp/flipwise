@@ -137,19 +137,20 @@ Install uv first if needed: `curl -LsSf https://astral.sh/uv/install.sh | sh` (L
 
 ```bash
 uv run flipwise live --scenario tests/fixtures/toy --speed 120     # 6-job toy, no data needed
-uv run flipwise live --config configs/base.yaml                    # a real week, about 7,000 jobs
-uv run flipwise live --config configs/base.yaml --services local   # same, datacentres as separate services
+uv run flipwise live --config configs/regions5.yaml                    # the demo: a real week on 5 sites
+uv run flipwise live --config configs/regions5.yaml --services local   # same, datacentres as separate services
+uv run flipwise live --config configs/base.yaml                        # the 3-site research setup
 ```
 
-`--services local` starts the three datacentre services itself and prints four URLs: the scheduler at **http://localhost:8100** and one dashboard per datacentre at **http://localhost:8101** (Delhi NCR), **:8102** (Mumbai), **:8103** (Chennai).
+`--services local` starts the datacentre services itself and prints their URLs: the scheduler at **http://localhost:8100** and one dashboard per datacentre at **http://localhost:8101** (Delhi NCR), **:8102** (Mumbai), **:8103** (Chennai), **:8104** (Kolkata), **:8105** (Hyderabad).
 
-Open **http://localhost:8100**. With the three datacentres as Docker containers:
+Open **http://localhost:8100**. With the five datacentres as Docker containers:
 
 ```bash
-docker compose --profile live up --build dc-delhi dc-mumbai dc-chennai live
+docker compose --profile live up --build dc-delhi dc-mumbai dc-chennai dc-kolkata dc-hyderabad live
 ```
 
-Pages: Overview, Head-to-head (decision-flip against any policy, with every check the screen avoided), Job tracker (submit a job and follow each policy's decisions), Scheduler, Datacentres, Policy comparison, Scale projection, Test results, Architecture. Demo script and what each page shows: [docs/PROJECT_EXPLAINER.md §10](docs/PROJECT_EXPLAINER.md#10-the-live-demo-and-the-website).
+Every page compares decision-flip with one policy picked in the sidebar (default fixed_savings); extra detail sits behind "Show more". Pages: Overview, Head-to-head (re-scores per forecast update; all policies under "Show more"), Scheduler (carbon per site and "Why this job moved"), Datacentres (one tab per site), Job tracker (submit a job and follow each policy's decisions), Scale projection, Test results, Architecture. Demo script and what each page shows: [docs/PROJECT_EXPLAINER.md §10](docs/PROJECT_EXPLAINER.md#10-the-live-demo-and-the-website).
 
 ### Experiments
 

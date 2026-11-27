@@ -1,31 +1,36 @@
 // App shell: hash routing, header controls, polling, event stream, toasts.
+// Calm by design: the page re-renders once per poll (every 2 s), never per stream event, and the
+// sidebar picks the one policy compared with decision_flip on every page.
 import * as api from "./api.js";
 import * as overview from "./overview.js";
 import * as jobs from "./jobs.js";
 import * as h2h from "./h2h.js";
 import * as scheduler from "./scheduler.js";
 import * as datacentres from "./datacentres.js";
-import * as compare from "./compare.js";
 import * as scale from "./scale.js";
 import * as results from "./results.js";
 import * as architecture from "./architecture.js";
 import * as tour from "./tour.js";
-import { disposeCharts, esc, shortRegion, timeOnly } from "./util.js";
+import { disposeCharts, esc, shortRegion, timeOnly, MAIN, colourOf, sitesOf } from "./util.js";
 
-const PAGES = { overview, h2h, scheduler, datacentres, compare, jobs, scale, results, architecture };
-const SPEEDS = [[60, "1 min/s"], [300, "5 min/s"], [1800, "30 min/s"], [7200, "2 h/s"]];
-const state = { status: null, clock: null, health: null, dcs: [null, null, null], history: {}, lastT: null, connected: false, events: {}, replicate: null };
+const PAGES = { overview, h2h, scheduler, datacentres, jobs, scale, results, architecture };
+const SPEEDS = [[300, "5 min/s"], [900, "15 min/s"], [1800, "30 min/s"], [3600, "1 h/s"]];
+const POLL_MS = 2000;
+const state = { status: null, clock: null, health: null, history: {}, lastT: null, connected: false, events: {}, replicate: null, pair: [MAIN, "fixed_savings"] };
 let page = null, skipping = false, polling = false;
 const $ = (id) => document.getElementById(id);
 window.__fwState = state; // one shared object: pages read it from their own event handlers
 
+try { const c = localStorage.getItem("fw-challenger"); if (c) state.pair[1] = c; } catch (e) { /* no storage */ }
+
 export function toast(html) {
   const t = document.createElement("div");
   t.className = "toast-i"; t.innerHTML = html; $("toasts").appendChild(t);
-  setTimeout(() => t.remove(), 7000);
+  setTimeout(() => t.remove(), 6000);
 }
 
 // ---- routing ------------------------------------------------------------------------------------
+const subtitle = () => (typeof page.title[1] === "function" ? page.title[1](state) : page.title[1]);
 function route() {
   const name = (location.hash.replace(/^#\//, "") || "overview").split("?")[0];
   if (page && page.unmount) page.unmount();
@@ -37,10 +42,10 @@ function route() {
   const view = $("view");
   if (PAGES[name]) page = PAGES[name];
   else { location.hash = "#/overview"; return; }
-  $("page-title").textContent = page.title[0]; $("page-sub").textContent = page.title[1];
+  $("page-title").textContent = page.title[0]; $("page-sub").textContent = subtitle();
   document.title = `${page.title[0]} - Flipwise live`;
   view.innerHTML = ""; page.mount(view, { toast });
-  render();
+  render(); loadPage();
 }
 
 let loadBusy = false;
@@ -54,7 +59,7 @@ async function loadPage() { // pages that need their own endpoints fetch them he
 
 function render() { if (page && page.update) page.update(state); }
 
-// ---- header -----------------------------------------------------------------------------------
+// ---- header and sidebar ---------------------------------------------------------------------------
 function header() {
   const c = state.clock;
   if (c) {
@@ -62,6 +67,7 @@ function header() {
     const paused = c.paused;
     $("ico-pause").hidden = paused; $("ico-play").hidden = !paused;
     $("play-label").textContent = paused ? "Play" : "Pause";
+    $("btn-play").classList.toggle("paused", paused);
     $("btn-play").setAttribute("aria-label", paused ? "Resume simulation" : "Pause simulation");
     document.querySelectorAll("#speed-seg button").forEach((b) => b.classList.toggle("on", Math.abs(+b.dataset.speed - c.speed) < 1e-9));
   }
@@ -70,11 +76,23 @@ function header() {
   const st = state.status;
   $("conn-text").textContent = !state.connected ? "Disconnected" : st && st.remote_policy ? "Live · services" : "Live";
   if (st) {
-    const n = st.policies.length;
-    $("scenario-text").innerHTML = `${n} policies side by side<br>${esc(st.clock.start)} to<br>${esc(st.clock.end)}` + (st.clock.replicate ? `<br><b>Replicate ${st.clock.replicate.index} of ${st.clock.replicate.total}</b><br>${esc(st.clock.replicate.name)}${st.clock.replicate.building ? "<br>building next..." : ""}` : "");
+    const n = sitesOf(st).length, rep = st.clock.replicate;
+    $("scenario-text").innerHTML = `${n} sites: ${esc(sitesOf(st).map((s) => s.short).join(", "))}<br>${esc(st.clock.start)} to<br>${esc(st.clock.end)}` +
+      (rep ? `<br><b>Replicate ${rep.index} of ${rep.total}</b><br>${esc(rep.name)}${rep.building ? "<br>building next..." : ""}` : "");
+    pairPicker(st);
+    if (page) $("page-sub").textContent = subtitle();
   }
   document.querySelectorAll("#skip-seg button").forEach((b) => (b.disabled = skipping));
   $("skip-busy").hidden = !skipping;
+}
+
+function pairPicker(st) {
+  const opts = st.policies.filter((p) => p !== MAIN), sel = $("pair-pick");
+  if (!opts.length) { sel.disabled = true; return; }
+  if (!opts.includes(state.pair[1])) state.pair[1] = opts.includes("fixed_savings") ? "fixed_savings" : opts[0];
+  if (sel.dataset.names !== opts.join(",")) { sel.innerHTML = opts.map((p) => `<option value="${esc(p)}">${esc(p)}</option>`).join(""); sel.dataset.names = opts.join(","); }
+  sel.value = state.pair[1];
+  sel.style.borderLeftColor = colourOf(state.pair[1]);
 }
 
 async function control(body) {
@@ -87,6 +105,11 @@ function wireHeader() {
   $("speed-seg").innerHTML = SPEEDS.map(([v, l]) => `<button type="button" data-speed="${v}">${l}</button>`).join("");
   $("speed-seg").addEventListener("click", (e) => { const b = e.target.closest("button"); if (b) control({ speed: +b.dataset.speed }); });
   $("btn-play").addEventListener("click", () => control({ paused: !(state.clock && state.clock.paused) }));
+  $("pair-pick").addEventListener("change", (e) => {
+    state.pair = [MAIN, e.target.value];
+    try { localStorage.setItem("fw-challenger", e.target.value); } catch (err) { /* no storage */ }
+    header(); render(); loadPage();
+  });
   $("skip-seg").addEventListener("click", async (e) => {
     const b = e.target.closest("button"); if (!b || skipping) return;
     skipping = true; header();
@@ -103,7 +126,7 @@ async function watchCompletions() {
   if (watching) return; // a slow round must not overlap the next poll's, or a toast shows twice
   watching = true;
   try {
-    const st = state.status, main = st && (st.policies.includes("decision_flip") ? "decision_flip" : st.policies[0]);
+    const st = state.status, main = st && (st.policies.includes(MAIN) ? MAIN : st.policies[0]);
     for (const id of (st && st.user_jobs) || []) {
       if (completed.has(id)) continue;
       try {
@@ -118,17 +141,14 @@ async function poll(force) {
   if ((document.hidden && !force) || polling) return;
   polling = true;
   try {
-    const wantDcs = location.hash.startsWith("#/overview") || location.hash === "";
     const st = await api.getStatus(), clk = st.clock; // /status already carries the clock
     state.status = st; state.clock = clk; state.connected = true;
-    const jobs_ = [api.getHistory(state.lastT).then((h) => {
+    await Promise.all([api.getHistory(state.lastT).then((h) => {
       for (const [p, rows] of Object.entries(h.policies)) {
         (state.history[p] = state.history[p] || []).push(...rows);
         if (rows.length) state.lastT = Math.max(state.lastT ?? 0, rows[rows.length - 1].t);
       }
-    }), api.getHealth().then((h) => (state.health = h))];
-    if (wantDcs) st.carbon.forEach((_, i) => jobs_.push(api.getDc(i).then((d) => (state.dcs[i] = d))));
-    await Promise.all(jobs_);
+    }), api.getHealth().then((h) => (state.health = h))]);
     const rep = clk.replicate ? clk.replicate.index : null;
     if (state.replicate !== null && rep !== state.replicate) { state.history = {}; state.lastT = null; state.events = {}; seen.clear(); if (rep !== null) toast(`Replicate ${rep} of ${clk.replicate.total} started: ${esc(clk.replicate.name)}`); }
     state.replicate = rep;
@@ -154,12 +174,13 @@ function seedEvents(st) {
 }
 
 // ---- event stream -----------------------------------------------------------------------------
+// Events only fill the buffer; the next poll draws them, so the screen changes at most every 2 s.
 function stream() {
   const es = new EventSource("/stream");
   es.addEventListener("decision", (ev) => {
     let d; try { d = JSON.parse(ev.data); } catch (e) { return; }
     addEvent(d.policy, d);
-    if (d.policy === "decision_flip" && String(d.job_id).startsWith("USER-") && d.kind === "MOVE")
+    if (d.policy === MAIN && String(d.job_id).startsWith("USER-") && d.kind === "MOVE")
       toast(`${esc(d.job_id)} moved ${esc(shortRegion(d.from))} → ${esc(shortRegion(d.to))} at ${esc(timeOnly(d.time))}`);
   });
   es.onerror = () => { /* EventSource reconnects by itself; the poll drives the pill */ };
@@ -170,5 +191,5 @@ window.addEventListener("hashchange", route);
 document.addEventListener("visibilitychange", () => { if (!document.hidden) poll(); });
 route();
 poll();
-setInterval(poll, 1500);
+setInterval(poll, POLL_MS);
 stream();

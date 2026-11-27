@@ -1,10 +1,16 @@
 // Shared helpers: escaping, formatting, colours, decision text, chart registry.
+// One calm accent per policy; decision_flip is always blue.
 export const POLICY_COLOURS = {
-  decision_flip: "#1D4ED8", fixed_savings: "#B45309", periodic: "#7C3AED",
-  pred_error: "#0F766E", place_once: "#4B5563", fcfs: "#9CA3AF", pig: "#BE185D",
+  decision_flip: "#2563EB", fixed_savings: "#D97706", periodic: "#7C3AED",
+  pred_error: "#0D9488", place_once: "#64748B", fcfs: "#94A3B8", pig: "#DB2777",
 };
-export const REGION_COLOURS = ["#1E3A8A", "#C2410C", "#0F766E"];
-export const REGION_SHORT = ["Delhi NCR", "Mumbai", "Chennai"];
+// Site colours, by dc_id; any number of sites (cycled past five).
+export const SITE_COLOURS = ["#0F766E", "#9333EA", "#C2410C", "#0369A1", "#A16207"];
+export const REGION_COLOURS = SITE_COLOURS; // the per-datacentre pages still use this name
+export const siteColour = (i) => SITE_COLOURS[i % SITE_COLOURS.length];
+// Sites from /status (any count); falls back to the carbon list for an older server.
+export const sitesOf = (st) => (st && (st.sites || (st.carbon || []).map((c) => ({ dc_id: c.dc_id, name: c.region, short: shortRegion(c.region) })))) || [];
+export const MAIN = "decision_flip";
 
 export const esc = (s) =>
   String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
@@ -29,7 +35,10 @@ export const badge = (kind) => `<span class="badge-k k-${kindClass(kind)}">${esc
 export const needed = (d) =>
   d && d.g_min_kg != null && d.w_ab_kg != null && d.theta != null ? d.g_min_kg + d.theta * d.w_ab_kg : null;
 
-export function decisionText(d) {
+// Trace job ids are 24 hex characters; eight are enough to tell them apart on screen.
+export const shortId = (id) => { const s = String(id ?? ""); return s.length > 12 ? s.slice(0, 8) : s; };
+export function decisionText(e) {
+  const d = { ...e, job_id: shortId(e.job_id) };
   const from = shortRegion(d.from), to = shortRegion(d.to);
   const saves = d.S_a_kg != null && d.S_b_kg != null ? d.S_a_kg - d.S_b_kg : null;
   const need = needed(d);
@@ -114,19 +123,22 @@ export const tsToMs = (rows, f) => rows.map((p) => [p.t * 1000, f(p)]);
 
 // Actual carbon so far (solid) and the forecast ahead (dashed) for every region, as on the
 // Overview and Scheduler pages. `hist` is one policy's history; `st` is /status.
+// Only the last two days of actuals: a week of five sites is too dense to read.
+const CARBON_WINDOW_S = 48 * 3600;
 export function carbonChart(id, el, st, hist, grid) {
   const nowS = st.clock.sim_time_s, slot0 = Math.floor(nowS / 1800) * 1800, sers = [];
+  const recent = hist.filter((p) => p.t >= nowS - CARBON_WINDOW_S), names = sitesOf(st).map((s) => s.short);
   st.carbon.forEach((c, i) => {
-    const col = REGION_COLOURS[i % 3];
-    sers.push({ name: REGION_SHORT[i] + " actual", type: "line", showSymbol: false, connectNulls: true, lineStyle: { color: col, width: 2 }, itemStyle: { color: col },
-      data: hist.map((p) => [p.t, p.dcs[i] ? p.dcs[i].actual_g_per_kwh : null]),
-      markLine: i === 0 ? { symbol: "none", silent: true, lineStyle: { color: "#111827", type: "dashed" }, label: { formatter: "now", color: "#111827" }, data: [{ xAxis: nowS }] } : undefined });
-    sers.push({ name: REGION_SHORT[i] + " forecast", type: "line", showSymbol: false, lineStyle: { color: col, width: 2, type: "dashed" }, itemStyle: { color: col },
+    const col = siteColour(i), name = names[i] || `dc${i}`; // same name: one legend entry toggles both lines
+    sers.push({ name, type: "line", showSymbol: false, connectNulls: true, lineStyle: { color: col, width: 2 }, itemStyle: { color: col },
+      data: recent.map((p) => [p.t, p.dcs[i] ? p.dcs[i].actual_g_per_kwh : null]),
+      markLine: i === 0 ? { symbol: "none", silent: true, lineStyle: { color: "#94A3B8", type: "dashed" }, label: { formatter: "now", color: "#475569" }, data: [{ xAxis: nowS }] } : undefined });
+    sers.push({ name, type: "line", showSymbol: false, lineStyle: { color: col, width: 2, type: "dashed", opacity: 0.8 }, itemStyle: { color: col },
       data: (c.forecast_next_6h || []).map((v, k) => [slot0 + k * 1800, v]) });
   });
   chart(id, el).setOption({
     animation: false, tooltip: { trigger: "axis", valueFormatter: (v) => (v == null ? "--" : Number(v).toFixed(0) + " g/kWh"), axisPointer: { type: "line" } },
-    grid, legend: { show: false },
+    grid, legend: { top: 0, icon: "roundRect", itemWidth: 12, itemHeight: 8, textStyle: { color: "#334155", fontSize: 12 }, data: names },
     xAxis: { type: "value", min: "dataMin", max: "dataMax", axisLabel: { formatter: (v) => istClock(v), color: "#4B5563" } },
     yAxis: { type: "value", name: "g/kWh", scale: true, axisLabel: { color: "#4B5563" }, splitLine: { lineStyle: { color: "#EEF0F3" } } },
     series: sers }, true);
@@ -193,4 +205,26 @@ export function whyCard(d, policy) {
     ${row(tip("theta", "theta") + " &times; " + tip("w_ab", "w_ab"), d.w_ab_kg == null ? "--" : `${num(d.theta, 2)} &times; ${num(d.w_ab_kg, 3)} = ${num(d.theta * d.w_ab_kg, 3)} kg`)}
     ${row("Needed to move", need == null ? "--" : `${num(need, 3)} kg`)}
     ${row("Reason code", `<code>${esc(d.reason || d.kind)}</code>`)}`;
+}
+
+// ---- calm-layout helpers -----------------------------------------------------------------------
+// A collapsed "Show more" section. Its body is rendered only while open, so hidden charts cost
+// nothing and are sized correctly when they first appear.
+export const more = (id, label, inner) =>
+  `<details class="more fw-section" id="${id}"><summary>${esc(label)}</summary><div class="more-body">${inner}</div></details>`;
+export function onMore(root, id, cb) {
+  const d = root.querySelector("#" + id);
+  if (d) d.addEventListener("toggle", () => { if (d.open) cb(); });
+}
+export const isOpen = (root, id) => { const d = root && root.querySelector("#" + id); return !!(d && d.open); };
+
+// The two policies compared on every page: decision_flip and the challenger picked in the sidebar.
+export const pairOf = (s) => (s && s.pair) || [MAIN, "fixed_savings"];
+export const dot = (p) => `<i class="pdot" style="background:${colourOf(p)}"></i>`;
+// "54% fewer" / "3% more" of a against b; empty when b is zero.
+export function rel(a, b, fewer = "fewer", more_ = "more") {
+  if (a == null || b == null || !b) return "";
+  const p = ((a - b) / b) * 100;
+  if (Math.abs(p) < 0.5) return "about the same";
+  return `${Math.abs(p).toFixed(0)}% ${p < 0 ? fewer : more_}`;
 }

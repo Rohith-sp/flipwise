@@ -1,5 +1,6 @@
 """Live demo mode (PRD §13.6, D60): refactor safety, submitted jobs, history, HTTP API."""
 
+import dataclasses
 import json
 import threading
 import urllib.error
@@ -9,9 +10,12 @@ from pathlib import Path
 
 import pytest
 
+from flipwise.dcservice import DC_SITES
 from flipwise.live import LiveSession, make_handler, scenario_factory
+from flipwise.models import DcConfig
 from flipwise.policies import make_policy
 from flipwise.simulator import Simulator
+from flipwise.sites import site_name
 
 TOY = Path(__file__).parent / "fixtures" / "toy"
 POLICIES = ["decision_flip", "fixed_savings", "periodic", "pred_error", "place_once"]
@@ -62,6 +66,50 @@ def test_live_skip_hours_advances_clock_and_history():
     assert len(hist[-1]["dcs"]) == 3
     newer = s.get_history(hist[2]["t"])["policies"]["decision_flip"]
     assert newer == hist[3:]
+
+
+def _five_site_session() -> LiveSession:
+    """The toy on five sites (D69): regions 1, 2, 3, 1, 3; dc3 is bigger than the rest."""
+    toy = scenario_factory(None, TOY)()
+    dcs = [DcConfig(i, r, 8 if i == 3 else 4, 32, 100) for i, r in enumerate([1, 2, 3, 1, 3])]
+    sc = dataclasses.replace(toy, dcs=dcs)
+    session = LiveSession(lambda: sc, None, POLICIES[:2], 1800.0)
+    session.paused = True
+    return session
+
+
+def test_live_site_count_agnostic_names_and_history():
+    """D69: live takes the site count from the scenario and names sites by dc_id, so two sites
+    on one grid keep their own names; a layout that does not match the table falls back."""
+    s = _five_site_session()
+    sites = s.status()["sites"]
+    assert [x["dc_id"] for x in sites] == [0, 1, 2, 3, 4]
+    assert [x["short"] for x in sites] == [
+        "Delhi NCR",
+        "Mumbai",
+        "Chennai",
+        "Datacentre 3",
+        "Hyderabad",
+    ]
+    assert sites[3]["grid"] == "Northern grid" and sites[3]["capacity"]["gpus"] == 8
+    assert len(s.status()["carbon"]) == 5
+    s.control({"skip_hours": 2})
+    assert len(s.get_history()["policies"]["decision_flip"][-1]["dcs"]) == 5
+    assert len(s.lanes()["datacentres"]) == 5 and s.dc(4)["name"] == "Hyderabad (Southern grid)"
+
+
+def test_live_submit_fits_any_site_not_only_dc0():
+    """D69: a job needs one site that can hold it; dc0 being small must not refuse it."""
+    s = _five_site_session()
+    assert s.submit({"runtime_h": 1, "gpus": 6})["job_id"] == "USER-1"
+    with pytest.raises(ValueError, match="largest of the 5 datacentres has 8 GPUs"):
+        s.submit({"runtime_h": 1, "gpus": 9})
+
+
+def test_site_names_shared_with_dc_service():
+    assert site_name(4, 3) == "Hyderabad (Southern grid)"
+    assert site_name(4, 1) == "Datacentre 4 (Northern grid)"
+    assert DC_SITES[3] == ("Kolkata", "Eastern grid")
 
 
 def _call(base: str, path: str, body: dict | None = None):

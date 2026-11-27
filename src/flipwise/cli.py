@@ -328,8 +328,9 @@ def build_parser() -> argparse.ArgumentParser:
     lv.add_argument(
         "--speed",
         type=float,
-        default=1800.0,
-        help="simulated seconds per real second (1800: half an hour per second)",
+        default=900.0,
+        help="simulated seconds per real second (900: a quarter hour per second, calm enough "
+        "to follow on screen)",
     )
     lv.add_argument(
         "--split",

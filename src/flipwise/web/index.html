@@ -21,13 +21,16 @@
       <a class="fw-nav" href="#/h2h" data-route="h2h">Head-to-head</a>
       <a class="fw-nav" href="#/scheduler" data-route="scheduler">Scheduler</a>
       <a class="fw-nav" href="#/datacentres" data-route="datacentres">Datacentres</a>
-      <a class="fw-nav" href="#/compare" data-route="compare">Policy comparison</a>
       <a class="fw-nav" href="#/jobs" data-route="jobs">Job tracker</a>
       <div class="fw-nav-h">Evidence</div>
       <a class="fw-nav" href="#/scale" data-route="scale">Scale projection</a>
       <a class="fw-nav" href="#/results" data-route="results">Test results</a>
       <a class="fw-nav" href="#/architecture" data-route="architecture">Architecture</a>
     </nav>
+    <div class="fw-pair"><div class="fw-nav-h">Comparing</div>
+      <div class="fw-pair-a"><i class="pdot" style="background:#2563EB"></i>decision_flip</div>
+      <label for="pair-pick" class="small fw-muted">against</label>
+      <select id="pair-pick" class="fw-select" aria-label="Policy to compare decision_flip with"></select></div>
     <div class="fw-scenario"><div class="fw-nav-h">Scenario</div>
       <div id="scenario-text" class="fw-muted small">Connecting...</div></div>
   </aside>
@@ -36,7 +39,7 @@
       <div class="fw-title"><h1 id="page-title">Overview</h1><p id="page-sub" class="fw-muted"></p></div>
       <div class="fw-controls">
         <span class="fw-clock" id="clock" title="Simulated time (IST)">--</span>
-        <button type="button" class="btn btn-sm" id="btn-play" aria-label="Pause simulation">
+        <button type="button" class="btn fw-play" id="btn-play" aria-label="Pause simulation">
           <svg id="ico-pause" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M8 5v14M16 5v14"/></svg>
           <svg id="ico-play" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" hidden><path d="M7 4l12 8-12 8z"/></svg>
           <span id="play-label">Pause</span></button>
@@ -48,8 +51,6 @@
         </div>
         <span id="skip-busy" class="fw-busy" hidden><span class="spinner-border spinner-border-sm" aria-hidden="true"></span> Skipping...</span>
         <button type="button" class="btn btn-sm" id="btn-tour" title="Step-by-step walk through every page">Guided tour</button>
-        <a class="btn btn-primary btn-sm" href="#/jobs" id="btn-submit">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg> Submit job</a>
         <span class="fw-pill" id="conn" role="status"><span class="fw-dot"></span><span id="conn-text">Connecting</span></span>
       </div>
     </header>

@@ -1,115 +1,96 @@
-import { tip, keepLast, esc, num, int, badge, dcLink, decisionText, colourOf, chart, carbonChart, gClass, shortRegion, timeOnly, REGION_COLOURS, REGION_SHORT } from "./util.js";
+// Overview: three headline numbers for the two compared policies, one chart, the sites at a glance.
+import { tip, keepLast, esc, num, int, badge, dcLink, decisionText, colourOf, chart, gClass, timeOnly, siteColour, sitesOf, pairOf, dot, rel, more, onMore, isOpen, tsToMs, axisTime } from "./util.js";
 
-const MAIN = "decision_flip", REF = "fixed_savings";
 let root = null;
 
-export const title = ["Overview", "Three datacentres, one scheduler, several re-planning policies running side by side"];
+export const title = ["Overview", (s) => {
+  const n = sitesOf(s.status).length, [a, b] = pairOf(s);
+  return `One scheduler, ${n || "several"} grid sites in India: ${a} against ${b} on the same jobs and the same carbon`;
+}];
 
 export function mount(view) {
   root = view;
   view.innerHTML = `
-  <div class="fw-grid g5" id="kpis"></div>
-  <div class="fw-grid g21 fw-section">
-    <section class="fw-card"><h2>Grid carbon intensity</h2>
-      <p class="sub">Forecast ahead (dashed) and actual so far (solid), gCO2/kWh</p>
-      <div class="rlegend">${REGION_SHORT.map((n, i) => `<span><i class="sw" style="background:${REGION_COLOURS[i]}"></i>${n}</span>`).join("")}</div>
-      <div class="chart" id="ch-carbon" role="img" aria-label="Grid carbon intensity chart"></div></section>
-    <section class="fw-card"><h2>Services</h2><p class="sub">Scheduler and datacentres talk over HTTP</p>
-      <div id="services"></div><h2 style="font-size:13px;margin-top:8px">Latest messages</h2><div class="msgs mono" id="msgs"></div></section>
-  </div>
-  <div class="fw-grid g3 fw-section" id="dcs"></div>
-  <div class="fw-grid g21 fw-section">
-    <section class="fw-card"><h2>Policy comparison, live</h2>
-      <p class="sub">Same jobs, same carbon, same clock. Only the re-planning rule differs.</p>
-      <div class="tw" id="cmp"></div></section>
-    <section class="fw-card"><h2>Decision feed &middot; decision_flip</h2>
-      <p class="sub">Every check the algorithm makes, newest first</p><div class="feed" id="feed"></div></section>
-  </div>`;
+  <p class="lede" id="lede">Waiting for the first numbers...</p>
+  <div class="fw-grid g3" id="kpis"></div>
+  <section class="fw-card fw-section"><h2>Re-planning work over time</h2>
+    <p class="sub">Full re-scores run so far: the expensive check of a job's plan against the latest forecast. Lower means less scheduler work for the same jobs.</p>
+    <div class="chart-lg" id="ch-main" role="img" aria-label="Full re-scores over time for the two policies"></div></section>
+  <section class="fw-section"><h2 class="sec-h" id="sites-h">The sites right now</h2><div class="sites" id="sites"></div></section>
+  ${more("ov-more", "Show more: services and the latest decisions", `<div class="fw-grid g11">
+    <section class="fw-card"><h2>Services</h2><p class="sub">Scheduler and datacentres talk over HTTP</p><div id="services"></div>
+      <h3 class="h3">Latest messages</h3><div class="msgs mono" id="msgs"></div></section>
+    <section class="fw-card"><h2 id="feed-h">Decision feed</h2><p class="sub">Every check, newest first</p><div class="feed" id="feed"></div></section></div>`)}`;
+  onMore(view, "ov-more", () => update(window.__fwState));
 }
 export function unmount() { root = null; }
 
-const pct = (a, b, word) => {
-  if (a == null || !b) return "";
-  const p = ((a - b) / b) * 100;
-  return `${Math.abs(p).toFixed(0)}% ${p <= 0 ? "less" : "more"}${word ? " " + word : ""} than ${REF}`;
-};
-const series = (h, f) => (h || []).map((p) => [p.t, f(p)]);
-const shareOf = (p) => (p.screen_skips + p.full_rescores ? p.screen_skips / (p.screen_skips + p.full_rescores) : 0);
-
-function spark(id, el, data) {
-  const c = chart(id, el);
-  c.setOption({ animation: false, grid: { left: 0, right: 0, top: 2, bottom: 2 }, xAxis: { type: "value", show: false, min: "dataMin", max: "dataMax" },
-    yAxis: { type: "value", show: false, min: "dataMin", max: "dataMax" },
-    series: [{ type: "line", data, showSymbol: false, smooth: true, lineStyle: { width: 2, color: "#1D4ED8" }, areaStyle: { color: "rgba(29,78,216,.10)" } }] });
+// One tile: the same measure for both policies, side by side, and how they differ.
+function tile(label, a, b, va, vb, unit, fmt, word) {
+  const r = rel(va, vb, word[0], word[1]);
+  const side = (p, v) => `<div class="pv"><div class="pn">${dot(p)}${esc(p)}</div><div class="big">${fmt(v)}<span class="u">${unit}</span></div></div>`;
+  return `<section class="fw-card kpi2"><div class="lab">${label}</div><div class="pvs">${side(a, va)}${side(b, vb)}</div>
+    <div class="verdict ${/more/.test(r) ? "bad" : ""}">${r ? `${esc(a)}: ${r}` : "&nbsp;"}</div></section>`;
 }
 
-function kpis(st, hist) {
-  const m = st.compare[MAIN], f = st.compare[REF], h = hist[MAIN] || [];
-  if (!m) return;
-  const stop = m.screen_skips + m.full_rescores ? m.screen_skips / (m.screen_skips + m.full_rescores) : null;
-  const tiles = [
-    { id: "co2", label: "CO2 emitted so far (kg)", value: `${num(m.kg_co2_so_far, 2)} kg`, delta: f ? pct(m.kg_co2_so_far, f.kg_co2_so_far, "") : "", note: "decision_flip, completed jobs", f: (p) => p.kg_co2 },
-    { id: "resc", label: tip("re-score", "Full re-scores"), value: int(m.full_rescores), delta: f ? pct(m.full_rescores, f.full_rescores, "work") : "", note: "number of expensive full checks", f: (p) => p.full_rescores },
-    { id: "mv", label: "Jobs moved (new site or slot)", value: int(m.moves), delta: f ? pct(m.moves, f.moves, "churn") : "", note: "plan changes accepted", f: (p) => p.moves },
-    { id: "scr", label: tip("screen", "Checks stopped by screen") + " (%)", value: stop == null ? "--" : `${(stop * 100).toFixed(0)}%`, delta: "", note: `${int(m.screen_skips)} of ${int(m.screen_skips + m.full_rescores)} checks`, f: shareOf },
-    { id: "done", label: "Jobs completed", value: int(m.jobs_completed), delta: "", note: `${int(m.deadline_misses)} deadline ${m.deadline_misses === 1 ? "miss" : "misses"}, ${int(m.jobs_arrived)} arrived`, f: (p) => p.jobs_completed },
-  ];
-  const host = root.querySelector("#kpis");
-  if (!host.children.length) host.innerHTML = tiles.map((t) => `<section class="fw-card kpi"><div class="lab">${t.label}</div><div class="val" data-v="${t.id}"></div><div class="delta" data-d="${t.id}"></div><div class="note" data-n="${t.id}"></div><div class="spark" id="sp-${t.id}"></div></section>`).join("");
-  for (const t of tiles) {
-    host.querySelector(`[data-v="${t.id}"]`).textContent = t.value;
-    const d = host.querySelector(`[data-d="${t.id}"]`);
-    d.textContent = t.delta;
-    d.classList.toggle("bad", / more /.test(t.delta));
-    host.querySelector(`[data-n="${t.id}"]`).textContent = t.note;
-    spark(`sp-${t.id}`, host.querySelector(`#sp-${t.id}`), series(h, t.f));
-  }
+function kpis(st, pair) {
+  const [a, b] = pair, A = st.compare[a], B = st.compare[b];
+  if (!A || !B) return;
+  root.querySelector("#kpis").innerHTML =
+    tile("CO2 emitted so far", a, b, A.kg_co2_so_far, B.kg_co2_so_far, " kg", (v) => num(v, 1), ["less", "more"]) +
+    tile(tip("re-score", "Full re-scores (work)"), a, b, A.full_rescores, B.full_rescores, "", int, ["fewer", "more"]) +
+    tile("Jobs moved to a new site or time", a, b, A.moves, B.moves, "", int, ["fewer", "more"]);
+  const w = rel(A.full_rescores, B.full_rescores), c = rel(A.kg_co2_so_far, B.kg_co2_so_far, "less", "more");
+  root.querySelector("#lede").innerHTML = B.full_rescores
+    ? `So far <b>${esc(a)}</b> did <b>${w}</b> full re-scores than ${esc(b)}, for <b>${c === "about the same" ? "about the same" : c}</b> carbon. ${int(A.jobs_completed)} jobs completed, ${int(A.deadline_misses)} deadline ${A.deadline_misses === 1 ? "miss" : "misses"}.`
+    : "Waiting for the first forecast update, when re-planning starts.";
 }
 
-const carbon = (st, hist) => carbonChart("carbon", root.querySelector("#ch-carbon"), st, hist[MAIN] || [], { left: 44, right: 16, top: 30, bottom: 28 });
-
-function services(health, st) {
-  const host = root.querySelector("#services");
-  const rows = (health ? health.datacentres : []).map((d) => `<div class="svc"><div><b>Datacentre ${d.dc_id} &middot; ${REGION_SHORT[d.dc_id] || ""}</b><div class="small fw-muted">${esc(d.url)}</div>${dcLink(d)}</div>
-    <div class="small" style="text-align:right">${int(d.requests)} requests<br>${d.mean_latency_ms == null ? "--" : d.mean_latency_ms.toFixed(2)} ms mean</div></div>`).join("");
-  host.innerHTML = `<div class="svc"><div><b>Scheduler &middot; ${esc(health ? health.policy : st.policies[0])}</b><div class="small fw-muted">owns the simulated clock</div></div><div class="small">${esc(st.remote_policy ? "calls services" : "in-process")}</div></div>${rows}`;
-  root.querySelector("#msgs").innerHTML = st.recent_messages.slice().reverse().slice(0, 20).map((m) =>
-    `<div>${esc(timeOnly(m.t))} dc${esc(m.dc_id)} ${esc(m.op)} ${esc(m.job_id || m.detail || "")}</div>`).join("") || "<div>No messages yet</div>";
+function mainChart(s, pair) {
+  chart("ov-main", root.querySelector("#ch-main")).setOption({
+    animation: false, tooltip: { trigger: "axis" },
+    legend: { top: 0, textStyle: { color: "#334155" } }, grid: { left: 56, right: 20, top: 36, bottom: 30 }, xAxis: axisTime,
+    yAxis: { type: "value", min: 0, name: "re-scores", nameTextStyle: { color: "#64748B" }, axisLabel: { color: "#64748B" }, splitLine: { lineStyle: { color: "#EEF2F6" } } },
+    series: pair.map((p) => ({ name: p, type: "line", showSymbol: false, lineStyle: { width: 3, color: colourOf(p) }, itemStyle: { color: colourOf(p) },
+      data: tsToMs(s.history[p] || [], (h) => h.full_rescores) })) }, true);
 }
 
-function dcCards(dcs) {
-  const host = root.querySelector("#dcs");
-  host.innerHTML = dcs.map((d, i) => {
-    if (!d) return `<section class="fw-card"><h2>${REGION_SHORT[i]}</h2><p class="sub">Loading</p></section>`;
-    const g = keepLast("g" + i, d.carbon.actual_g_per_kwh ?? d.carbon.forecast_g_per_kwh), cls = gClass(g);
-    const u = Math.round((d.gpu_utilisation || 0) * 100);
-    return `<section class="fw-card"><div style="display:flex;justify-content:space-between;align-items:start"><div><h2 style="color:${REGION_COLOURS[i]}">${esc(shortRegion(d.name))}</h2>
-      <p class="sub" style="margin-bottom:8px">${esc(d.name.replace(/.*\((.*)\)/, "$1"))} &middot; dc${d.dc_id}${d.remote ? " &middot; service" : ""}</p></div>
-      <span class="chip-g ${cls}">${num(g, 0)} g/kWh</span></div>
-      <div class="dcrow"><span>GPU load</span><b>${num(d.used.gpus, 1)} / ${num(d.capacity.gpus, 0)} (${u}%)</b></div>
-      <div class="bar" role="progressbar" aria-valuenow="${u}" aria-valuemin="0" aria-valuemax="100" aria-label="GPU load"><i style="width:${u}%"></i></div>
-      <div class="dcrow"><span>Running</span><b>${d.running}</b></div><div class="dcrow"><span>Queued</span><b>${d.queue_length}</b></div>
-      <div class="dcrow"><span>CO2 so far</span><b>${num(d.kg_co2_so_far, 2)} kg</b></div></section>`;
+// The latest half-hour snapshot of the main policy: no extra requests per site.
+function sites(s, pair) {
+  const st = s.status, list = sitesOf(st), h = s.history[pair[0]] || [], last = h[h.length - 1];
+  root.querySelector("#sites-h").textContent = `The ${list.length} sites right now (${pair[0]})`;
+  root.querySelector("#sites").innerHTML = list.map((site, i) => {
+    const d = last && last.dcs[i], c = st.carbon[i] || {};
+    const g = keepLast("g" + i, c.actual_g_per_kwh ?? c.forecast_g_per_kwh);
+    const cap = site.capacity ? site.capacity.gpus : null, used = d ? d.gpus_used : null;
+    const u = cap && used != null ? Math.round((used / cap) * 100) : 0;
+    return `<section class="fw-card site" style="--sc:${siteColour(i)}"><div class="site-h"><b>${esc(site.short)}</b><span class="chip-g ${gClass(g)}">${num(g, 0)} g/kWh</span></div>
+      <div class="small fw-muted">${esc(site.grid || "")}</div>
+      <div class="dcrow"><span>GPUs in use</span><b>${u}%</b></div>
+      <div class="bar" role="progressbar" aria-valuenow="${u}" aria-valuemin="0" aria-valuemax="100" aria-label="GPU load at ${esc(site.short)}"><i style="width:${u}%;background:${siteColour(i)}"></i></div>
+      <div class="dcrow"><span>Running / queued</span><b>${d ? int(d.running) : "--"} / ${d ? int(d.queued) : "--"}</b></div>
+      <div class="dcrow"><span>CO2 so far</span><b>${d ? num(d.kg_co2, 1) : "--"} kg</b></div></section>`;
   }).join("");
 }
 
-function compare(st) {
-  const names = Object.keys(st.compare);
-  const ref = st.compare[REF] ? st.compare[REF].full_rescores : Math.max(1, ...names.map((n) => st.compare[n].full_rescores));
-  const label = st.compare[REF] ? REF : "the maximum";
-  root.querySelector("#cmp").innerHTML = `<table class="fw-t"><thead><tr><th>Policy</th><th>CO2 so far</th><th>Full re-scores</th><th>Moves</th><th>Work vs ${label}</th></tr></thead><tbody>` +
-    names.map((n) => { const c = st.compare[n], w = ref ? c.full_rescores / ref : 0;
-      return `<tr class="${n === MAIN ? "hl" : ""}"><td><i class="pdot" style="background:${colourOf(n)}"></i>${esc(n)}</td><td>${num(c.kg_co2_so_far, 2)} kg</td><td>${int(c.full_rescores)}</td><td>${int(c.moves)}</td>
-      <td><i class="wbar" style="width:${Math.min(120, w * 100)}px;background:${colourOf(n)}"></i> ${(w * 100).toFixed(0)}%</td></tr>`; }).join("") + "</tbody></table>";
+function services(health, st) {
+  const names = sitesOf(st);
+  const rows = (health ? health.datacentres : []).map((d) => `<div class="svc"><div><b>${esc((names[d.dc_id] || {}).short || "dc" + d.dc_id)}</b><div class="small fw-muted">${esc(d.url)}</div>${dcLink(d)}</div>
+    <div class="small" style="text-align:right">${int(d.requests)} requests<br>${d.mean_latency_ms == null ? "--" : d.mean_latency_ms.toFixed(2)} ms mean</div></div>`).join("");
+  root.querySelector("#services").innerHTML = `<div class="svc"><div><b>Scheduler &middot; ${esc(health ? health.policy : st.policies[0])}</b><div class="small fw-muted">owns the simulated clock</div></div><div class="small">${esc(st.remote_policy ? "calls services" : "in-process")}</div></div>${rows}`;
+  root.querySelector("#msgs").innerHTML = st.recent_messages.slice().reverse().slice(0, 12).map((m) =>
+    `<div>${esc(timeOnly(m.t))} dc${esc(m.dc_id)} ${esc(m.op)} ${esc(m.job_id || m.detail || "")}</div>`).join("") || "<div>No messages yet</div>";
 }
 
-function feed(st) {
-  const ds = (st.recent_decisions[MAIN] || []).slice().reverse();
+function feed(st, p) {
+  root.querySelector("#feed-h").textContent = `Decision feed · ${p}`;
+  const ds = (st.recent_decisions[p] || []).slice().reverse();
   root.querySelector("#feed").innerHTML = ds.map((d) => `<div class="frow"><span class="t mono">${esc(timeOnly(d.time))}</span>${badge(d.kind)}<span>${esc(decisionText(d))}</span></div>`).join("") || '<p class="fw-muted">No decisions yet</p>';
 }
 
 export function update(s) {
   if (!root || !s.status) return;
-  const st = s.status;
-  kpis(st, s.history); carbon(st, s.history); services(s.health, st); dcCards(s.dcs); compare(st); feed(st);
+  const st = s.status, pair = pairOf(s);
+  kpis(st, pair); mainChart(s, pair); sites(s, pair);
+  if (isOpen(root, "ov-more")) { services(s.health, st); feed(st, pair[0]); }
 }

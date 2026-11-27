@@ -5,7 +5,7 @@
 | Field | Value |
 |---|---|
 | Document status | Implementation-ready draft. Supersedes v0.8.7 (5 Nov 2026), v0.8.6 (5 Nov 2026), v0.8.5 (4 Nov 2026), v0.8.4 (4 Nov 2026), v0.8.3 (4 Nov 2026), v0.8.2 (4 Nov 2026), v0.8.1 (4 Nov 2026), v0.8 (2 Nov 2026), v0.7 (29 Oct 2026), v0.6, v0.5.1 and v0.5 (29 Oct 2026), v0.4 (28 Oct 2026), v0.3 (24 Oct 2026), v0.2 (24 Oct 2026) and v0.1 (23 Oct 2026). Changes are listed in the changelog below. |
-| Version | 0.9.7 |
+| Version | 0.9.8 |
 | Revised | 27 November 2026 |
 | Project name | **Flipwise** (Python package and CLI `flipwise`) [Decision]: it re-evaluates decision flips wisely. Renamed from FlipSim on 25 Oct 2026. Availability of the name on GitHub and PyPI is [Open], not yet checked. |
 | Project context | RV College of Engineering, Experiential Learning, V Semester, AY 2026–27; SDG 9 |
@@ -17,6 +17,7 @@
 
 | Version | Date | Changes |
 |---|---|---|
+| 0.9.8 | 27 Nov 2026 | Live demo (13.6, D69): five sites by default for the demo (`configs/regions5.yaml`), site-count agnostic API and UI (`/status` lists `sites`), two policies compared per page, one main chart per page with details behind "Show more", default speed 900; display only, no research change. |
 | 0.9.7 | 27 Nov 2026 | Built for Phase 3: X10 learned runtime quantiles as `scenario.runtime_model: x10`, deadlines still from the per-user table (D68, F27); interval scaling `scenario.interval_scale` multiplies e05, e95 (14.4); 5-site region-scaling config with Kolkata (ER) and Hyderabad (SR), total capacity fixed, ER errors from GB region 9 as an assumption (6.2.4, D67); Holm-adjusted p-values and Cohen's d_z in paired tables; `--replicates N`; `mean_waiting_jobs` metric. |
 | 0.9.6 | 27 Nov 2026 | EL Phase 3 scope and schedule fixed (18.2 "Scope and schedule", D66): seven goals for the review on 16 Dec 2026; scaling now covers load (sampling 0.05 to 1.0) and, if Indian data allows, region count (4–5 sites); scikit-learn admitted for X10 and X13 (12.1); DT3 (AWS) dropped, everything runs locally; four stages A–D, with the last two days for the paper, slides and report only. |
 | 0.9.5 | 24 Nov 2026 | X13 learned move gate (offline contextual bandit behind the screen) added to 4.2 and 18.2 (D65); a full RL scheduler ruled out with reasons. |
@@ -1065,6 +1066,8 @@ AWS regions host the services; they do not change the carbon signal. A datacentr
 **Endpoints.** `GET /status`, `/clock`, `/dc/<id>`, `/jobs`, `/jobs/<id>`; `GET /history?since=<sim_time_s>` (one snapshot per simulated half hour per policy); `GET /stream` (Server-Sent Events: decisions tagged by policy and datacentre messages); `GET /health` (per-datacentre request count and mean latency, display only); `GET /results` (test-period summary from `docs/test_results/summary.csv` if present, else 404); `POST /jobs`, `POST /control` (speed, paused, skip_hours).
 
 **Dashboard.** Static files in `src/flipwise/web/`, served by the scheduler at `/` and `/static/...` with vendored JS (ECharts, Tabler). No build step, no npm, no new Python dependency; paths are resolved and confined to that directory.
+
+**Five sites and a calm layout** (D69). The demo runs `--config configs/regions5.yaml` (Delhi NCR, Mumbai, Chennai, Kolkata, Hyderabad; any config works). Live and the UI take the site count from the scenario; sites are named by dc_id (`sites.py`), and `/status` lists them under `sites`. A submitted job must fit at least one site. The UI compares decision_flip with one policy picked in the sidebar (default `fixed_savings`; the others still run and appear in a "Show more" table), shows one main chart per page with details behind "Show more", re-renders every 2 s, and starts at 900 simulated seconds per second.
 
 **Datacentre dashboards and one-command launch** (D62). Each `dc-serve` process also serves a display-only dashboard: `GET /` (page), `GET /live` (JSON of its capacity, queue, running set, counters, last 200 requests and a half-hourly history, all built from the simulated times in the requests) and `GET /static/...`. These routes are not simulation requests, never read the wall clock, and leave the §13.5 API and `--mode remote` outputs unchanged. `flipwise live --services local` starts the three services as child processes (`--base-port`, default 8101), runs the session in remote mode against them and stops them on exit.
 

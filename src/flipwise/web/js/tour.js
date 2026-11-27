@@ -1,13 +1,12 @@
 // Guided demo: a dismissible Next/Back card that walks a presenter through the pages in order.
 const STEPS = [
-  ["overview", "Overview", "Three datacentres in Delhi, Mumbai and Chennai run the same jobs under several re-planning policies. The KPI tiles show emissions, work done and jobs moved so far."],
-  ["h2h", "Head-to-head", "Pick two policies and compare them on identical jobs and identical carbon. Only the re-planning rule differs."],
-  ["scheduler", "Scheduler", "The forecast the planner sees, and its decisions. Click a row in the feed to open 'Why this job moved'."],
-  ["datacentres", "Datacentres", "What each site is running and queueing right now, and the grid carbon it sits on."],
-  ["compare", "Policy comparison", "All policies side by side: kg CO2, deadline misses and how much re-planning work each does."],
-  ["jobs", "Job tracker", "Submit your own job. Every policy handles it differently; click a chip to see the numbers behind each decision."],
+  ["overview", "Overview", "Datacentres across India's grids (Delhi, Mumbai, Chennai, Kolkata, Hyderabad in the five-site demo) run the same jobs. Two policies are compared: decision_flip and the one picked in the sidebar. The three tiles show carbon, work and moves; the chart shows the work gap growing."],
+  ["h2h", "Head-to-head", "At every forecast update, how many jobs each policy fully re-scores. decision_flip's cheap screen skips most of them. 'Show more' lists every policy and the jobs at each site."],
+  ["scheduler", "Scheduler", "The carbon forecast the planner sees for each site, and the 'Why this job moved' card: the saving, the bar it had to clear, and the reason. Click any row in the feed."],
+  ["datacentres", "Datacentres", "One site at a time: how busy it is, its queue, and the grid carbon it sits on. Use the tabs to switch sites."],
+  ["jobs", "Job tracker", "Submit your own job. Each policy handles it differently; click a chip to see the numbers behind each decision."],
   ["scale", "Scale projection", "How the savings and the work saved by the cheap screen grow as the load grows."],
-  ["results", "Test results", "Frozen results on the held-out test period. The thresholds were never tuned on it."],
+  ["results", "Test results", "Frozen results on the held-out test period (three sites). The thresholds were never tuned on it."],
   ["architecture", "Architecture", "How the scheduler and datacentre services fit together, with identical results in-process or over HTTP."],
 ];
 let i = 0, box = null;

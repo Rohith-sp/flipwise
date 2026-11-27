@@ -1,81 +1,85 @@
-// Datacentres: capacity, load over time, job lists and service health, one tab per datacentre.
+// Datacentres: one site at a time, one tab per site (any number of sites).
 import * as api from "./api.js";
-import { esc, int, num, chart, shortRegion, jobChips, keepLast, gClass, policySelect, tsToMs, axisTime, REGION_COLOURS, REGION_SHORT } from "./util.js";
+import { esc, int, num, chart, shortRegion, jobChips, keepLast, gClass, tsToMs, axisTime, siteColour, sitesOf, pairOf, dcLink, more, onMore, isOpen } from "./util.js";
 
-let root = null, tab = 0, policy = "decision_flip", dcData = null, lanes = null;
-export const title = ["Datacentres", "Capacity, load and jobs at each site"];
+let root = null, tab = 0, policy = null, dcData = null, lanes = null;
+export const title = ["Datacentres", "Load, queue and grid carbon at one site at a time"];
 
 export function mount(view) {
   root = view;
   view.innerHTML = `
-  <div class="h2h-head"><div class="tabs" role="tablist" aria-label="Datacentre">${REGION_SHORT.map((n, i) => `<button type="button" role="tab" id="tab${i}" aria-selected="${i === tab}" data-i="${i}">${n}</button>`).join("")}</div>
+  <div class="card-h"><div class="tabs" role="tablist" aria-label="Datacentre" id="tabs"></div>
     <div class="picker"><label for="dc-pol">Policy</label><select id="dc-pol"></select></div></div>
-  <div class="fw-grid g3" id="gauges"></div>
-  <div class="fw-grid g11 fw-section">
-    <section class="fw-card"><h2>Running and queued jobs</h2><p class="sub" id="rq-sub"></p><div class="chart" id="ch-rq" role="img" aria-label="Running and queued over time"></div></section>
-    <section class="fw-card"><h2>CO2 per half hour</h2><p class="sub" id="co2-sub"></p><div class="chart" id="ch-co2" role="img" aria-label="CO2 per half hour"></div></section>
-  </div>
-  <div class="fw-grid g21 fw-section">
-    <section class="fw-card"><h2>Jobs here</h2><p class="sub" id="jobs-sub"></p><div id="jobs"></div></section>
-    <section class="fw-card"><h2>Service health</h2><p class="sub">Measured from the scheduler's calls</p><div id="health"></div></section>
-  </div>`;
-  view.querySelector(".tabs").addEventListener("click", (e) => {
+  <div class="fw-grid g5" id="kpis"></div>
+  <section class="fw-card fw-section"><h2>Running and queued jobs</h2><p class="sub" id="rq-sub"></p>
+    <div class="chart-lg" id="ch-rq" role="img" aria-label="Running and queued jobs over time"></div></section>
+  ${more("d-more", "Show more: CO2 per half hour, the jobs here, service health", `<div class="fw-grid g11">
+    <section class="fw-card"><h2>CO2 per half hour</h2><p class="sub">kg, completed jobs placed at this site</p><div class="chart" id="ch-co2" role="img" aria-label="CO2 per half hour"></div></section>
+    <section class="fw-card"><h2>Service health</h2><p class="sub">Measured from the scheduler's calls</p><div id="health"></div></section></div>
+    <section class="fw-card fw-section"><h2>Jobs here</h2><p class="sub" id="jobs-sub"></p><div id="jobs"></div></section>`)}`;
+  view.querySelector("#tabs").addEventListener("click", (e) => {
     const b = e.target.closest("button"); if (!b) return;
     tab = +b.dataset.i; dcData = null; lanes = null;
-    root.querySelectorAll(".tabs button").forEach((x) => x.setAttribute("aria-selected", String(+x.dataset.i === tab)));
     load().then(() => update(window.__fwState), () => {});
   });
   view.querySelector("#dc-pol").addEventListener("change", (e) => { policy = e.target.value; dcData = null; lanes = null; load().then(() => update(window.__fwState), () => {}); });
+  onMore(view, "d-more", () => load().then(() => update(window.__fwState), () => {}));
 }
 export function unmount() { root = null; dcData = null; lanes = null; }
 
 export async function load() {
+  if (!root || policy === null) return;
   const want = `${tab}|${policy}`;
-  const [d, l] = await Promise.all([api.getDc(tab, policy), api.getLanes(policy)]);
+  const [d, l] = await Promise.all([api.getDc(tab, policy), isOpen(root, "d-more") ? api.getLanes(policy) : null]);
   // A tab or policy switch while this was in flight: these answers are for the old choice.
-  if (want === `${tab}|${policy}`) { dcData = d; lanes = l; }
+  if (want === `${tab}|${policy}`) { dcData = d; if (l) lanes = l; }
 }
 
-function gauge(id, name, used, cap) {
-  const pct = cap ? Math.round((used / cap) * 100) : 0;
-  chart(id, root.querySelector("#" + id)).setOption({
-    animation: false, series: [{ type: "gauge", min: 0, max: 100, radius: "92%", progress: { show: true, width: 12, itemStyle: { color: "#1D4ED8" } },
-      axisLine: { lineStyle: { width: 12, color: [[1, "#E5E7EB"]] } }, pointer: { show: false }, axisTick: { show: false }, splitLine: { show: false }, axisLabel: { show: false },
-      detail: { formatter: `{v|${pct}%}\n{n|${num(used, 0)} of ${num(cap, 0)}}`, rich: { v: { fontSize: 22, fontWeight: 700, color: "#111827" }, n: { fontSize: 12, color: "#4B5563", padding: [4, 0, 0, 0] } }, offsetCenter: [0, "10%"] },
-      data: [{ value: pct }] }] }, true);
+function controls(s) {
+  const st = s.status, list = sitesOf(st), names = st.policies;
+  if (tab >= list.length) tab = 0;
+  const tabs = root.querySelector("#tabs"), key = list.map((x) => x.short).join(",");
+  if (tabs.dataset.k !== key) {
+    tabs.innerHTML = list.map((x, i) => `<button type="button" role="tab" data-i="${i}" style="--sc:${siteColour(i)}">${esc(x.short)}</button>`).join("");
+    tabs.dataset.k = key;
+  }
+  tabs.querySelectorAll("button").forEach((b) => b.setAttribute("aria-selected", String(+b.dataset.i === tab)));
+  const sel = root.querySelector("#dc-pol");
+  if (policy === null || !names.includes(policy)) { policy = pairOf(s)[0]; dcData = null; }
+  if (sel.dataset.names !== names.join(",")) { sel.innerHTML = names.map((p) => `<option value="${esc(p)}">${esc(p)}</option>`).join(""); sel.dataset.names = names.join(","); }
+  sel.value = policy;
 }
 
 export function update(s) {
   if (!root || !s || !s.status) return;
-  const picked = policySelect(root.querySelector("#dc-pol"), s.status.policies, policy);
-  if (picked !== policy) { policy = picked; dcData = null; lanes = null; }
-  const d = dcData;
+  controls(s);
+  const d = dcData, site = sitesOf(s.status)[tab] || {}, col = siteColour(tab);
   const g = d ? keepLast("g" + tab, d.carbon.actual_g_per_kwh ?? d.carbon.forecast_g_per_kwh) : null;
-  if (!root.querySelector("#gauges").children.length)
-    root.querySelector("#gauges").innerHTML = ["GPU", "CPU cores", "Memory (GB)"].map((n, i) => `<section class="fw-card"><h2>${n}</h2><p class="sub" id="gs${i}"></p><div style="height:170px" id="gg${i}" role="img" aria-label="${n} in use"></div></section>`).join("");
-  if (d) {
-    root.querySelector("#gs0").innerHTML = `${esc(shortRegion(d.name))} &middot; <span class="chip-g ${gClass(g)}">${num(g, 0)} g/kWh</span>`;
-    root.querySelector("#gs1").textContent = "in use right now";
-    root.querySelector("#gs2").textContent = "in use right now";
-    gauge("gg0", "GPU", d.used.gpus, d.capacity.gpus); gauge("gg1", "CPU", d.used.cpus, d.capacity.cpus); gauge("gg2", "Mem", d.used.mem_gb, d.capacity.mem_gb);
-  }
-  root.querySelector("#rq-sub").textContent = `${policy}, every half hour`;
-  root.querySelector("#co2-sub").textContent = `${policy}, completed jobs placed here, kg`;
+  const t = (lab, val, note) => `<section class="fw-card kpi" style="border-top:3px solid ${col}"><div class="lab">${lab}</div><div class="val">${val}</div><div class="note">${note}</div></section>`;
+  root.querySelector("#kpis").innerHTML = d ?
+    t("GPUs in use", `${Math.round((d.gpu_utilisation || 0) * 100)}<span class="u">%</span>`, `${num(d.used.gpus, 0)} of ${num(d.capacity.gpus, 0)} GPUs`) +
+    t("Running jobs", int(d.running), `${int(d.completed)} completed here`) +
+    t("Queued jobs", int(d.queue_length), `${int(d.planned_not_released)} planned for later`) +
+    t("Grid carbon now", `<span class="chip-g big-chip ${gClass(g)}">${num(g, 0)}</span><span class="u"> g/kWh</span>`, esc(site.grid || shortRegion(d.name))) +
+    t("CO2 so far", `${num(d.kg_co2_so_far, 1)}<span class="u"> kg</span>`, "completed jobs at this site") : "";
+  root.querySelector("#rq-sub").textContent = `${site.short || "Site"} under ${policy}, sampled every simulated half hour`;
   const h = s.history[policy] || [], at = (p) => p.dcs[tab] || {};
-  const base = { animation: false, tooltip: { trigger: "axis" }, grid: { left: 44, right: 16, top: 28, bottom: 28 }, xAxis: axisTime, legend: { top: 0, textStyle: { fontSize: 11, color: "#374151" } } };
-  chart("dc-rq", root.querySelector("#ch-rq")).setOption({ ...base, yAxis: { type: "value", min: 0, axisLabel: { color: "#4B5563" }, splitLine: { lineStyle: { color: "#EEF0F3" } } },
-    series: [{ name: "Running", type: "line", showSymbol: false, data: tsToMs(h, (p) => at(p).running), lineStyle: { color: "#047857" }, itemStyle: { color: "#047857" } },
-      { name: "Queued", type: "line", showSymbol: false, data: tsToMs(h, (p) => at(p).queued), lineStyle: { color: "#B45309" }, itemStyle: { color: "#B45309" } }] }, true);
+  const base = { animation: false, tooltip: { trigger: "axis" }, grid: { left: 48, right: 20, top: 36, bottom: 30 }, xAxis: axisTime, legend: { top: 0, textStyle: { fontSize: 12, color: "#334155" } } };
+  const yAx = { type: "value", min: 0, axisLabel: { color: "#64748B" }, splitLine: { lineStyle: { color: "#EEF2F6" } } };
+  chart("dc-rq", root.querySelector("#ch-rq")).setOption({ ...base, yAxis: yAx,
+    series: [{ name: "Running", type: "line", showSymbol: false, data: tsToMs(h, (p) => at(p).running), lineStyle: { color: col, width: 3 }, itemStyle: { color: col }, areaStyle: { color: col, opacity: 0.08 } },
+      { name: "Queued", type: "line", showSymbol: false, data: tsToMs(h, (p) => at(p).queued), lineStyle: { color: "#94A3B8", width: 2, type: "dashed" }, itemStyle: { color: "#94A3B8" } }] }, true);
+  if (!isOpen(root, "d-more")) return;
   const co2 = h.map((p, i) => [p.t * 1000, i ? Math.max(0, (at(p).kg_co2 || 0) - (at(h[i - 1]).kg_co2 || 0)) : 0]);
-  chart("dc-co2", root.querySelector("#ch-co2")).setOption({ ...base, legend: { show: false }, yAxis: { type: "value", min: 0, name: "kg", axisLabel: { color: "#4B5563" }, splitLine: { lineStyle: { color: "#EEF0F3" } } },
-    series: [{ type: "bar", data: co2, itemStyle: { color: REGION_COLOURS[tab] }, barMaxWidth: 10 }] }, true);
+  chart("dc-co2", root.querySelector("#ch-co2")).setOption({ ...base, legend: { show: false }, yAxis: { ...yAx, name: "kg" },
+    series: [{ type: "bar", data: co2, itemStyle: { color: col }, barMaxWidth: 10 }] }, true);
   const L = lanes && lanes.datacentres[tab];
-  root.querySelector("#jobs-sub").textContent = `${policy}${d ? ` · ${int(d.completed)} completed here` : ""}. Squares show GPUs; black outline: your job; amber dot: moved.`;
-  root.querySelector("#jobs").innerHTML = L ? `<div class="sbox"><div class="sl">Planned &middot; waiting for release (${int(L.planned.total)})</div><div class="jchips">${jobChips(L.planned, "planned")}</div></div>
-    <div class="sbox"><div class="sl">Queue &middot; FIFO first-fit (${int(L.queued.total)})</div><div class="jchips">${jobChips(L.queued, "queued")}</div></div>
-    <div class="sbox"><div class="sl">Running (${int(L.running.total)})</div><div class="jchips">${jobChips(L.running, "running")}</div></div>` : '<p class="fw-muted">Loading</p>';
+  root.querySelector("#jobs-sub").textContent = `${policy}. Squares show GPUs; black outline: your job; amber dot: moved.`;
+  root.querySelector("#jobs").innerHTML = L ? `<div class="fw-grid g3"><div class="sbox"><div class="sl">Planned, waiting for release (${int(L.planned.total)})</div><div class="jchips">${jobChips(L.planned, "planned")}</div></div>
+    <div class="sbox"><div class="sl">Queue, FIFO first-fit (${int(L.queued.total)})</div><div class="jchips">${jobChips(L.queued, "queued")}</div></div>
+    <div class="sbox"><div class="sl">Running (${int(L.running.total)})</div><div class="jchips">${jobChips(L.running, "running")}</div></div></div>` : '<p class="fw-muted">Loading</p>';
   const hd = s.health && s.health.datacentres[tab];
-  root.querySelector("#health").innerHTML = hd ? `<div class="svc"><div><b>${esc(REGION_SHORT[tab])} &middot; dc${tab}</b><div class="small fw-muted">${esc(hd.url)}</div></div><span class="chip-g ${s.connected === false ? "cg-red" : "cg-green"}">${hd.remote ? "service" : "in-process"}</span></div>
+  root.querySelector("#health").innerHTML = hd ? `<div class="svc"><div><b>${esc(site.short || "")} &middot; dc${tab}</b><div class="small fw-muted">${esc(hd.url)}</div>${dcLink(hd)}</div><span class="chip-g ${s.connected === false ? "cg-red" : "cg-green"}">${hd.remote ? "service" : "in-process"}</span></div>
     <div class="dcrow"><span>Requests</span><b>${int(hd.requests)}</b></div><div class="dcrow"><span>Mean latency</span><b>${hd.mean_latency_ms == null ? "--" : hd.mean_latency_ms.toFixed(2) + " ms"}</b></div>
-    <p class="small fw-muted" style="margin-top:8px">Health is measured for ${esc(s.health.policy)}, the policy whose calls are timed.</p>` : '<p class="fw-muted">No data</p>';
+    <p class="small fw-muted" style="margin-top:8px">Measured for ${esc(s.health.policy)}, the policy whose calls are timed.</p>` : '<p class="fw-muted">No data</p>';
 }

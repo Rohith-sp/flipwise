@@ -972,17 +972,18 @@ bash scripts/docker_check.sh all      # all three (default)
 
 ```bash
 uv run flipwise live --scenario tests/fixtures/toy --speed 120               # toy, 6 jobs
-uv run flipwise live --config configs/base.yaml                              # dev week, in-process
-uv run flipwise live --config configs/base.yaml --services local             # + three local DC services
+uv run flipwise live --config configs/regions5.yaml                          # the demo: dev week, 5 sites
+uv run flipwise live --config configs/regions5.yaml --services local         # + five local DC services
+uv run flipwise live --config configs/base.yaml                              # the 3-site research setup
 uv run flipwise live --config configs/base.yaml --split validation           # validation weeks in turn
-docker compose --profile live up --build dc-delhi dc-mumbai dc-chennai live  # DCs as containers
+docker compose --profile live up --build dc-delhi dc-mumbai dc-chennai dc-kolkata dc-hyderabad live  # 5 DCs as containers
 docker compose --profile live down
 ```
 
-- **In:** a scenario or config; `--policies` (default `decision_flip,fixed_savings,periodic,pred_error,place_once`; `all` adds `fcfs` and `pig`), `--speed` (simulated seconds per real second, default 1,800), `--mode`, `--dc-urls`, `--services local`, `--base-port` (default 8101), `--host`, `--port` (default 8100). `--split test` is refused.
+- **In:** a scenario or config; `--policies` (default `decision_flip,fixed_savings,periodic,pred_error,place_once`; `all` adds `fcfs` and `pig`), `--speed` (simulated seconds per real second, default 900, D69), `--mode`, `--dc-urls`, `--services local`, `--base-port` (default 8101), `--host`, `--port` (default 8100). `--split test` is refused.
 - **Steps:** build the scenario; start one simulator per policy on a shared simulated clock; call `Simulator.advance` as the wall clock moves; serve the website and JSON API. With `--services local`, start three `dc-serve` children, wait for `/health`, run the first policy in remote mode against them, and stop them on exit. Only the first policy (`decision_flip`) talks to the services; the others use in-process datacentres with the same code.
 - **Out:** a website at `http://localhost:8100` (and 8101–8103 with services). **Nothing is written to `results/`**: submitted jobs and wall-clock pacing make a session unrepeatable, so it is for showing, never for results.
-- Docker toy variant: `FLIPWISE_LIVE_ARGS="--scenario tests/fixtures/toy --speed 120" docker compose --profile live up --build dc-delhi dc-mumbai dc-chennai live` (PowerShell: `$env:FLIPWISE_LIVE_ARGS = "--scenario tests/fixtures/toy --speed 120"` first; clear it afterwards with `unset FLIPWISE_LIVE_ARGS` or `Remove-Item Env:FLIPWISE_LIVE_ARGS`).
+- The Docker live profile is five-site (`configs/regions5.yaml`, D69); `FLIPWISE_LIVE_ARGS` only adds options such as `--speed 1800`. The 3-site toy runs without Docker: `uv run flipwise live --scenario tests/fixtures/toy --speed 120 --services local`.
 
 ### 8.15 Troubleshooting
 
@@ -1213,29 +1214,24 @@ The pages read a small JSON API on port 8100: `GET /status`, `/clock`, `/history
 uv run flipwise live --scenario tests/fixtures/toy --speed 120 --services local
 ```
 
-```bash
-FLIPWISE_LIVE_ARGS="--scenario tests/fixtures/toy --speed 120" \
-  docker compose --profile live up --build dc-delhi dc-mumbai dc-chennai live
-```
-
-(PowerShell: `$env:FLIPWISE_LIVE_ARGS = "--scenario tests/fixtures/toy --speed 120"`, then the same `docker compose` line.)
+(The toy has three sites, so it runs without Docker; the Docker profile is five-site.)
 
 1. Open `http://localhost:8100`; clock *Mon 03 Jul 2023 05:30 IST*. Overview: Delhi 100, Chennai 200, Mumbai 300. *"Every carbon-aware policy packs the first jobs into Delhi."*
 2. Click **+1 h**. At 06:30 the new forecast says Delhi turns dirty (400). The decision feed shows three **MOVE** rows. *"Decision-flip moved three waiting jobs from Delhi to Chennai, each with its numbers: the saving and what it needed to beat."*
-3. Click **+1 h** twice more. Policy comparison: decision_flip about **1.50 kg**, place_once about **2.31 kg**. *"The plan made on the old forecast was worse than no carbon awareness at all."*
-4. Stop (Ctrl-C; Docker: also `docker compose --profile live down`, then `unset FLIPWISE_LIVE_ARGS` or `Remove-Item Env:FLIPWISE_LIVE_ARGS`).
+3. Click **+1 h** twice more. Head-to-head, "Show more", All policies: decision_flip about **1.50 kg**, place_once about **2.31 kg**. *"The plan made on the old forecast was worse than no carbon awareness at all."*
+4. Stop (Ctrl-C).
 
-**Act 2: a real week, real services (2 min).**
+**Act 2: a real week on five sites, real services (2 min).**
 
 ```bash
-uv run flipwise live --config configs/base.yaml --services local
+uv run flipwise live --config configs/regions5.yaml --services local
 ```
 
 ```bash
-docker compose --profile live up --build dc-delhi dc-mumbai dc-chennai live
+docker compose --profile live up --build dc-delhi dc-mumbai dc-chennai dc-kolkata dc-hyderabad live
 ```
 
-(In Docker, wait 10–20 s for the `live` container to build the week, then reload.) Open the four URLs side by side: `:8100` scheduler, `:8101` Delhi NCR, `:8102` Mumbai, `:8103` Chennai.
+(In Docker, wait 10–20 s for the `live` container to build the week, then reload.) Open `:8100` (scheduler) and, if wanted, the site pages `:8101` Delhi NCR, `:8102` Mumbai, `:8103` Chennai, `:8104` Kolkata, `:8105` Hyderabad.
 
 1. Pill reads **Live**; clock *Mon 03 Jul 2023 00:00 IST*. *"One real week of Alibaba's GPU jobs, about 7,000, on Indian grid data for July 2023."*
 2. **Architecture**: three boxes with URLs, request counts and latency rising. *"Separate services over HTTP; the results are byte-identical to one program."*

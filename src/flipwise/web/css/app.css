@@ -155,3 +155,49 @@ table.fw-t{width:100%;border-collapse:collapse;font-size:13px}
 .tour{position:fixed;right:20px;bottom:20px;width:320px;max-width:calc(100vw - 40px);background:#fff;border:1px solid var(--line);border-top:4px solid #1D4ED8;border-radius:10px;box-shadow:0 8px 28px rgba(0,0,0,.22);padding:12px 14px;z-index:50;font-size:13px}
 .tour p{margin:8px 0 10px}.tour-h{display:flex;justify-content:space-between;gap:8px;align-items:center}
 .tour-x{border:0;background:none;font-size:20px;line-height:1;cursor:pointer}.tour-b{display:flex;justify-content:space-between}
+/* ---- calm layout (D69): one main chart per page, details behind "Show more" ---- */
+:root{--bg:#F5F7FA;--line:#E2E8F0;--ink:#0F172A;--mute:#64748B;--blue:#2563EB}
+body{font-size:15px}
+.fw-view{padding:24px 32px 48px;max-width:1440px}
+.fw-card{border-radius:14px;padding:20px}
+.fw-card h2{font-size:16px}.fw-card .sub{font-size:13px;margin:4px 0 14px}
+.fw-section{margin-top:20px}.fw-grid{gap:20px}
+.g4{grid-template-columns:repeat(4,minmax(0,1fr))}
+.chart-lg{height:340px}
+.lede{font-size:16px;line-height:1.5;color:#334155;margin:0 0 18px;max-width:900px}
+.kpi .val{font-size:28px;font-weight:700;letter-spacing:-.01em}.kpi .lab{font-size:13px}.kpi .note{font-size:13px}
+.u{font-size:14px;font-weight:600;color:var(--mute);margin-left:2px}
+.kpi2 .lab{font-size:13px;color:var(--mute);font-weight:600;margin-bottom:10px}
+.pvs{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.pv .pn{font-size:12px;color:var(--mute);font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pv .big{font-size:28px;font-weight:700;letter-spacing:-.01em;font-variant-numeric:tabular-nums}
+.verdict{margin-top:10px;font-size:13px;font-weight:600;color:#047857}.verdict.bad{color:#B45309}
+.sec-h{font-size:16px;font-weight:700;margin:0 0 12px}
+.h3{font-size:14px;font-weight:700;margin:12px 0 6px}
+.sites{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:16px}
+.site{border-top:4px solid var(--sc)}.site-h{display:flex;justify-content:space-between;align-items:center;gap:6px}.site-h b{font-size:16px}
+.more{background:transparent}
+.more>summary{cursor:pointer;list-style:none;display:inline-flex;align-items:center;gap:8px;font-weight:600;font-size:14px;color:var(--blue);padding:8px 14px;border:1px solid var(--line);border-radius:10px;background:#fff}
+.more>summary::-webkit-details-marker{display:none}
+.more>summary::before{content:"+";font-size:16px;line-height:1}.more[open]>summary::before{content:"\2212"}
+.more>summary:focus-visible{outline:2px solid var(--blue);outline-offset:2px}
+.more-body{margin-top:16px}
+.card-h{display:flex;flex-wrap:wrap;gap:12px 16px;align-items:center;justify-content:space-between;margin-bottom:14px}
+.filters{display:flex;gap:12px;flex-wrap:wrap}
+.fw-pair{padding:4px 8px 8px;display:flex;flex-direction:column;gap:6px}
+.fw-pair-a{font-weight:600;font-size:14px}
+.fw-select{border:1px solid #CBD5E1;border-left:4px solid #D97706;border-radius:8px;padding:6px 8px;background:#fff;font-size:14px;font-weight:600;color:var(--ink)}
+.fw-play{min-width:96px;font-weight:700;background:#fff;border:1px solid #CBD5E1;display:inline-flex;gap:6px;align-items:center}
+.fw-play.paused{background:var(--blue);color:#fff;border-color:var(--blue)}
+.dcgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:10px}
+.lane-p+.lane-p{margin-top:16px}
+.arch-dcs{display:grid;gap:8px}.abox-dc{padding:8px 12px}.abox-dc h3{margin:0 0 2px}
+.chip-g{white-space:nowrap}
+.rules{padding:14px 20px;display:grid;gap:6px}.rule{display:grid;grid-template-columns:auto 130px minmax(0,1fr);align-items:center;gap:4px;font-size:14px}.rule span{color:#334155}
+.big-chip{font-size:20px;padding:2px 10px}
+.tabs button[aria-selected=true]{background:var(--sc,var(--blue));border-color:var(--sc,var(--blue))}
+.tabs{flex-wrap:wrap;margin-bottom:0}
+.why-card .why-row{grid-template-columns:170px minmax(0,1fr)}
+.feed{max-height:430px}
+@media (max-width:1200px){.g4{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media (max-width:900px){.g4{grid-template-columns:1fr}.fw-pair{display:none}.fw-view{padding:16px}}

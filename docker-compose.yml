@@ -39,6 +39,18 @@ services:
     <<: *dc
     command: ["dc-serve", "--dc-id", "2", "--host", "0.0.0.0", "--port", "8101"]
     ports: ["8103:8101"]
+  # Two more sites, only for the live demo's five-site config (configs/regions5.yaml, D66). The
+  # research coordinator above stays three-site, so `docker compose up` never starts these.
+  dc-kolkata:
+    <<: *dc
+    profiles: [live]
+    command: ["dc-serve", "--dc-id", "3", "--host", "0.0.0.0", "--port", "8101"]
+    ports: ["8104:8101"]
+  dc-hyderabad:
+    <<: *dc
+    profiles: [live]
+    command: ["dc-serve", "--dc-id", "4", "--host", "0.0.0.0", "--port", "8101"]
+    ports: ["8105:8101"]
 
   coordinator:
     image: flipwise:${FLIPWISE_TAG:-dev}
@@ -58,9 +70,10 @@ services:
 # Each datacentre also serves its own dashboard: http://localhost:8101 (Delhi NCR), :8102
 # (Mumbai), :8103 (Chennai). The coordinator and results do not depend on those ports.
   # Live demo (PRD §13.6): the dashboard at http://localhost:8100, the scheduler talking to the
-  # three datacentre containers above. Start only what it needs:
-  #   docker compose --profile live up --build dc-delhi dc-mumbai dc-chennai live
-  # FLIPWISE_LIVE_ARGS picks the scenario, e.g. "--scenario tests/fixtures/toy".
+  # five datacentre containers above (five-site config). Start only what it needs:
+  #   docker compose --profile live up --build dc-delhi dc-mumbai dc-chennai dc-kolkata dc-hyderabad live
+  # FLIPWISE_LIVE_ARGS adds options, e.g. "--speed 1800". The URL list fixes five sites, so a
+  # three-site scenario is run without Docker: uv run flipwise live --config configs/base.yaml
   live:
     image: flipwise:${FLIPWISE_TAG:-dev}
     profiles: [live]
@@ -70,15 +83,17 @@ services:
       dc-delhi: {condition: service_healthy}
       dc-mumbai: {condition: service_healthy}
       dc-chennai: {condition: service_healthy}
+      dc-kolkata: {condition: service_healthy}
+      dc-hyderabad: {condition: service_healthy}
     volumes:
       - ./data:/app/data:ro,z
     command: >-
       live --mode remote --host 0.0.0.0 --port 8100
-      --dc-urls http://dc-delhi:8101,http://dc-mumbai:8101,http://dc-chennai:8101
-      ${FLIPWISE_LIVE_ARGS:---config configs/base.yaml}
+      --dc-urls http://dc-delhi:8101,http://dc-mumbai:8101,http://dc-chennai:8101,http://dc-kolkata:8101,http://dc-hyderabad:8101
+      --config configs/regions5.yaml ${FLIPWISE_LIVE_ARGS:-}
 
 networks:
   fw:
     internal: true
-  # Published: the live scheduler (8100) and the three datacentre dashboards (8101-8103).
+  # Published: the live scheduler (8100) and the datacentre dashboards (8101-8105).
   public: {}
