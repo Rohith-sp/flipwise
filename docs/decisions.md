@@ -2,7 +2,7 @@
 
 Every design decision, grouped by the phase it was made in. For how the project got here as a story, see `PROJECT_EXPLAINER.md` §14; for where work stands today, see `HANDOFF.md`.
 
-**PRD version: 0.9.8**
+**PRD version: 0.9.9**
 
 ## Rules
 
@@ -127,6 +127,12 @@ Every design decision, grouped by the phase it was made in. For how the project 
 | D53 | 10 Nov | Drop the scripted driver (deployment step 5); `flipwise run --mode remote` on the toy is the local-split check. A remote run gets its own `run_id` (so a saved in-process run never stands in for it), and its URLs are checked against `dc_id` before the first event | The driver was meant to show the split before the simulator existed; the simulator now does the same job with every policy, and R-DEP-7 already covers the call-by-call behaviour | active | §18 | experiment |
 | D52 | 10 Nov | Deployment before the test run: DT1 steps 5–7, then DT2 (Docker), which is now required for EL Phase 2 rather than a stretch goal; then the test set once, sensitivity sweeps and ablations | The Phase 2 review expects both the local split and Docker; the test run needs no further code | active | §14.5, §18.1 | — |
 
+## Phase 3 implementation review: PRD v0.9.9 (28 Nov 2026)
+
+| ID | Date | Decision | Why | Status | PRD | Code |
+|---|---|---|---|---|---|---|
+| D70 | 28 Nov | Headline paired comparisons use a crossed (pigeonhole) bootstrap interval, resampling trace slices and carbon starts separately (`ci95_lo_crossed`, `ci95_hi_crossed` in `paired.csv`); the replicate bootstrap stays beside it; sign-flip p-values are reported as tests of the sharp null on the replicates run, not as generalisation | §14.7 said replicates sharing a slice or carbon week are not independent and avoided p-values, then D66 added p-values on the same iid assumption. On committed results the crossed interval is 1.4–2× wider (F28); claims about unseen weeks need it | active | §14.7 | reporting |
+
 ## Project tooling: PRD v0.8.2 (4 Nov 2026)
 
 | ID | Date | Decision | Why | Status | PRD | Code |
@@ -138,6 +144,7 @@ Every design decision, grouped by the phase it was made in. For how the project 
 
 | ID | Date | Finding | Led to | Evidence |
 |---|---|---|---|---|
+| F28 | 28 Nov | Crossed vs replicate bootstrap on the committed `summary.csv` files (no new runs; `reporting.crossed_bootstrap_ci`). kgCO2 vs `place_once`, validation (12 replicates): `decision_flip` −146 kg, replicate CI −234 to −60, crossed −282 to −30 (still excludes 0); `fixed_savings` −123, −230 to −20 → −289 to +23; `pred_error` −77, −153 to −2 → −203 to +49; `periodic` −98, −172 to −34 → −211 to −14. Test (16): every re-planner includes 0 under both (`decision_flip` −55, −129 to +13 → −191 to +35); `fcfs` +372, crossed +172 to +551. Crossed intervals are 1.4–2× wider | D70; the validation ranking of re-planners is weaker than F14 read, the test claim (D51, F21) is unchanged | `docs/validation/summary.csv`, `docs/test_results/summary.csv` |
 | F27 | 27 Nov | X10 runtime quantiles on validation jobs (trace days 25–45, 231,578 jobs; fit on days 0–20, 84,656 jobs; `scripts/x10_fit_report.py`): q05–q95 coverage 0.840 (table 0.866), share below q90 0.875 (0.883), mean width 4.74 h (5.44 h), pinball loss q50 2,245 s (2,511), q90 2,321 s (2,611). Better point and upper quantiles, narrower and slightly under-covering intervals | Effect on misses and kgCO2 to be measured with the `runtime_model` sweep (validation) | `scripts/x10_fit_report.py` |
 | F26 | 24 Nov | Throttle sweeps on validation (12 replicates, sampling 0.1, `place_once` baseline; `configs/sweeps/max_moves_*.yaml`, `cooldown_*.yaml`, `scripts/run_throttle_sweeps.sh`). `max_moves` 1 / 3 / 10, kgCO2: `decision_flip` 3,275 / 3,285 / 3,282, moves 1,840 / 2,289 / 2,389; `fixed_savings` 3,281 / 3,287 / 3,240, moves 3,797 / 5,938 / 6,326. `cooldown_s` 1,800 / 7,200: `decision_flip` 3,285 / 3,272, moves 2,289 / 1,518; `fixed_savings` 3,287 / 3,302, moves 5,938 / 3,306. Every paired difference to the default is inside its 95 % CI (±40 to ±80 kg), miss rate 4.1–4.3 % throughout. So the defaults are not shown better than the alternatives; they are within noise, and 3 and 1,800 cost no carbon against 10. Not run: ρ and slack sweeps. | Defaults kept; PRD 18.2 WP1 | PROJECT_EXPLAINER §17.3; `results/sweep_*` (local only) |
 | F25 | 12 Nov | D59 re-run done: decisions byte-identical to the frozen runs in all 392 runs (validation 84 + 84, test 112 + 112). Test kgCO₂ per replicate, measured to nameplate: decision_flip 3,853 to 11,862; place_once 3,873 to 11,902; fcfs 3,980 to 12,160. decision_flip − place_once: −20 (CI −73 to +26) measured, −40 (CI −111 to +25) nameplate | F21's claim holds at both ends of the bracket: same carbon as the other re-planners and place_once, clearly below fcfs. kgCO₂ can now be quoted as a cited range instead of relative units | `docs/power_bracket/` |

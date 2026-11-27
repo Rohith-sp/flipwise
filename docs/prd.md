@@ -5,8 +5,8 @@
 | Field | Value |
 |---|---|
 | Document status | Implementation-ready draft. Supersedes v0.8.7 (5 Nov 2026), v0.8.6 (5 Nov 2026), v0.8.5 (4 Nov 2026), v0.8.4 (4 Nov 2026), v0.8.3 (4 Nov 2026), v0.8.2 (4 Nov 2026), v0.8.1 (4 Nov 2026), v0.8 (2 Nov 2026), v0.7 (29 Oct 2026), v0.6, v0.5.1 and v0.5 (29 Oct 2026), v0.4 (28 Oct 2026), v0.3 (24 Oct 2026), v0.2 (24 Oct 2026) and v0.1 (23 Oct 2026). Changes are listed in the changelog below. |
-| Version | 0.9.8 |
-| Revised | 27 November 2026 |
+| Version | 0.9.9 |
+| Revised | 28 November 2026 |
 | Project name | **Flipwise** (Python package and CLI `flipwise`) [Decision]: it re-evaluates decision flips wisely. Renamed from FlipSim on 25 Oct 2026. Availability of the name on GitHub and PyPI is [Open], not yet checked. |
 | Project context | RV College of Engineering, Experiential Learning, V Semester, AY 2026–27; SDG 9 |
 | Deliverable | Offline, command-line research simulator and reproducible evaluation pipeline, plus a static, self-contained HTML results dashboard generated from result CSVs. Not a production scheduler. No web app in the MVP. From v0.4, a **deployment track** (Section 13.5) runs the same simulation with each virtual datacentre as a separate service: first as local processes, then in Docker, then on AWS. Research results always come from the in-process mode; the deployment modes must reproduce them exactly. |
@@ -17,6 +17,7 @@
 
 | Version | Date | Changes |
 |---|---|---|
+| 0.9.9 | 28 Nov 2026 | Statistics (14.7, D70, F28): `paired.csv` adds a crossed (trace slice × carbon start) bootstrap interval, used for headline claims; p-values are scoped to the sharp null on the replicates run. |
 | 0.9.8 | 27 Nov 2026 | Live demo (13.6, D69): five sites by default for the demo (`configs/regions5.yaml`), site-count agnostic API and UI (`/status` lists `sites`), two policies compared per page, one main chart per page with details behind "Show more", default speed 900; display only, no research change. |
 | 0.9.7 | 27 Nov 2026 | Built for Phase 3: X10 learned runtime quantiles as `scenario.runtime_model: x10`, deadlines still from the per-user table (D68, F27); interval scaling `scenario.interval_scale` multiplies e05, e95 (14.4); 5-site region-scaling config with Kolkata (ER) and Hyderabad (SR), total capacity fixed, ER errors from GB region 9 as an assumption (6.2.4, D67); Holm-adjusted p-values and Cohen's d_z in paired tables; `--replicates N`; `mean_waiting_jobs` metric. |
 | 0.9.6 | 27 Nov 2026 | EL Phase 3 scope and schedule fixed (18.2 "Scope and schedule", D66): seven goals for the review on 16 Dec 2026; scaling now covers load (sampling 0.05 to 1.0) and, if Indian data allows, region count (4–5 sites); scikit-learn admitted for X10 and X13 (12.1); DT3 (AWS) dropped, everything runs locally; four stages A–D, with the last two days for the paper, slides and report only. |
@@ -1175,6 +1176,8 @@ For reference: `place_once` 14,155 kg, `fcfs` 14,169 kg (2.07 % misses), `pig` 1
 ### 14.7 Statistical reporting
 
 For each metric and policy pair, report the mean over replicates, the paired difference versus `place_once` and its 95 % percentile bootstrap interval (10,000 resamples of replicates, numpy, fixed seed). Replicates sharing a trace slice or overlapping carbon weeks are not independent; say so and avoid p-values. Report per-replicate scatter plots so outliers are visible.
+
+[v0.9.9, D70] Replicates are a crossed design (trace slices × carbon starts, 14.2), so the bootstrap above, which resamples replicates as if independent, understates the variation that a new trace week or a new carbon week would bring. `paired.csv` therefore also carries `ci95_lo_crossed`, `ci95_hi_crossed`: a pigeonhole (two-way) bootstrap that resamples trace slices and carbon starts separately with replacement and averages every sampled pair (10,000 resamples, own fixed seed, so the earlier columns are unchanged). **Headline claims use the crossed interval**; the replicate interval stays for continuity with Phase 2. The sign-flip `p_value` and `p_holm` (D66) test the sharp null that the two policies behave identically on *these* replicates; they are not a statement about other weeks, and the paper says so. With 3 validation slices (4 test slices) the crossed interval is coarse and conservative; that is stated as a limitation, not fixed by adding replicates after the fact.
 
 ### 14.8 Reporting worse regimes
 

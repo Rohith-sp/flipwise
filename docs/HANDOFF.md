@@ -2,7 +2,7 @@
 
 Current state of the work, for a teammate or a new Claude Code session. Keep it short and overwrite it as things change; history belongs in `decisions.md`.
 
-**Last updated:** 27 Nov 2026 · **PRD version: 0.9.8**
+**Last updated:** 27 Nov 2026 · **PRD version: 0.9.9**
 
 ## Phase 3 plan (27 Nov 2026, D66): review on 16 Dec
 

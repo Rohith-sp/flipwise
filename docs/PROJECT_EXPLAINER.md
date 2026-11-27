@@ -639,7 +639,11 @@ For each metric, policies are compared **on the same replicates** (paired): same
 2. Resample the 16 differences with replacement 10,000 times (numpy, fixed seed); take the mean of each resample.
 3. The 2.5th and 97.5th percentiles of those means form the 95 % CI.
 
-If the CI excludes 0, the difference is clear; if it includes 0, the two policies cannot be told apart. No p-values are used, because replicates share trace weeks and carbon weeks and so are not independent.
+If the CI excludes 0, the difference is clear; if it includes 0, the two policies cannot be told apart.
+
+**Crossed interval (v0.9.9, D70).** The replicates are a grid: every trace slice is run with every carbon start, so two replicates that share a slice (or a carbon week) are not independent. Step 2 above ignores that and gives intervals that are too narrow for a claim about *new* weeks. The crossed interval resamples the slices and the carbon starts separately: draw 3 slices with replacement and 4 carbon starts with replacement, average the differences of every drawn (slice, start) pair, repeat 10,000 times. Headline claims use it (`ci95_lo_crossed`, `ci95_hi_crossed` in `paired.csv`). The p-values in the same table (sign-flip, Holm-corrected) only test "the two policies behave identically on these replicates".
+
+**Example (F28):** `decision_flip − place_once` on validation: −146 kg, replicate CI −234 to −60, crossed CI −282 to −30. `fixed_savings` on validation: replicate CI −230 to −20, crossed −289 to +23, so its validation lead is not clear once weeks are treated honestly.
 
 **Example:** `decision_flip − place_once` on the test set: mean −55 kg, CI −128 to +12. The CI includes 0, so "not distinguishable".
 

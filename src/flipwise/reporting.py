@@ -6,6 +6,7 @@ import csv
 import hashlib
 import json
 import platform
+import re
 from pathlib import Path
 
 import numpy as np
@@ -187,6 +188,54 @@ def cohens_dz(diff: np.ndarray) -> float:
     return float(diff.mean() / sd) if sd > 0 else float("nan")
 
 
+CROSSED_SEED_OFFSET = 1  # own generator, so the existing ci95 draws stay byte-identical
+_REPLICATE_CELL = re.compile(r"_d(\d+)_(.+)$")
+
+
+def replicate_cell(replicate: object) -> tuple[str, str] | None:
+    """`(trace slice, carbon start)` of a split replicate id `<split>_d<day>_<monday>` (§14.2)."""
+    m = _REPLICATE_CELL.search(str(replicate))
+    return None if m is None else (m.group(1), m.group(2))
+
+
+def crossed_bootstrap_ci(
+    diff: np.ndarray, cells: list[tuple[str, str]], seed: int = BOOTSTRAP_SEED
+) -> tuple[float, float]:
+    """95 % pigeonhole (two-way) bootstrap of the mean paired difference (PRD §14.7, D70).
+
+    Replicates cross trace slices with carbon starts, so two replicates that share either are
+    not independent. Resampling slices and carbon starts separately, then averaging every
+    sampled pair (Owen 2007), keeps both sources of shared variation; resampling the replicates
+    as if independent (`bootstrap_ci`) leaves them out and gives intervals that are too narrow.
+    Missing cells are skipped in each resample's mean. NaN when either factor has one level,
+    since there is then nothing to resample along it.
+    """
+    diff = np.asarray(diff, dtype=float)
+    slices = sorted({s for s, _ in cells})
+    starts = sorted({c for _, c in cells})
+    if len(cells) != len(diff) or len(slices) < 2 or len(starts) < 2:
+        return float("nan"), float("nan")
+    grid = np.zeros((len(slices), len(starts)))
+    have = np.zeros_like(grid)
+    for (s, c), d in zip(cells, diff, strict=True):
+        i, j = slices.index(s), starts.index(c)
+        grid[i, j] += d
+        have[i, j] += 1
+    rng = np.random.default_rng(seed + CROSSED_SEED_OFFSET)
+
+    def counts(n: int) -> np.ndarray:
+        picks = rng.integers(0, n, size=(BOOTSTRAP_RESAMPLES, n))
+        w = np.zeros((BOOTSTRAP_RESAMPLES, n))
+        np.add.at(w, (np.arange(BOOTSTRAP_RESAMPLES)[:, None], picks), 1.0)
+        return w
+
+    w_s, w_c = counts(len(slices)), counts(len(starts))
+    num = np.einsum("bi,ij,bj->b", w_s, grid, w_c)
+    den = np.einsum("bi,ij,bj->b", w_s, have, w_c)
+    boot = num[den > 0] / den[den > 0]
+    return float(np.percentile(boot, 2.5)), float(np.percentile(boot, 97.5))
+
+
 def holm_adjust(p: np.ndarray | list[float]) -> np.ndarray:
     """Holm-Bonferroni adjusted p-values (step-down, monotone, capped at 1), input order."""
     p = np.asarray(p, dtype=float)
@@ -223,7 +272,8 @@ def _paired(summary: pd.DataFrame) -> pd.DataFrame:
     if PAIRED_BASE not in set(summary["policy"]):
         return pd.DataFrame(
             columns=["policy", "metric", "n_replicates", "mean", "mean_base", "mean_diff"]
-            + ["ci95_lo", "ci95_hi", "p_value", "p_holm", "cohens_dz"]
+            + ["ci95_lo", "ci95_hi", "ci95_lo_crossed", "ci95_hi_crossed"]
+            + ["p_value", "p_holm", "cohens_dz"]
         )
     base = summary[summary["policy"] == PAIRED_BASE].set_index("replicate")
     for policy in sorted(set(summary["policy"]) - {PAIRED_BASE}):
@@ -234,6 +284,12 @@ def _paired(summary: pd.DataFrame) -> pd.DataFrame:
                 continue
             diff = (pair["a"] - pair["b"]).to_numpy(dtype=float)
             lo, hi = bootstrap_ci(diff, rng)
+            cells = [replicate_cell(r) for r in pair.index]
+            xlo, xhi = (
+                crossed_bootstrap_ci(diff, cells)  # type: ignore[arg-type]
+                if all(cells)
+                else (float("nan"), float("nan"))
+            )
             rows.append(
                 {
                     "policy": policy,
@@ -244,6 +300,8 @@ def _paired(summary: pd.DataFrame) -> pd.DataFrame:
                     "mean_diff": diff.mean(),
                     "ci95_lo": lo,
                     "ci95_hi": hi,
+                    "ci95_lo_crossed": xlo,
+                    "ci95_hi_crossed": xhi,
                     "p_value": paired_p_value(diff),
                     "cohens_dz": cohens_dz(diff),
                 }
