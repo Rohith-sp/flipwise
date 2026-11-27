@@ -172,3 +172,19 @@ def test_gpu_classes_and_runtime_fallback_chain():
     assert model.estimate("u", 1.0) == ((11, 20, 28, 29), "user")
     assert model.estimate("other", 1.0)[1] == "class"
     assert model.estimate("other", 100.0)[1] == "global"
+
+
+def test_five_sites_share_a_region_and_split_total_capacity_d66(world):
+    """D66: `regions` is per datacentre, so dc4 can share SR (region 3) with dc2; total capacity
+    is fixed, so per-site capacity is 3/5 of the 3-site figure."""
+    cfg, root = world
+    base = build_replicate(cfg, REP, root=root)
+    # Region 4 copies region 1 rows (the fixture only has regions 1 to 3).
+    for key in ("forecast", "truth"):
+        p = root / cfg["data"][key]
+        df = pd.read_csv(p)
+        pd.concat([df, df[df.region_id == 1].assign(region_id=4)]).to_csv(p, index=False)
+    sc = build_replicate({**cfg, "regions": [1, 2, 3, 4, 3]}, REP, root=root)
+    assert [d.region_id for d in sc.dcs] == [1, 2, 3, 4, 3]
+    assert sc.dcs[0].cap_gpu == pytest.approx(base.dcs[0].cap_gpu * 3 / 5)
+    assert sc.forecast.region_ids == [1, 2, 3, 4]

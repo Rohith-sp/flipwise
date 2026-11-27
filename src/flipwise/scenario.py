@@ -168,7 +168,10 @@ def load_or_fit_residuals(cfg: dict, root: Path = Path(".")) -> tuple[Residuals,
              "window": [lo_s, hi_s]}
         ).encode()
     ).hexdigest()  # fmt: skip
-    cache = paths[0].parent / "carbon_residuals.json"
+    # A non-default forecast file (the 5-site one, D66) gets its own cache, so the base one stays.
+    stem = paths[0].stem
+    suffix = stem.removeprefix("carbon_forecast") if stem.startswith("carbon_forecast_") else ""
+    cache = paths[0].parent / f"carbon_residuals{suffix}.json"
     if cache.exists():
         saved = json.loads(cache.read_text())
         if saved["key"] == key:
@@ -185,7 +188,7 @@ def load_or_fit_residuals(cfg: dict, root: Path = Path(".")) -> tuple[Residuals,
             )
     res, report = fit_residuals(
         pd.read_csv(paths[0]), pd.read_csv(paths[1]), pd.read_csv(paths[2]),
-        [int(r) for r in cfg["regions"]], lo_s, hi_s,
+        sorted({int(r) for r in cfg["regions"]}), lo_s, hi_s,
     )  # fmt: skip
     cache.write_text(
         json.dumps(

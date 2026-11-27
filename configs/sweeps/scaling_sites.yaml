@@ -1,0 +1,7 @@
+# Region scaling (PRD 18.2 goal 2b, D66): 3 vs 5 datacentres, same validation compare. Run the
+# 3-site base and the 5-site file separately, same seed and replicates:
+#   uv run flipwise compare --config configs/base.yaml     --split validation --replicates 2 --jobs 1
+#   uv run flipwise compare --config configs/regions5.yaml --split validation --replicates 2 --jobs 1
+# Build the 5-site forecast first (no change to carbon_forecast.csv):
+#   uv run flipwise build-forecasts --config configs/regions5.yaml
+# Total cluster capacity is fixed and split over the sites, so per-site capacity falls to 3/5.

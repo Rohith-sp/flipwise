@@ -212,7 +212,7 @@ class ForecastStore:
     """
 
     def __init__(self, forecast: pd.DataFrame, coverage: pd.DataFrame, region_ids: list[int]):
-        self.region_ids = sorted(region_ids)
+        self.region_ids = sorted(set(region_ids))  # sites may share a region (D66)
         hist: dict[tuple[int, int], tuple[list[int], list[float]]] = defaultdict(lambda: ([], []))
         f = forecast[forecast["region_id"].isin(self.region_ids)].sort_values(
             ["region_id", "slot_utc", "capture_utc"], kind="stable"
