@@ -24,7 +24,7 @@ Scope, goals and dates are in PRD §18.2 "Scope and schedule". Everything runs l
 4. Copy the finished `results/sweep_<hash>/` folder names into this file so the export step can find them.
 
 **Monday checks (short):**
-- Open the live dashboard (`uv run flipwise live --config configs/base.yaml`, http://localhost:8100) and click through the Guided tour and a "Why this job moved" card: no browser was available here, so the new page code is syntax-checked only.
+- Open the 5-site demo (`uv run flipwise live --config configs/regions5.yaml`, http://localhost:8100) and click through the Guided tour, a "Why this job moved" card, "Show more" panels and the "+1 h" skip button (added after the last screenshots). Known: Chennai and Hyderabad share the SR grid, so their carbon lines overlap.
 - After the runs: `uv run python scripts/make_figures.py --out docs/figures --sweep rho=results/sweep_<hash> --scaling results/sweep_<hash>`; then the win/lose table (B6).
 - Run IDs changed on 27 Nov (new config keys `interval_scale`, `runtime_model`), so no older `results/` run is reused: expected.
 
