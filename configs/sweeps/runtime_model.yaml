@@ -1,0 +1,3 @@
+# X10 (PRD §4.2, D66): per-user percentile tables vs learned quantiles, same rules. Validation only.
+grid:
+  scenario.runtime_model: [table, x10]

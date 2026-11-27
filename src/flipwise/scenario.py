@@ -224,6 +224,9 @@ def build_replicate(
     fit_lo, fit_hi = cfg["splits"]["runtime_fit_trace_days"]
     calibration = jobs_df[jobs_df["trace_arrival_s"].between(day_s(fit_lo), day_s(fit_hi) - 1)]
     runtime_model = fit_runtime(calibration, int(params["n_min"]))
+    runtime_kind = params.get("runtime_model", "table")  # table (PRD §6.5) or x10 (D66)
+    if runtime_kind not in ("table", "x10"):
+        raise ConfigError(f"scenario.runtime_model: expected table or x10, got {runtime_kind!r}")
 
     t0_s, t1_s = day_s(replicate.trace_days[0]), day_s(replicate.trace_days[1])
     window_s = t1_s - t0_s
@@ -262,11 +265,23 @@ def build_replicate(
     end_s = c0_s + int(cfg["horizon_days"]) * 86400
     slack_s, k_slack = int(params["slack_base_s"]), float(params["k_slack"])
     jobs, excluded, sources = [], 0, {"user": 0, "class": 0, "global": 0}
-    for r, (gpu_used, cpu_used) in zip(chosen.itertuples(index=False), used, strict=True):
+    learned = None
+    if runtime_kind == "x10":
+        from flipwise.runtime_ml import fit_learned  # lazy: scikit-learn is an optional extra
+
+        learned = fit_learned(calibration).estimate_all(chosen)
+        sources = {"x10": 0}
+    rows = zip(chosen.itertuples(index=False), used, strict=True)
+    for k, (r, (gpu_used, cpu_used)) in enumerate(rows):
         if r.gpu_req > cap_gpu or r.cpu_req > cap_cpu or r.mem_req_gb > cap_mem:
             excluded += 1  # fits no datacentre, and all three are equal (PRD §8.1)
             continue
         (q05, q50, q90, q95), source = runtime_model.estimate(r.user, float(r.gpu_req))
+        # The deadline always comes from the per-user table (PRD §6.6), so `x10` changes only what
+        # the scheduler believes about runtime, never the workload it is judged on (D66).
+        table_q90 = q90
+        if learned is not None:
+            (q05, q50, q90, q95), source = learned[k], "x10"
         sources[source] += 1
         arrival_s = c0_s + shift_s + int(r.trace_arrival_s) - t0_s
         jobs.append(
@@ -274,7 +289,7 @@ def build_replicate(
                 job_id=r.job_id, user=r.user, arrival_s=arrival_s, gpu_req=float(r.gpu_req),
                 cpu_req=float(r.cpu_req), mem_req_gb=float(r.mem_req_gb), r_q05_s=q05,
                 r_q50_s=q50, r_q90_s=q90, r_q95_s=q95,
-                deadline_s=arrival_s + slack_s + int(k_slack * q90),
+                deadline_s=arrival_s + slack_s + int(k_slack * table_q90),
                 runtime_actual_s=int(r.runtime_actual_s), gpu_type=str(r.gpu_type),
                 gpu_used=None if gpu_used is None else float(gpu_used),
                 cpu_used=None if cpu_used is None else float(cpu_used),
