@@ -1,4 +1,4 @@
-import { esc, num, badge, kindClass, colourOf, shortRegion, timeOnly, needed, explain } from "./util.js";
+import { whyCard, esc, num, badge, kindClass, colourOf, shortRegion, timeOnly, needed, explain } from "./util.js";
 import { getJob, getJobs, postJob } from "./api.js";
 
 export const title = ["Job tracker", "Submit a job and watch what every policy does with it"];
@@ -89,5 +89,5 @@ function draw() {
     ${box("Best alternative S_b", d.S_b_kg == null ? "--" : num(d.S_b_kg, 3) + " kg", d.to ? esc(shortRegion(d.to)) : "")}
     ${box("Saving S_a - S_b", saves == null ? "--" : num(saves, 3) + " kg", "")}
     ${box("Needed", need == null ? "--" : num(need, 3) + " kg", need == null ? "" : `g_min ${num(d.g_min_kg, 3)} + ${num(d.theta, 2)} &times; w_ab ${num(d.w_ab_kg, 3)}`)}</div>
-    <p style="margin:0">${esc(explain(d))}</p>`;
+    <div class="why-inline">${whyCard(d, chip.policy)}</div>`;
 }

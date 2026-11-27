@@ -145,3 +145,13 @@ table.fw-t{width:100%;border-collapse:collapse;font-size:13px}
 .fw-foot{margin-top:auto;border-top:1px solid var(--line);padding:12px 24px;display:flex;flex-wrap:wrap;gap:4px 24px;justify-content:space-between;font-size:12px;color:var(--mute);background:#fff}
 .fw-card h2{letter-spacing:-.005em}.fw-t td,.kpi .val,.cnt b,.kg{font-variant-numeric:tabular-nums}
 .fw-card:empty{display:none}
+.tip{text-decoration:underline dotted;cursor:help}
+.frow.clickable{cursor:pointer}.frow.clickable:hover,.frow.sel{background:#EFF6FF}
+.why-head{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:6px}
+.why-line{font-size:15px;font-weight:600;margin:0 0 10px}
+.why-row{display:grid;grid-template-columns:200px minmax(0,1fr);gap:8px;padding:4px 0;border-bottom:1px solid #F3F4F6;font-size:13px}
+.why-l{color:var(--mute)}
+.why-inline{margin-top:12px}
+.tour{position:fixed;right:20px;bottom:20px;width:320px;max-width:calc(100vw - 40px);background:#fff;border:1px solid var(--line);border-top:4px solid #1D4ED8;border-radius:10px;box-shadow:0 8px 28px rgba(0,0,0,.22);padding:12px 14px;z-index:50;font-size:13px}
+.tour p{margin:8px 0 10px}.tour-h{display:flex;justify-content:space-between;gap:8px;align-items:center}
+.tour-x{border:0;background:none;font-size:20px;line-height:1;cursor:pointer}.tour-b{display:flex;justify-content:space-between}

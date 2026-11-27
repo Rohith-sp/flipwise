@@ -1,4 +1,4 @@
-import { keepLast, esc, num, int, badge, dcLink, decisionText, colourOf, chart, carbonChart, gClass, shortRegion, timeOnly, REGION_COLOURS, REGION_SHORT } from "./util.js";
+import { tip, keepLast, esc, num, int, badge, dcLink, decisionText, colourOf, chart, carbonChart, gClass, shortRegion, timeOnly, REGION_COLOURS, REGION_SHORT } from "./util.js";
 
 const MAIN = "decision_flip", REF = "fixed_savings";
 let root = null;
@@ -48,10 +48,10 @@ function kpis(st, hist) {
   if (!m) return;
   const stop = m.screen_skips + m.full_rescores ? m.screen_skips / (m.screen_skips + m.full_rescores) : null;
   const tiles = [
-    { id: "co2", label: "CO2 so far", value: `${num(m.kg_co2_so_far, 2)} kg`, delta: f ? pct(m.kg_co2_so_far, f.kg_co2_so_far, "") : "", note: "decision_flip, completed jobs", f: (p) => p.kg_co2 },
-    { id: "resc", label: "Full re-scores", value: int(m.full_rescores), delta: f ? pct(m.full_rescores, f.full_rescores, "work") : "", note: "expensive checks run", f: (p) => p.full_rescores },
-    { id: "mv", label: "Jobs moved", value: int(m.moves), delta: f ? pct(m.moves, f.moves, "churn") : "", note: "plan changes accepted", f: (p) => p.moves },
-    { id: "scr", label: "Checks stopped by screen", value: stop == null ? "--" : `${(stop * 100).toFixed(0)}%`, delta: "", note: `${int(m.screen_skips)} of ${int(m.screen_skips + m.full_rescores)} checks`, f: shareOf },
+    { id: "co2", label: "CO2 emitted so far (kg)", value: `${num(m.kg_co2_so_far, 2)} kg`, delta: f ? pct(m.kg_co2_so_far, f.kg_co2_so_far, "") : "", note: "decision_flip, completed jobs", f: (p) => p.kg_co2 },
+    { id: "resc", label: tip("re-score", "Full re-scores"), value: int(m.full_rescores), delta: f ? pct(m.full_rescores, f.full_rescores, "work") : "", note: "number of expensive full checks", f: (p) => p.full_rescores },
+    { id: "mv", label: "Jobs moved (new site or slot)", value: int(m.moves), delta: f ? pct(m.moves, f.moves, "churn") : "", note: "plan changes accepted", f: (p) => p.moves },
+    { id: "scr", label: tip("screen", "Checks stopped by screen") + " (%)", value: stop == null ? "--" : `${(stop * 100).toFixed(0)}%`, delta: "", note: `${int(m.screen_skips)} of ${int(m.screen_skips + m.full_rescores)} checks`, f: shareOf },
     { id: "done", label: "Jobs completed", value: int(m.jobs_completed), delta: "", note: `${int(m.deadline_misses)} deadline ${m.deadline_misses === 1 ? "miss" : "misses"}, ${int(m.jobs_arrived)} arrived`, f: (p) => p.jobs_completed },
   ];
   const host = root.querySelector("#kpis");
