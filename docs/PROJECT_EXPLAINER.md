@@ -1587,6 +1587,15 @@ Updates come every 30 min: 720 updates over 15 days.
 
 Honest note: in the worst case (p = 1) every re-planner costs O(N·C·S) per update. `decision_flip` lowers the expected cost by filter-then-verify; it does not lower the worst case.
 
+Expected cost per update, written out (Phase 3 WP2, for the paper). Let `c_cand` be the cost of scoring one candidate (O(S) with prefix sums, plus a wait-profile lookup) and `c_LB` the cost of one screen bound (O(R·S_X), where S_X is the number of slot boundaries in the job's feasible start window X_j; no wait profiles):
+
+- `fixed_savings`, `periodic`: T(N) = N·(c_inc + C·c_cand)
+- `decision_flip`: T(N) = N·(c_inc + c_LB) + p·N·C·c_cand
+
+So the saving on full re-scoring is the factor p, and the total saving is close to 1 − p only when `c_LB` and the shared work (`c_inc`, placement, dispatch) are small next to `C·c_cand`. Measured on test: p = 0.443, so ideal re-score saving 56 %; measured 54 % fewer `stage2_calls` (the cooldown and move cap differ slightly) and 42 % less total scheduler CPU, because placement, rescue and dispatch are shared costs the screen does not touch.
+
+Prediction for the load-scaling study (WP3, goal 2). The number of updates is fixed (720 per horizon); N grows about linearly with the sampling fraction. Each move also rebuilds the wait profiles of two datacentres, whose cost grows with queue length. So total scheduler CPU of a re-planner should grow with a log-log slope between 1 (per-update cost linear in N) and 2 (profile rebuilds also growing with N). `decision_flip` should show the same slope with a smaller constant, unless p itself rises with load; the study measures p at each load to check this.
+
 ### 17.5 Cost comparison: measured scheduler CPU time
 
 Test set, mean per replicate over 16 replicates (about 9,026 jobs each), `perf_counter`, one machine. Times depend on the machine, so counts are given next to them. "Total scheduler" is the sum of `scheduler_placement_s`, `scheduler_screen_s`, `scheduler_rescore_s` and `scheduler_rescue_s`. "ms per re-score" is the per-replicate mean of `scheduler_rescore_s / stage2_calls`.
@@ -1610,9 +1619,34 @@ Source: `docs/test_results/summary.csv` (columns `scheduler_placement_s`, `sched
 
 Suggested sentence for the paper: "Worst-case complexity is O(N·C·S) per update for every re-planner; decision-flip lowers expected cost with an O(N·R·S) screen that is about 7.6 times cheaper per job than a full re-score, which measured CPU time confirms (93 s vs 159 s for fixed-savings, −42 %)."
 
-### 17.6 Architecture diagram: labelling to-do
+### 17.6 Architecture diagram: labelling (done 24 Nov)
+
+Redrawn with these labels in `ppt-stuff/phase2/architecture_labelled.png` (outside the repo) and used on slide 5 of the Phase 2 deck. Checklist used:
 
 - Number the blocks to match the slide order.
 - Label each arrow with the data it carries, for example "F(r,k,v) every 30 min", "SchedulerView", "MOVE/KEEP".
 - Draw a dashed box for the information boundary: policies never see the actual runtime or the carbon truth.
 - Add a legend for three kinds of block: data source, shared component, policy-specific part.
+
+### 17.7 P1 as a lemma with proof (Phase 3 WP2)
+
+Setting: `decision_flip` at θ = 0 and `fixed_savings` with identical `g_abs`, `g_rel`, `κ_switch`, `κ_queue`, `λ_ovh` and `max_moves`, and `cooldown_s` equal to the update interval (1,800 s, the default). Both share the scenario, planner, feasibility check, rescue rule and dispatcher (PRD §11), and both are deterministic (R-SIM-1).
+
+**Lemma 1 (the screen bound is a true lower bound).** For a pending job j at time t, every feasible alternative c has Ŝ_c ≥ LB_j.
+
+*Proof.* A feasible candidate c = (d, s) has point score Ŝ_c = K_j,d · C(r_d, x_c, r_q50) with x_c = s + w_mid (PRD §9.4). Since s ≥ slot0 and w_mid ≥ 0, x_c ≥ slot0. The deadline check (§9.5) requires s + w_hi + r_q90 ≤ deadline_j, and w_mid ≤ w_hi, so x_c ≤ deadline_j − r_q90 = x_max. Hence x_c ∈ X_j and d is eligible, so Ŝ_c ≥ min over eligible d and x ∈ X_j of K_j,d · C(r_d, x, r_q50) = LB_j. If X_j is empty, no feasible alternative exists and LB_j = +∞, which is consistent. ∎
+
+**Lemma 2 (a skipped job would not have moved).** If the screen fails for j (Ŝ_a − LB_j < g_min(j)), then `fixed_savings` keeps j at a.
+
+*Proof.* By Lemma 1, for every feasible c: Ŝ_a − Ŝ_c ≤ Ŝ_a − LB_j < g_min(j) = g_min(j) + 0 · w. So the gate rejects every alternative, including the best one b, and `fixed_savings` keeps a (or finds no alternative). ∎
+
+**Theorem (P1).** Under the setting above, the two policies make the same decision for every job at every event, so their `jobs.csv` and placement logs are identical; only `stage2_calls`, `SCREEN_FAIL` records and planner time differ.
+
+*Proof, by induction over events.* Before the first event both states are equal. Assume equal states before an event. Non-update events (arrival placement, release, dispatch, completion, rescue) run shared code on equal state, so the states stay equal. At a carbon update, both process pending jobs in the same tie order (deadline, arrival, job_id). For one job, given equal state:
+1. The incumbent re-score and any rescue are shared code, so they agree.
+2. Throttle: `n_moves` is equal by the induction hypothesis. The cooldown never binds, because a job last re-scored at the previous update has t = last_rescore_s + cooldown_s, and the condition t < last_rescore_s + cooldown_s is false. So the different `last_rescore_s` histories (`fixed_savings` records every re-score, `decision_flip` only those past the screen) cannot change a decision.
+3. If the screen fails, `decision_flip` keeps j, and by Lemma 2 `fixed_savings` also keeps j.
+4. If the screen passes, both call the same deterministic planner on the same state and get the same b; at θ = 0 the width term vanishes, so both apply the same gate Ŝ_a − Ŝ_b ≥ g_min and Ŝ_a − Ŝ_b > 0, and decide the same.
+A move is applied, and wait profiles rebuilt, before the next job (§10.6) in both policies, so the state stays equal job by job through the update, and dispatch then acts on equal state. ∎
+
+Limits of the claim: with `cooldown_s` longer than the update interval, step 2 fails and the policies can diverge (seen in F26, cooldown 7,200 s); P1 says nothing about θ > 0, where `decision_flip` deliberately makes fewer moves. Evidence that the implementation matches the proof: `scripts/check_p1.py` gives byte-identical `jobs.csv` and `events.log` on the dev week (11,956 decisions, PRD §10.11), and R-TRIG-1/R-TRIG-2 tests check Lemma 1 on randomised inputs and P1 on the toy.
