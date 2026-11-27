@@ -220,6 +220,9 @@ def build_replicate(
     fit_lo, fit_hi = cfg["splits"]["runtime_fit_trace_days"]
     calibration = jobs_df[jobs_df["trace_arrival_s"].between(day_s(fit_lo), day_s(fit_hi) - 1)]
     runtime_model = fit_runtime(calibration, int(params["n_min"]))
+    runtime_kind = params.get("runtime_model", "table")  # table (PRD §6.5) or x10 (D66)
+    if runtime_kind not in ("table", "x10"):
+        raise ConfigError(f"scenario.runtime_model: expected table or x10, got {runtime_kind!r}")
 
     t0_s, t1_s = day_s(replicate.trace_days[0]), day_s(replicate.trace_days[1])
     window_s = t1_s - t0_s
@@ -258,11 +261,21 @@ def build_replicate(
     end_s = c0_s + int(cfg["horizon_days"]) * 86400
     slack_s, k_slack = int(params["slack_base_s"]), float(params["k_slack"])
     jobs, excluded, sources = [], 0, {"user": 0, "class": 0, "global": 0}
-    for r, (gpu_used, cpu_used) in zip(chosen.itertuples(index=False), used, strict=True):
+    learned = None
+    if runtime_kind == "x10":
+        from flipwise.runtime_ml import fit_learned  # lazy: scikit-learn is an optional extra
+
+        learned = fit_learned(calibration).estimate_all(chosen)
+        sources = {"x10": 0}
+    rows = zip(chosen.itertuples(index=False), used, strict=True)
+    for k, (r, (gpu_used, cpu_used)) in enumerate(rows):
         if r.gpu_req > cap_gpu or r.cpu_req > cap_cpu or r.mem_req_gb > cap_mem:
             excluded += 1  # fits no datacentre, and all three are equal (PRD §8.1)
             continue
-        (q05, q50, q90, q95), source = runtime_model.estimate(r.user, float(r.gpu_req))
+        if learned is None:
+            (q05, q50, q90, q95), source = runtime_model.estimate(r.user, float(r.gpu_req))
+        else:
+            (q05, q50, q90, q95), source = learned[k], "x10"
         sources[source] += 1
         arrival_s = c0_s + shift_s + int(r.trace_arrival_s) - t0_s
         jobs.append(

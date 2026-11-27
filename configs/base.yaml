@@ -39,6 +39,7 @@ scenario:
   missing_gpu_policy: zero   # zero or drop (PRD §6.4)
   phase_shift_h: 0           # PRD §6.3
   n_min: 20                  # calibration jobs a user needs for per-user quantiles (PRD §6.5)
+  runtime_model: table       # table (PRD §6.5, default) or x10 learned quantiles (D66; --extra ml)
 # Carbon Mondays below are Monday 00:00 IST = Sunday 18:30 UTC (§6.3).
 
 splits:
