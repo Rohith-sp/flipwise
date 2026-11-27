@@ -2,7 +2,19 @@
 
 Current state of the work, for a teammate or a new Claude Code session. Keep it short and overwrite it as things change; history belongs in `decisions.md`.
 
-**Last updated:** 27 Nov 2026 · **PRD version: 0.9.9**
+**Last updated:** 28 Nov 2026 · **PRD version: 0.9.9**
+
+## 28 Nov 2026: method review and new work (not yet pushed, no tests run locally)
+
+Written without running tests: the laptop used overheats, so **CI (`.github/workflows/ci.yml`) runs ruff, `pytest` and `smoke` on GitHub after the push**. Check that the first run is green before relying on any of this.
+
+- **Method check.** The screen's lower bound is sound in the code (`planner.lower_bound`, `CarbonTable.min_window`), including `feasibility = point` (it switches to `r_q50`) and windows with unknown slots. P1 stands.
+- **Statistics fixed (D70, F28).** The 12/16 replicates are trace slices × carbon starts, so the iid bootstrap and sign-flip p-values were too optimistic. `paired.csv` now also has `ci95_lo_crossed`/`ci95_hi_crossed`; **use those for headline claims.** On the committed CSVs: `decision_flip` vs `place_once` on validation still excludes 0 (−282 to −30 kg); the leads of `fixed_savings` and `pred_error` on validation no longer do. The test claim (D51) is unchanged. Re-export `docs/validation/` and `docs/test_results/` with `scripts/export_validation.py` when convenient (summaries only, no reruns).
+- **Scaling study (D71).** Runs now record `ops_profile_builds` and `ops_start_queries`, which are deterministic; fig7 plots them beside CPU time. Fit the RQ4 slope on both. **Do not do the timing runs on a laptop that throttles.**
+- **Goal 1 table.** `scripts/win_lose_table.py --out docs/win_lose --sweep rho=results/sweep_<hash> ...` builds "helps when / loses when" from finished sweeps. Its verdict rules (crossed CI, 1 pp miss allowance) were fixed before any result.
+- **DT3-K (D72).** The datacentres can run as k3s pods across team laptops for the demo. The staged plan is in `deploy/k3s/README.md`: K0 terminals, K1 k3d on one laptop, K2 multi-laptop, K3 review. It is built but not yet run on any cluster, so run K1 (`bash scripts/k3s/k3d_cluster.sh up && bash scripts/k3s/k3s_check.sh`) first.
+- **Long runs still pending** (list below): they need `data/processed/` and a machine that can stay on and cool. The laptop used for this review has no `data/processed/`.
+- **Open suggestions, not done:** (1) WP6's "second look" at the test replicates is weak evidence. If the carbon archive extends past 31 Jan 2024, untouched carbon months crossed with the test trace slices would be a cleaner held-out check. (2) Persistent HTTP connections in `HttpDatacentre` would cut the per-call cost over Wi-Fi (F18); this is transport only and optional.
 
 ## Phase 3 plan (27 Nov 2026, D66): review on 16 Dec
 
