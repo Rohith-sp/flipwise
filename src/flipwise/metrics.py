@@ -117,6 +117,8 @@ def compute_metrics(
             "scheduler_screen_s": _num(stats.get("screen_s", 0.0)),
             "scheduler_rescore_s": _num(stats.get("rescore_s", 0.0)),
             "scheduler_rescue_s": _num(stats.get("rescue_s", 0.0)),
+            "ops_profile_builds": int(stats.get("ops_profile_builds", 0)),
+            "ops_start_queries": int(stats.get("ops_start_queries", 0)),
         }
     )
 

@@ -47,6 +47,8 @@ SCHED_COLS = (
     "scheduler_rescore_s",
     "scheduler_rescue_s",
 )
+# Deterministic work counts (D71); older summaries lack them, so sweeps read them with `get`.
+OPS_COLS = ("ops_profile_builds", "ops_start_queries")
 TRACE_SLICE_DAYS = 7  # PRD §14.2
 PACKAGES = ("pandas", "numpy", "pyyaml", "matplotlib")
 
@@ -416,6 +418,7 @@ def sweep(
                     "moves": row["moves"],
                     "mean_waiting_jobs": row["mean_waiting_jobs"],
                     **{c: row[c] for c in SCHED_COLS},
+                    **{c: row.get(c) for c in OPS_COLS},
                     "dflip_worse_than": worse,
                 }
             )

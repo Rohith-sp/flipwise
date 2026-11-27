@@ -93,6 +93,10 @@ class SchedulerView:
         self._excluding: dict[tuple, UsageProfile] = {}
         self._tables: dict[tuple[int, int], CarbonTable] = {}
         self._requests: dict[str, Request] = {}
+        # Operation counts (D71): deterministic, so the scaling study can fit cost against
+        # waiting jobs without depending on a laptop's clock speed or thermal throttling.
+        self.profile_builds = 0
+        self.start_queries = 0
 
     @property
     def now_s(self) -> int:
@@ -139,12 +143,14 @@ class SchedulerView:
             # datacentre shares this one, so it must survive their churn.
             prof = self._build_profile(dc_id, q)
             self._profiles[(dc_id, q)] = (stamp, prof)
+            self.profile_builds += 1
         if exclude is None:
             return prof
         key = (dc_id, q, exclude, *stamp)
         excluding = self._excluding.get(key)
         if excluding is None:
             excluding = prof.without(exclude)
+            self.profile_builds += 1
             if len(self._excluding) > 64:
                 self._excluding.clear()
             self._excluding[key] = excluding
@@ -196,6 +202,7 @@ class SchedulerView:
     def projected_start(self, dc_id: int, job: JobInfo, release_s: int, q: str) -> int | None:
         # Only a job already at this datacentre is in its profile, so every other job can share
         # the one cached profile instead of rebuilding it (PRD §9.3).
+        self.start_queries += 1
         at_dc = job.dc_id == dc_id and job.state in PENDING
         prof = self.profile(dc_id, q, exclude=job.job_id if at_dc else None)
         return prof.earliest_fit(release_s, job.r_q(q), job.request)
@@ -206,6 +213,7 @@ class SchedulerView:
         List scheduling places jobs in order, so jobs behind `job` cannot affect this start and
         the shared profile, which contains `job`, gives the same answer as one cut off there.
         """
+        self.start_queries += 1
         return self.profile(job.dc_id, q).starts.get(job.job_id)  # type: ignore[arg-type]
 
 
@@ -440,6 +448,10 @@ class Simulator:
     def result(self) -> RunResult:
         sc = self.scenario
         stats = getattr(self.policy, "stats", None)
+        ops = {
+            "ops_profile_builds": getattr(self.view, "profile_builds", 0),
+            "ops_start_queries": getattr(self.view, "start_queries", 0),
+        }
         return RunResult(
             list(self.jobs.values()),
             self.events,
@@ -447,7 +459,7 @@ class Simulator:
             sc,
             self.policy.name,
             self.policy.uses_oracle,
-            stats.as_dict() if stats is not None else {},
+            {**(stats.as_dict() if stats is not None else {}), **ops},
         )
 
     def _handle(self, ev: Event) -> None:

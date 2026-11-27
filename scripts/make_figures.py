@@ -205,19 +205,30 @@ def fig7(out: Path, scaling: Path | None) -> None:
         return skip(name, f"{f} missing or lacks mean_waiting_jobs")
     d = d.copy()
     d["cpu_s"] = d[[c for c in CPU_COLS if c in d]].sum(axis=1)
-    fig, ax = plt.subplots(figsize=(W, 2.8))
-    for i, (pol, g) in enumerate(d.groupby("policy")):
-        g = g[(g["cpu_s"] > 0) & (g["mean_waiting_jobs"] > 0)]
-        gx = g.groupby("mean_waiting_jobs")["cpu_s"].mean()
-        if len(gx) < 2:
-            continue
-        slope = np.polyfit(np.log10(gx.index.values), np.log10(gx.values), 1)[0]
-        ax.loglog(
-            gx.index, gx.values, "o-", ms=3, color=PAL[i % 8], label=f"{pol} (slope {slope:.2f})"
-        )
-    ax.set_xlabel("Mean waiting jobs")
-    ax.set_ylabel("Scheduler CPU (s per run)")
-    ax.legend(frameon=False)
+    # CPU time depends on the machine (and its throttling); the operation count does not (D71),
+    # so it is plotted beside CPU time when the summary has it.
+    panels = [("cpu_s", "Scheduler CPU (s per run)")]
+    if "ops_start_queries" in d and d["ops_start_queries"].fillna(0).gt(0).any():
+        panels.append(("ops_start_queries", "Wait-profile queries per run"))
+    fig, axes = plt.subplots(1, len(panels), figsize=(W * len(panels), 2.8), squeeze=False)
+    for ax, (col, label) in zip(axes[0], panels, strict=True):
+        for i, (pol, g) in enumerate(d.groupby("policy")):
+            g = g[(g[col] > 0) & (g["mean_waiting_jobs"] > 0)]
+            gx = g.groupby("mean_waiting_jobs")[col].mean()
+            if len(gx) < 2:
+                continue
+            slope = np.polyfit(np.log10(gx.index.values), np.log10(gx.values), 1)[0]
+            ax.loglog(
+                gx.index,
+                gx.values,
+                "o-",
+                ms=3,
+                color=PAL[i % 8],
+                label=f"{pol} (slope {slope:.2f})",
+            )
+        ax.set_xlabel("Mean waiting jobs")
+        ax.set_ylabel(label)
+        ax.legend(frameon=False)
     save(fig, out, name, str(f))
 
 

@@ -132,6 +132,7 @@ Every design decision, grouped by the phase it was made in. For how the project 
 | ID | Date | Decision | Why | Status | PRD | Code |
 |---|---|---|---|---|---|---|
 | D70 | 28 Nov | Headline paired comparisons use a crossed (pigeonhole) bootstrap interval, resampling trace slices and carbon starts separately (`ci95_lo_crossed`, `ci95_hi_crossed` in `paired.csv`); the replicate bootstrap stays beside it; sign-flip p-values are reported as tests of the sharp null on the replicates run, not as generalisation | §14.7 said replicates sharing a slice or carbon week are not independent and avoided p-values, then D66 added p-values on the same iid assumption. On committed results the crossed interval is 1.4–2× wider (F28); claims about unseen weeks need it | active | §14.7 | reporting |
+| D71 | 28 Nov | Count work, not only time: `SchedulerView` counts wait-profile builds and projected-start queries (`ops_profile_builds`, `ops_start_queries` in `metrics.json`, sweep summaries and fig7) | The load-scaling study (WP3) fits cost against waiting jobs; CPU time on a laptop that throttles when hot grows faster on long runs than the work does, which biases the slope upward. Counts are deterministic, so any machine (or a teammate's) reproduces them, and they do not touch the byte-identical logs | active | §14.1, §18.2 | simulator, metrics, experiment |
 
 ## Project tooling: PRD v0.8.2 (4 Nov 2026)
 

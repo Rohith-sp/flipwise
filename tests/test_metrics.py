@@ -130,3 +130,13 @@ def test_mean_waiting_jobs_is_little_law_total_wait_over_horizon_r_met_1():
     """a waited 0 s, b 3600 s, c never started so waits to the 86400 s end: 90000 / 86400."""
     m = compute_metrics(_jobs(), NO_DECISIONS, {}, DCS, 0, 86400)
     assert m["mean_waiting_jobs"] == pytest.approx(90000 / 86400)
+
+
+def test_operation_counts_are_deterministic_and_track_rescoring_d71(toy):
+    """D71: work counts for the scaling study do not depend on the machine, unlike CPU time."""
+    first = _metrics_for(toy, "fixed_savings")
+    again = _metrics_for(toy, "fixed_savings")
+    once = _metrics_for(toy, "place_once")
+    for key in ("ops_profile_builds", "ops_start_queries"):
+        assert first[key] == again[key] > 0
+    assert first["ops_start_queries"] >= once["ops_start_queries"]

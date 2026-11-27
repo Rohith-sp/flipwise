@@ -17,7 +17,7 @@
 
 | Version | Date | Changes |
 |---|---|---|
-| 0.9.9 | 28 Nov 2026 | Statistics (14.7, D70, F28): `paired.csv` adds a crossed (trace slice × carbon start) bootstrap interval, used for headline claims; p-values are scoped to the sharp null on the replicates run. |
+| 0.9.9 | 28 Nov 2026 | Statistics (14.7, D70, F28): `paired.csv` adds a crossed (trace slice × carbon start) bootstrap interval, used for headline claims; p-values are scoped to the sharp null on the replicates run. Metrics (14.1, D71): deterministic operation counts `ops_profile_builds`, `ops_start_queries`, so the scaling study does not rest on CPU time from a throttling laptop. |
 | 0.9.8 | 27 Nov 2026 | Live demo (13.6, D69): five sites by default for the demo (`configs/regions5.yaml`), site-count agnostic API and UI (`/status` lists `sites`), two policies compared per page, one main chart per page with details behind "Show more", default speed 900; display only, no research change. |
 | 0.9.7 | 27 Nov 2026 | Built for Phase 3: X10 learned runtime quantiles as `scenario.runtime_model: x10`, deadlines still from the per-user table (D68, F27); interval scaling `scenario.interval_scale` multiplies e05, e95 (14.4); 5-site region-scaling config with Kolkata (ER) and Hyderabad (SR), total capacity fixed, ER errors from GB region 9 as an assumption (6.2.4, D67); Holm-adjusted p-values and Cohen's d_z in paired tables; `--replicates N`; `mean_waiting_jobs` metric. |
 | 0.9.6 | 27 Nov 2026 | EL Phase 3 scope and schedule fixed (18.2 "Scope and schedule", D66): seven goals for the review on 16 Dec 2026; scaling now covers load (sampling 0.05 to 1.0) and, if Indian data allows, region count (4–5 sites); scikit-learn admitted for X10 and X13 (12.1); DT3 (AWS) dropped, everything runs locally; four stages A–D, with the last two days for the paper, slides and report only. |
@@ -1096,6 +1096,7 @@ Let `J` be admitted jobs in the evaluation slice, `J_c ⊆ J` completed by the s
 | Placement changes | total `MOVE`s; per-job distribution; `moves / |J|` | Secondary |
 | Rescues, fallbacks | counts by reason code | Diagnostic |
 | Scheduler time | wall-clock in policy hooks, split into initial placement, screen and re-scoring (s); measured on one stated machine | Secondary |
+| Operation counts [v0.9.9, D71] | `ops_profile_builds` (wait profiles built or derived) and `ops_start_queries` (projected-start lookups, about 3 per candidate scored); deterministic, identical on any machine and in both deployment modes | Secondary; the scaling study (WP3) fits its log-log slope on these as well as on CPU time |
 | Runtime interval coverage | fraction of `J_c` with `r_q05 ≤ runtime_actual ≤ r_q95`; mean width | Secondary |
 | Wait interval coverage | fraction of starts with `w_lo ≤ realised wait ≤ w_hi` measured from the *last* placement; mean width | Secondary |
 | Carbon interval coverage | per lead bucket: fraction of `(r, k, v)` with `A` inside the interval; mean width | Secondary |
@@ -1432,7 +1433,7 @@ The Phase 3 review is on 16 Dec 2026 and carries 60 marks. The published part of
 
 Only if time remains: X13 (only if X10 is done by 6 Dec) and the WP6 second look at the test replicates (only with the guide's approval). Out of scope: X11, X12, a second trace, DT3.
 
-**Load scaling (WP3, revised).** 2 validation replicates at sampling 0.05, 0.1, 0.25 and 0.5 for `place_once`, `fixed_savings`, `periodic` and `decision_flip`; sampling 1.0 for `place_once` and `decision_flip` only. A re-planner that does not finish within a set time limit at 1.0 is reported as such. Timing runs use `--jobs 1` and never overlap other runs, because they measure CPU time.
+**Load scaling (WP3, revised).** 2 validation replicates at sampling 0.05, 0.1, 0.25 and 0.5 for `place_once`, `fixed_savings`, `periodic` and `decision_flip`; sampling 1.0 for `place_once` and `decision_flip` only. A re-planner that does not finish within a set time limit at 1.0 is reported as such. Timing runs use `--jobs 1` and never overlap other runs, because they measure CPU time. [v0.9.9, D71] The slope is also fitted on the deterministic operation counts (14.1), which any machine reproduces exactly; CPU time is reported with the machine named, and a laptop that throttles under sustained load is not used for it.
 
 **Schedule.**
 
