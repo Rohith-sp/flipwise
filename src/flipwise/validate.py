@@ -87,7 +87,7 @@ def _truth_gaps(truth: pd.DataFrame, region_col: str, regions, lo: int, hi: int)
 def check_data(cfg: dict, root: Path = Path(".")) -> list[str]:
     errs = []
     data = cfg["data"]
-    paths = {k: root / v for k, v in data.items() if k != "manifests"}
+    paths = {k: root / v for k, v in data.items() if k not in ("manifests", "forecast_manifest")}
     for k in ("jobs", "coverage", "gb_error_paths", "gb_truth"):
         if not paths[k].exists():
             errs.append(f"missing {k} file {paths[k]}; run `flipwise ingest`")
@@ -96,9 +96,11 @@ def check_data(cfg: dict, root: Path = Path(".")) -> list[str]:
             errs.append(f"missing Indian {k} {paths[k]}; run `flipwise {cmd}` (blocker B4)")
     man_dir = root / data["manifests"]
     for man_name, outputs in MANIFESTS:
-        present = {n: paths[k] for n, k in outputs.items() if paths[k].exists()}
+        present = {paths[k].name: paths[k] for n, k in outputs.items() if paths[k].exists()}
         if not present:
             continue
+        if man_name == "india_forecasts.json":
+            man_name = data.get("forecast_manifest", man_name)
         mp = man_dir / man_name
         if not mp.exists():
             errs.append(f"missing manifest {mp}")

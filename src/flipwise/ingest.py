@@ -702,5 +702,7 @@ def ingest_forecasts(cfg: dict, alpha: float | None = None) -> dict:
     man = {**_base_manifest(), "alpha": alpha, "error_source": mapping, "s_r": s_r, **counts,
            "rows": len(fc), "outputs_sha256": {out.name: sha256_file(out)}}  # fmt: skip
     Path(d["manifests"]).mkdir(parents=True, exist_ok=True)
-    (Path(d["manifests"]) / "india_forecasts.json").write_text(json.dumps(man, indent=2) + "\n")
+    # A separate forecast file (5-site config, D66) needs its own manifest, so the base one stays.
+    man_name = d.get("forecast_manifest", "india_forecasts.json")
+    (Path(d["manifests"]) / man_name).write_text(json.dumps(man, indent=2) + "\n")
     return {"s_r": s_r, "rows": len(fc), **counts}

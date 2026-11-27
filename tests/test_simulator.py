@@ -224,3 +224,14 @@ def test_replanning_outputs_are_byte_identical_r_sim_1(toy, policy, tmp_path):
     a = write_run(Simulator(toy, make_policy(policy)).run(), tmp_path / "a")
     b = write_run(Simulator(toy, make_policy(policy)).run(), tmp_path / "b")
     assert a == b
+
+
+def test_five_site_toy_with_duplicate_region_runs_d66(toy):
+    """D66: two sites on one region are legal; candidates and the screen LB loop over all sites."""
+    sc = copy.copy(toy)
+    sc.dcs = [*toy.dcs, DcConfig(3, 1, 4, 32, 100), DcConfig(4, 3, 4, 32, 100)]
+    for name in ("fcfs", "place_once", "fixed_savings", "decision_flip"):
+        a = Simulator(sc, make_policy(name)).run()
+        b = Simulator(sc, make_policy(name)).run()
+        assert a.decisions == b.decisions
+        assert len(a.jobs) == len(toy.jobs)
