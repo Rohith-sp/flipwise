@@ -219,7 +219,7 @@ Dockerfile, docker-compose.yml   one image: three datacentre services, coordinat
 ## Roadmap
 
 - **EL Phase 2 (current):** simulator, seven policies, validation and test results, distributed deployment (local services and Docker), live demo.
-- **EL Phase 3 (research, review on 16 Dec 2026):** see [PRD §18.2](docs/prd.md) "Scope and schedule" ([D66](docs/decisions.md)): sensitivity sweeps and ablations (when does re-planning pay), a proof of P1 with a complexity, load-scaling and (if data allows) region-scaling study, Holm-corrected statistics, learned runtime quantiles (X10), a polished demo, and an IEEE paper, slides and report. A learned move gate (X13) and a second look at the test weeks only if time and the guide allow. Everything runs locally; AWS is dropped.
+- **EL Phase 3 (research, review on 16 Dec 2026):** see [PRD §18.2](docs/prd.md) "Scope and schedule" ([D66](docs/decisions.md)): sensitivity sweeps and ablations (when does re-planning pay), a proof of P1 with a complexity, load-scaling and (if data allows) region-scaling study, Holm-corrected statistics, learned runtime quantiles (X10), a polished demo, and an IEEE paper, slides and report. A learned move gate (X13) and a second look at the test weeks only if time and the guide allow. Everything runs locally; AWS is dropped. For the demo, the datacentres can run on several team laptops under k3s (DT3-K, [deploy/k3s/README.md](deploy/k3s/README.md), D72).
 
 ## Acknowledgements
 

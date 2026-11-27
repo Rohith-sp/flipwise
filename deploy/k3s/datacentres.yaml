@@ -1,0 +1,242 @@
+# Datacentre services on k3s (PRD §13.5 DT3-K, D72): one Deployment and one NodePort Service per
+# site. Each pod is pinned by the node label flipwise.io/site-<name>=true, so the SAME file runs
+# on one laptop (label that node with every site) or on five (one site per laptop); see
+# scripts/k3s/label_sites.sh. dc_id order is fixed by the coordinator's --dc-urls list.
+#
+# Deliberate choices (do not "fix" them):
+# - replicas: 1 and strategy Recreate: a datacentre's state lives in one process's memory.
+# - No livenessProbe: a restart would wipe that state mid-run. A restarted pod answers 409
+#   NOT_READY until the coordinator sends /reset, so a run that lost a datacentre aborts with
+#   DeploymentError instead of continuing on wrong state (R-DEP-3).
+# - imagePullPolicy: Never: images are imported on each node (no registry), so a missing image
+#   fails fast with ErrImageNeverPull instead of trying Docker Hub.
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: flipwise
+---
+# Delhi NCR (dc0)
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: dc-delhi
+  namespace: flipwise
+  labels: {app.kubernetes.io/name: flipwise-dc, flipwise.io/site: delhi}
+spec:
+  replicas: 1
+  strategy: {type: Recreate}
+  selector:
+    matchLabels: {flipwise.io/site: delhi}
+  template:
+    metadata:
+      labels: {app.kubernetes.io/name: flipwise-dc, flipwise.io/site: delhi}
+    spec:
+      nodeSelector: {flipwise.io/site-delhi: "true"}
+      automountServiceAccountToken: false
+      enableServiceLinks: false
+      securityContext: {runAsNonRoot: true, runAsUser: 1000}
+      containers:
+        - name: dc
+          image: flipwise-dc:dev
+          imagePullPolicy: Never
+          args: ["--dc-id", "0", "--host", "0.0.0.0", "--port", "8101"]
+          ports: [{name: http, containerPort: 8101}]
+          readinessProbe:
+            httpGet: {path: /health, port: http}
+            periodSeconds: 2
+            failureThreshold: 3
+          resources:
+            requests: {cpu: 50m, memory: 64Mi}
+            limits: {memory: 512Mi}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: dc-delhi
+  namespace: flipwise
+  labels: {app.kubernetes.io/name: flipwise-dc, flipwise.io/site: delhi}
+spec:
+  type: NodePort
+  selector: {flipwise.io/site: delhi}
+  ports: [{name: http, port: 8101, targetPort: http, nodePort: 30101}]
+---
+# Mumbai (dc1)
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: dc-mumbai
+  namespace: flipwise
+  labels: {app.kubernetes.io/name: flipwise-dc, flipwise.io/site: mumbai}
+spec:
+  replicas: 1
+  strategy: {type: Recreate}
+  selector:
+    matchLabels: {flipwise.io/site: mumbai}
+  template:
+    metadata:
+      labels: {app.kubernetes.io/name: flipwise-dc, flipwise.io/site: mumbai}
+    spec:
+      nodeSelector: {flipwise.io/site-mumbai: "true"}
+      automountServiceAccountToken: false
+      enableServiceLinks: false
+      securityContext: {runAsNonRoot: true, runAsUser: 1000}
+      containers:
+        - name: dc
+          image: flipwise-dc:dev
+          imagePullPolicy: Never
+          args: ["--dc-id", "1", "--host", "0.0.0.0", "--port", "8101"]
+          ports: [{name: http, containerPort: 8101}]
+          readinessProbe:
+            httpGet: {path: /health, port: http}
+            periodSeconds: 2
+            failureThreshold: 3
+          resources:
+            requests: {cpu: 50m, memory: 64Mi}
+            limits: {memory: 512Mi}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: dc-mumbai
+  namespace: flipwise
+  labels: {app.kubernetes.io/name: flipwise-dc, flipwise.io/site: mumbai}
+spec:
+  type: NodePort
+  selector: {flipwise.io/site: mumbai}
+  ports: [{name: http, port: 8101, targetPort: http, nodePort: 30102}]
+---
+# Chennai (dc2)
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: dc-chennai
+  namespace: flipwise
+  labels: {app.kubernetes.io/name: flipwise-dc, flipwise.io/site: chennai}
+spec:
+  replicas: 1
+  strategy: {type: Recreate}
+  selector:
+    matchLabels: {flipwise.io/site: chennai}
+  template:
+    metadata:
+      labels: {app.kubernetes.io/name: flipwise-dc, flipwise.io/site: chennai}
+    spec:
+      nodeSelector: {flipwise.io/site-chennai: "true"}
+      automountServiceAccountToken: false
+      enableServiceLinks: false
+      securityContext: {runAsNonRoot: true, runAsUser: 1000}
+      containers:
+        - name: dc
+          image: flipwise-dc:dev
+          imagePullPolicy: Never
+          args: ["--dc-id", "2", "--host", "0.0.0.0", "--port", "8101"]
+          ports: [{name: http, containerPort: 8101}]
+          readinessProbe:
+            httpGet: {path: /health, port: http}
+            periodSeconds: 2
+            failureThreshold: 3
+          resources:
+            requests: {cpu: 50m, memory: 64Mi}
+            limits: {memory: 512Mi}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: dc-chennai
+  namespace: flipwise
+  labels: {app.kubernetes.io/name: flipwise-dc, flipwise.io/site: chennai}
+spec:
+  type: NodePort
+  selector: {flipwise.io/site: chennai}
+  ports: [{name: http, port: 8101, targetPort: http, nodePort: 30103}]
+---
+# Kolkata (dc3)
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: dc-kolkata
+  namespace: flipwise
+  labels: {app.kubernetes.io/name: flipwise-dc, flipwise.io/site: kolkata}
+spec:
+  replicas: 1
+  strategy: {type: Recreate}
+  selector:
+    matchLabels: {flipwise.io/site: kolkata}
+  template:
+    metadata:
+      labels: {app.kubernetes.io/name: flipwise-dc, flipwise.io/site: kolkata}
+    spec:
+      nodeSelector: {flipwise.io/site-kolkata: "true"}
+      automountServiceAccountToken: false
+      enableServiceLinks: false
+      securityContext: {runAsNonRoot: true, runAsUser: 1000}
+      containers:
+        - name: dc
+          image: flipwise-dc:dev
+          imagePullPolicy: Never
+          args: ["--dc-id", "3", "--host", "0.0.0.0", "--port", "8101"]
+          ports: [{name: http, containerPort: 8101}]
+          readinessProbe:
+            httpGet: {path: /health, port: http}
+            periodSeconds: 2
+            failureThreshold: 3
+          resources:
+            requests: {cpu: 50m, memory: 64Mi}
+            limits: {memory: 512Mi}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: dc-kolkata
+  namespace: flipwise
+  labels: {app.kubernetes.io/name: flipwise-dc, flipwise.io/site: kolkata}
+spec:
+  type: NodePort
+  selector: {flipwise.io/site: kolkata}
+  ports: [{name: http, port: 8101, targetPort: http, nodePort: 30104}]
+---
+# Hyderabad (dc4)
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: dc-hyderabad
+  namespace: flipwise
+  labels: {app.kubernetes.io/name: flipwise-dc, flipwise.io/site: hyderabad}
+spec:
+  replicas: 1
+  strategy: {type: Recreate}
+  selector:
+    matchLabels: {flipwise.io/site: hyderabad}
+  template:
+    metadata:
+      labels: {app.kubernetes.io/name: flipwise-dc, flipwise.io/site: hyderabad}
+    spec:
+      nodeSelector: {flipwise.io/site-hyderabad: "true"}
+      automountServiceAccountToken: false
+      enableServiceLinks: false
+      securityContext: {runAsNonRoot: true, runAsUser: 1000}
+      containers:
+        - name: dc
+          image: flipwise-dc:dev
+          imagePullPolicy: Never
+          args: ["--dc-id", "4", "--host", "0.0.0.0", "--port", "8101"]
+          ports: [{name: http, containerPort: 8101}]
+          readinessProbe:
+            httpGet: {path: /health, port: http}
+            periodSeconds: 2
+            failureThreshold: 3
+          resources:
+            requests: {cpu: 50m, memory: 64Mi}
+            limits: {memory: 512Mi}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: dc-hyderabad
+  namespace: flipwise
+  labels: {app.kubernetes.io/name: flipwise-dc, flipwise.io/site: hyderabad}
+spec:
+  type: NodePort
+  selector: {flipwise.io/site: hyderabad}
+  ports: [{name: http, port: 8101, targetPort: http, nodePort: 30105}]

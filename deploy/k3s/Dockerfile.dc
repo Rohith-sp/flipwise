@@ -1,0 +1,27 @@
+# Slim datacentre image for k3s (PRD §13.5 DT3-K, D72). `flipwise dc-serve` imports only the
+# standard library (dcservice, datacentre, models, errors, sites, webstatic), so it needs no
+# pandas/numpy/matplotlib: about 185 MB on python:3.12-slim instead of the 733 MB full image.
+# Laptops that only host datacentres need this image and nothing else. Same Python minor version
+# as the coordinator, so JSON floats round-trip identically (R-DEP-1).
+#
+# Build from the repository root (the root .dockerignore allow-list applies):
+#   docker build -f deploy/k3s/Dockerfile.dc --build-arg GIT_COMMIT=$(git rev-parse HEAD) \
+#     -t flipwise-dc:dev .
+FROM python:3.12-slim
+
+WORKDIR /app
+COPY src/flipwise ./flipwise
+
+ENV PYTHONPATH=/app \
+    PYTHONUNBUFFERED=1 \
+    PYTHONDONTWRITEBYTECODE=1
+
+ARG GIT_COMMIT=unknown
+ENV FLIPWISE_GIT_COMMIT=$GIT_COMMIT
+LABEL org.opencontainers.image.revision=$GIT_COMMIT
+
+# Numeric uid: python:3.12-slim has no user 1000, and the manifests require runAsNonRoot.
+USER 1000
+
+ENTRYPOINT ["python", "-m", "flipwise", "dc-serve"]
+CMD ["--help"]

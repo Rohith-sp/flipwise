@@ -216,7 +216,8 @@ The same simulation can reach its three datacentres in different ways. In every 
 | **In-process** (default) | `uv run flipwise run ... --mode inproc` | One Python process; datacentres are objects (`InProcDatacentre`) | Used for all research results |
 | **DT1 local split** | `bash scripts/local_cluster.sh ...` or `.\scripts\local_cluster.ps1 ...`; or by hand: three `flipwise dc-serve` plus `flipwise run --mode remote` | Three `dc-serve` processes on ports 8101–8103 and the coordinator, on one machine, talking JSON over HTTP | Complete (Linux and Windows) |
 | **DT2 Docker** | `docker compose up --build --abort-on-container-exit --exit-code-from coordinator` | One image; containers `dc-delhi`, `dc-mumbai`, `dc-chennai`, `coordinator` on a private network | Complete on Linux, including a clean clone (F20); Windows run waived by the team |
-| **DT3 AWS** | `scripts/aws/` (planned) | Three EC2 instances in `ap-south-1` (Mumbai), coordinator on a fourth or a laptop | Not started; comes after the test results |
+| **DT3 AWS** | — | Three EC2 instances in `ap-south-1` | Dropped (D66) |
+| **DT3-K k3s on laptops** (v0.9.9, D72) | `deploy/k3s/README.md`: `scripts/k3s/k3d_cluster.sh up` on one laptop, or k3s server + agents on several; `scripts/k3s/k3s_check.sh` | One pod per datacentre (slim `flipwise-dc` image, ~180 MB), pinned to a laptop by a node label, NodePorts 30101–30105; coordinator and live dashboard on the presenting laptop with `uv run` | Built; not yet run on a cluster. Demo only, no research evidence |
 | **Live mode** | `uv run flipwise live ...` (add `--services local`, or the Docker `live` profile) | The simulator paced by the wall clock, several policies side by side, a website on port 8100 | Done (D60); for showing only, never for results |
 | **Per-datacentre dashboards** | Automatic with any `dc-serve` (D62) | Each service also serves its own page on its port: 8101 Delhi NCR, 8102 Mumbai, 8103 Chennai | Done; display only |
 
