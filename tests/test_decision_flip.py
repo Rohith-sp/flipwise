@@ -368,6 +368,27 @@ def test_paired_width_counts_runtime_that_differs_between_options():
     assert seen["w"] == pytest.approx(0.375)
 
 
+def test_interval_scale_doubles_the_width_and_rejects_non_positive_h4():
+    """PRD §14.4 H4: scale 2 doubles `w_ab` on the 0.375 kg example above; scale must be > 0."""
+    seen = {}
+
+    class Probe(FixedSavings):
+        def replan(self, view, job_, inc):
+            b = planner.evaluate(view, job_, 1, T0 + 6 * SLOT, intervals=True)
+            seen["w"] = planner.paired_width(view, job_, inc, b)
+            return iter(())
+
+    f = {1: {0: 100, 8: 1000}, 2: 200, 3: 200}
+    for scale, expected in ((1.0, 0.375), (2.0, 0.75)):
+        sc = scenario([job("X", q=(1800, 3600, 5400, 7200), deadline=60000)], {0: f, SLOT: f})
+        sc.params = planner.PlannerParams(interval_scale=scale)
+        Simulator(sc, forced(Probe(), {"X": (0, 6 * SLOT)})).run()
+        assert seen["w"] == pytest.approx(expected)
+    for bad in (0.0, -1.0, float("nan")):
+        with pytest.raises(ConfigError, match="interval_scale"):
+            planner.PlannerParams(interval_scale=bad)
+
+
 def test_ablations_change_the_width():
     seen = {}
 

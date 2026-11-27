@@ -6,6 +6,7 @@ import math
 from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
+from flipwise.errors import ConfigError
 from flipwise.models import (
     PENDING,
     SLOT_S,
@@ -35,6 +36,15 @@ LB_ROUNDING_GUARD = 1 - 1e-12
 class PlannerParams:
     h_defer_s: int = 24 * 3600
     feasibility: str = "conservative"  # or "point" (ablation, PRD §9.5)
+    # Multiplies the decision-flip noise width `w_ab` (PRD §10.5). Scaling the width, not the
+    # forecast-error residuals, leaves `L_c`, `U_c` and every score untouched, so θ = 0 runs and
+    # the default 1.0 are unchanged. PRD §14.4 H4 scales `e05, e95` instead; this is a narrower
+    # test of the same width sensitivity and is recorded as a deviation in docs/decisions.md.
+    interval_scale: float = 1.0
+
+    def __post_init__(self) -> None:
+        if not (math.isfinite(self.interval_scale) and self.interval_scale > 0):
+            raise ConfigError(f"scenario.interval_scale: expected > 0, got {self.interval_scale}")
 
 
 def _kg_per_gs(dc: DcConfig, job: JobInfo) -> float:
@@ -249,13 +259,14 @@ def paired_width(
         if lo is None or hi is None:
             return None
         total += k_kg * (hi[2] - lo[1])
+    scale = view.params.interval_scale  # PRD §14.4 H4; 1.0 leaves the width unchanged
     width_s = total / 2
     if width == "carbon_only":
-        return width_s
+        return scale * width_s
     d95, d05 = _score_difference(view, job, a, b, "q95"), _score_difference(view, job, a, b, "q05")
     if d95 is None or d05 is None:
         return None
-    return width_s + abs(d95 - d05) / 2
+    return scale * (width_s + abs(d95 - d05) / 2)
 
 
 def _score_difference(

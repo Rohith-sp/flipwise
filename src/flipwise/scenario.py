@@ -315,7 +315,11 @@ def build_replicate(
         power=power,
         start_s=start_s,
         end_s=end_s,
-        params=PlannerParams(int(params["h_defer_s"]), str(params["feasibility"])),
+        params=PlannerParams(
+            int(params["h_defer_s"]),
+            str(params["feasibility"]),
+            float(params.get("interval_scale", 1.0)),  # PRD §14.4 H4 sweep key
+        ),
         residuals=residuals,
         scenario_hash=h.hexdigest(),
         build_report=report,

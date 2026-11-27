@@ -1,0 +1,3 @@
+# Sensitivity: decision-flip interval width scale (PRD §14.4 H4). 1.0 is the base case.
+grid:
+  scenario.interval_scale: [0.5, 1.0, 2.0]
